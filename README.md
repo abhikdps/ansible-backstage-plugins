@@ -1,8 +1,13 @@
-# Getting started with Ansible plugins (The setup steps are temporary and will eventually change as we integrate with RDH)
+# Ansible plugins for Red Hat developer hub
 
-> **Note:** This repository is under active development and is not yet ready for production use.
+## Getting started with Ansible plugins
 
-1. Setup backstage
+**Note:**
+* The setup steps are temporary and will change as we integrate with RHDH using dynamic loading
+* This repository is under active development and is not yet ready for production use.
+
+
+### 1. Setup backstage
 
 ```bash
 git clone git@github.com:backstage/backstage.git
@@ -12,7 +17,7 @@ yarn install
 
 Note: Tested with node v16.20.2 version
 
-2.Configure Backstage with the Github authentication
+###  2. Configure Backstage with the Github authentication
 
 Refer <https://backstage.io/docs/auth/github/provider>
 
@@ -25,7 +30,7 @@ In `app-config.yaml` file add below lines at the end of `locations` sections:
         - allow: [Template]
 ```
 
-3. Add and Install Ansible plugins dependencies within Backstage
+### 3. Add and Install Ansible plugins dependencies within Backstage
 
 Clone the plugins from the repo in the `backstage/plugins` folder
 Install dependencies
@@ -40,7 +45,7 @@ yarn install
 cd ..
 ```
 
-4. Configure Backstage to load plugins manually
+### 4. Configure Backstage to load plugins manually
 
 Add the below line in the file `packages/app/package.json` within the `dependencies` section
 
@@ -151,7 +156,7 @@ index a2aa1044066c..ffa238ed1196 100644
    return await createRouter({
 ```
 
-5. Start frontend and backend by running below commands at the root folder of backstage in seperate terminals
+### 5. Start frontend and backend by running below commands at the root folder of backstage in seperate terminals
 
 Frontend
 
