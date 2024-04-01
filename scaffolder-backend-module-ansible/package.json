@@ -20,7 +20,8 @@
     "test": "backstage-cli package test",
     "clean": "backstage-cli package clean",
     "prepack": "backstage-cli package prepack",
-    "postpack": "backstage-cli package postpack"
+    "postpack": "backstage-cli package postpack",
+    "export-dynamic": "janus-cli package export-dynamic-plugin"
   },
   "dependencies": {
     "@backstage/backend-common": "workspace:^",
@@ -35,9 +36,13 @@
   },
   "devDependencies": {
     "@backstage/backend-test-utils": "workspace:^",
-    "@backstage/cli": "workspace:^"
+    "@backstage/cli": "^0.26.2",
+    "@janus-idp/cli": "^1.4.7"
   },
   "files": [
-    "dist"
+    "dist",
+    "dist-dynamic/*.*",
+    "dist-dynamic/dist/**",
+    "dist-dynamic/alpha/*"
   ]
 }

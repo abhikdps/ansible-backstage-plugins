@@ -3,9 +3,9 @@
 ## Getting started with Ansible plugins
 
 **Note:**
-* The setup steps are temporary and will change as we integrate with RHDH using dynamic loading
-* This repository is under active development and is not yet ready for production use.
 
+- The setup steps are temporary and will change as we integrate with RHDH using dynamic loading
+- This repository is under active development and is not yet ready for production use.
 
 ### 1. Setup backstage
 
@@ -17,17 +17,17 @@ yarn install
 
 Note: Tested with node v16.20.2 version
 
-###  2. Configure Backstage with the Github authentication
+### 2. Configure Backstage with the Github authentication
 
 Refer <https://backstage.io/docs/auth/github/provider>
 
 In `app-config.yaml` file add below lines at the end of `locations` sections:
 
 ```yaml
-    - type: file
-      target: ../../plugins/scaffolder-backend-module-ansible/templates/all.yaml
-      rules:
-        - allow: [Template]
+- type: file
+  target: ../../plugins/scaffolder-backend-module-ansible/templates/all.yaml
+  rules:
+    - allow: [Template]
 ```
 
 ### 3. Add and Install Ansible plugins dependencies within Backstage
@@ -167,7 +167,7 @@ pip install ansible-creator
 Under the `integrations` section within backstage `app-config.yaml` file
 add the Github personal access token as shown below
 
-```yaml
+````yaml
   github:
     - host: github.com
       token: <GITHUB_PAT>
@@ -178,7 +178,7 @@ Frontend
 
 ```bash
 yarn start
-```
+````
 
 Backend
 
@@ -192,15 +192,18 @@ The Backstage plugin can be reached is running at the endpoint
 http://localhost:3000/ansible
 ```
 
-
 # Installing with Backstage showcase
 
 Refer to the step mentioned here <https://github.com//blob/main/#installing-a-dynamic-plugin-package-in-the-showcase>
 
-To run backstage--showcase locally follow the below steps
+Clone the  repository and within the ``
+folder run the below command
 
-1. Clone the  repository and within the ``
-   folder run the below command
+## Frontend plugin
+
+To load the frontend plugin with  locally follow the below steps
+
+1. Run the following commands
 
 ```bash
 pkg=<local-clone-parent-path-replace-me>/ansible-backstage-plugins/ansible
@@ -210,8 +213,8 @@ mv package $(echo $archive | sed -e 's:\.tgz$::')
 ```
 
 2. Add the below section in `app-config.local.yaml` file
-```yaml
 
+```yaml
 dynamicPlugins:
   frontend:
     janus-idp.backstage-plugin-ansible:
@@ -224,7 +227,6 @@ dynamicPlugins:
           menuItem:
             icon: AnsibleLogo
             text: Ansible
-
 ```
 
 3. Start frontend by running the command in the root folder of ``
@@ -232,4 +234,70 @@ dynamicPlugins:
 
 ```bash
 LOG_LEVEL=debug yarn start
+```
+
+## Backend plugin
+
+To load the backend plugin with  locally follow the below steps
+
+1. Run the following commands
+
+```bash
+cd scaffolder-backend-module-ansible
+yarn export-dynamic
+```
+
+2. Update the below section in `app-config.local.yaml` file
+
+```yaml
+dynamicPlugins:
+  backend:
+    backstage.plugin-scaffolder-backend-module-ansible:
+      mountPoints:
+        - importName: createAnsibleContentAction
+          mountPoint: entity.page.overview/cards
+```
+
+2. Update the below section in `app-config.local.yaml` file
+
+```yaml
+catalog:
+  locations:
+    - type: file
+      target: ../..//scaffolder-backend-module-ansible/templates/all.yaml
+      rules:
+        - allow: [Template]
+```
+
+3. Update the package.json at `packages/backend/package.json`
+
+```json
+"@backstage/plugin-scaffolder-backend-module-ansible": "^0.0.0",
+```
+
+Note - if node version is 20.x.y please update
+
+```diff
+% git diff package.json
+diff --git a/package.json b/package.json
+index 55c3489..f815574 100644
+--- a/package.json
++++ b/package.json
+@@ -8,8 +8,8 @@
+   "scripts": {
+     "prepare": "husky install",
+     "ci": "turbo run lint build test",
+-    "start": "turbo run start --parallel",
+-    "start-backend": "turbo run start --filter=backend",
++    "start": "NODE_OPTIONS=--no-node-snapshot turbo run start --parallel",
++    "start-backend": "NODE_OPTIONS=--no-node-snapshot turbo run start --filter=backend",
+     "build": "turbo run build",
+     "tsc": "tsc",
+```
+
+4. Start the backend by running the command in the root folder of ``
+   cloned repository path.
+
+```bash
+LOG_LEVEL=debug yarn start-backend
 ```
