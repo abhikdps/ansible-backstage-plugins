@@ -13,15 +13,4 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// @ts-check
-// NOTE: This file is intentionally .jsx, so that there is one file in this repo where we make sure .jsx files work.
-
-import React from 'react';
-import { makeStyles } from '@material-ui/core';
-import Logo from '../../../images/ansible-logo.png';
-
-export const AnsibleLogo = () => (
-  <img src={Logo} alt='ansible-logo'/>
-);
-
-export default AnsibleLogo;
+export { WorkspaceIcon } from './WorkspaceIcon';

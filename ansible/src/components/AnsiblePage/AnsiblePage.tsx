@@ -13,41 +13,70 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react';
-import { Tab } from '@material-ui/core';
-import {
-  Header,
-  Page,
-  Content,
-  TabbedCard,
-} from '@backstage/core-components';
+
+import React, { useState } from 'react';
+import { Header, Page, HeaderTabs, Content } from '@backstage/core-components';
 import { EntityOverviewContent } from '../OverviewContent';
 import { EntityCatalogContent } from '../CatalogContent';
 import { EntityCreateContent } from '../CreateContent';
 import { EntityLearnContent } from '../LearnContent';
-import { EntityDiscoverContent } from '../DiscoverContent';
+import {
+  Navigate,
+  Route,
+  Routes,
+  useNavigate,
+  useParams,
+} from 'react-router';
 
-export const AnsiblePage = () => (
-  <Page themeId="tool">
-    <Header title="Ansible"/>
-    <Content>
-      <TabbedCard>
-        <Tab label="Overview">
-          <EntityOverviewContent />
-        </Tab>
-        <Tab label="Catalog">
-          <EntityCatalogContent />
-        </Tab>
-        <Tab label="Create">
-          <EntityCreateContent />
-        </Tab>
-        <Tab label="Discover">
-          <EntityDiscoverContent />
-        </Tab>
-        <Tab label="Learn">
-          <EntityLearnContent />
-        </Tab>
-      </TabbedCard>
-    </Content>
-  </Page>
-);
+const AnisbleHeader = () => <Header title="Ansible" />;
+
+const tabs = [
+  { id: 0, label: 'Overview' },
+  { id: 1, label: 'Catalog' },
+  { id: 2, label: 'Create' },
+  { id: 3, label: 'Learn' },
+];
+
+export const AnsiblePage = () => {
+  const param = useParams();
+  const section = param['*'];
+  const navigate = useNavigate();
+  
+  const selectedTabIndex = tabs.findIndex(
+    item => item.label.toLocaleLowerCase() === section,
+  );
+  const [selectedTab, setSelectedTab] = useState<any>(tabs[selectedTabIndex > -1 ? selectedTabIndex : 0]);
+
+  const onTabSelect = (index: number) => {
+    setSelectedTab(tabs[index]);
+    navigate(tabs[index].label.toLocaleLowerCase());
+  };
+  return (
+    section === '' ? <Navigate to='overview'/> : (
+    <Page themeId="app">
+      <AnisbleHeader />
+      <HeaderTabs
+        selectedIndex={selectedTab.id}
+        onChange={onTabSelect}
+        tabs={tabs.map(({ id, label }) => ({
+          id: id.toString(),
+          label,
+        }))}
+      />
+
+      <Content>
+        <Routes>
+          <Route path="/">
+            <Route
+              path="overview"
+              element={<EntityOverviewContent onTabChange={onTabSelect}/>}
+            />
+            <Route path="catalog" element={<EntityCatalogContent />} />
+            <Route path="create" element={<EntityCreateContent />} />
+            <Route path="learn" element={<EntityLearnContent />} />
+          </Route>
+        </Routes>
+      </Content>
+    </Page>
+  ));
+};
