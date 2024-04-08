@@ -38,7 +38,7 @@ import Star from '@material-ui/icons/Star';
 import { useApi } from '@backstage/core-plugin-api';
 import useAsync from 'react-use/esm/useAsync';
 
-const useStyles = makeStyles({
+const useStyles = makeStyles(theme => ({
   container: {
     backgroundColor: 'default',
     padding: '20px',
@@ -86,20 +86,20 @@ const useStyles = makeStyles({
     width: '64px',
     height: '64px',
     borderRadius: '50%',
-    background: '#F8F8F8',
+    backgroundColor: theme.palette.type === 'light' ? '#F8F8F8' : '',
     textAlign: 'center',
     lineHeight: '32px',
     boxShadow:
       '0px 2px 1px -1px rgba(0,0,0,0.2),0px 1px 1px 0px rgba(0,0,0,0.14),0px 1px 3px 0px rgba(0,0,0,0.12)',
   },
   icon_align: {
-    color: '#06C',
+    color: theme.palette.type === 'light' ? '#06C' : 'currentColor',
     position: 'relative',
     top: '50%',
     transform: 'translateY(-40%)',
   },
   link_label: {
-    color: '#181818',
+    color: theme.palette.type === 'light' ? '#181818' : '',
     maxWidth: '96px',
     fontSize: '12px',
     wordBreak: 'break-word',
@@ -113,9 +113,9 @@ const useStyles = makeStyles({
     marginRight: '10px',
   },
   kind: {
-    color: '#757575',
+    color: theme.palette.type === 'light' ? '#757575' : 'currentColor',
   },
-});
+}));
 
 export interface IQuickAccessLinks {
   name?: string;

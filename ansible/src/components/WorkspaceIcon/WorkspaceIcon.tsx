@@ -17,15 +17,15 @@
 import React from 'react';
 import { makeStyles } from '@material-ui/core';
 
-const useStyles = makeStyles({
+const useStyles = makeStyles(theme => ({
   svg: {
     width: '80',
     height: 80,
   },
   path: {
-    fill: '#e00',
+    fill: theme.palette.type === 'light' ? '#06C' : 'currentColor',
   },
-});
+}));
 
 export const WorkspaceIcon = () => {
   const classes = useStyles();
@@ -33,7 +33,7 @@ export const WorkspaceIcon = () => {
   return (
     <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g filter="url(#filter0_d_1031_9010)">
-        <path d="M48 30H32C30.9 30 30.01 30.9 30.01 32L30 44C30 45.1 30.9 46 32 46H48C49.1 46 50 45.1 50 44V32C50 30.9 49.1 30 48 30ZM32 35H42.5V38.5H32V35ZM32 40.5H42.5V44H32V40.5ZM48 44H44.5V35H48V44Z" fill="#0066CC"/>
+        <path className={classes.path} d="M48 30H32C30.9 30 30.01 30.9 30.01 32L30 44C30 45.1 30.9 46 32 46H48C49.1 46 50 45.1 50 44V32C50 30.9 49.1 30 48 30ZM32 35H42.5V38.5H32V35ZM32 40.5H42.5V44H32V40.5ZM48 44H44.5V35H48V44Z" fill="#0066CC"/>
       </g>
       <defs>
         <filter id="filter0_d_1031_9010" x="0" y="0" width="80" height="80" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">

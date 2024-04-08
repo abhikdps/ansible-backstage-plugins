@@ -26,26 +26,18 @@ import { useApi } from '@backstage/core-plugin-api';
 import { Table, TableColumn } from '@backstage/core-components';
 import { Chip } from '@material-ui/core';
 // eslint-disable-next-line no-restricted-imports
-import { Edit } from '@material-ui/icons';
+import { Edit, Visibility } from '@material-ui/icons';
 import { Link } from '@backstage/core-components';
 import { IconButton, Tooltip } from '@material-ui/core';
 import { scmIntegrationsApiRef } from '@backstage/integration-react';
-// eslint-disable-next-line no-restricted-imports
-import { Visibility } from '@material-ui/icons';
 
 const useStyles = makeStyles({
   container: {
-    backgroundColor: 'default',
     padding: '20px',
   },
   text: {
-    color: 'white',
     marginTop: '5px',
     fontSize: '15px', // Increase the font size as needed
-  },
-  divider: {
-    margin: '20px 0',
-    backgroundColor: 'white', // Make the divider white so it stands out on the light blue background
   },
 });
 

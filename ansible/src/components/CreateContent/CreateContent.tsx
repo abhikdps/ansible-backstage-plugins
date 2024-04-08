@@ -32,29 +32,23 @@ import { Entity } from '@backstage/catalog-model';
 import { TemplateGroups } from '@backstage/plugin-scaffolder-react/alpha';
 import { useNavigate } from 'react-router';
 
-const useStyles = makeStyles({
+const useStyles = makeStyles(theme => ({
   container: {
-    backgroundColor: 'default',
+    // backgroundColor: 'default',
     padding: '20px',
   },
   text: {
-    color: 'white',
     marginTop: '5px',
     fontSize: '15px', // Increase the font size as needed
   },
-  divider: {
-    margin: '20px 0',
-    backgroundColor: 'white', // Make the divider white so it stands out on the light blue background
-  },
   card: {
     maxWidth: 345,
-    backgroundColor: '#1f1f1f', // Set the background color of the card to a dark gray
-    color: 'white', // Set the text color to white
+    backgroundColor: theme.palette.type === 'light' ? '#1f1f1f' : 'currentColor', // Set the background color of the card to a dark gray
   },
   cardContent: {
     textAlign: 'left', // Align the card content to the left
   },
-});
+}));
 
 const EntityCreateIntroCard = () => {
   const classes = useStyles();

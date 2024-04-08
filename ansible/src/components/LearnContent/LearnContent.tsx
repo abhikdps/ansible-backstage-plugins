@@ -14,23 +14,25 @@
  * limitations under the License.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { InfoCard, ItemCardGrid, Link } from '@backstage/core-components';
-import {
-  Checkbox,
-  FormControl,
-  FormControlLabel,
-  Grid,
-  Typography,
-  makeStyles,
-} from '@material-ui/core';
+import { Grid, Typography, makeStyles } from '@material-ui/core';
 import AnsibleLearnIcon from '../../../images/ansible-learn.png';
 import OpenInNew from '@material-ui/icons/OpenInNew';
 import { labs, learningPaths } from './data';
+import {
+  EntityListProvider,
+} from '@backstage/plugin-catalog-react';
+import {
+  SearchBar,
+  SearchContextProvider,
+  SearchFilter,
+  useSearch,
+} from '@backstage/plugin-search-react';
 
-const useStyles = makeStyles({
+const useStyles = makeStyles(theme => ({
   container: {
-    backgroundColor: 'default',
+    // backgroundColor: 'default',
     padding: '20px',
   },
   flex: {
@@ -68,7 +70,7 @@ const useStyles = makeStyles({
     },
   },
   subtitle: {
-    color: 'rgba(0, 0, 0, 0.40)',
+    color: theme.palette.type === 'light' ? 'rgba(0, 0, 0, 0.40)' : 'currentColor',
   },
   textDecorationNone: {
     '&:hover': {
@@ -88,7 +90,7 @@ const useStyles = makeStyles({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
-});
+}));
 
 const RenderCourses = ({ data }) => {
   const classes = useStyles();
@@ -122,8 +124,30 @@ const RenderCourses = ({ data }) => {
 
 const EntityLearnIntroCard = () => {
   const classes = useStyles();
-  const [showLabs, setShowLabs] = useState<boolean>(true);
-  const [showLearningPaths, setShowLearningPaths] = useState<boolean>(true);
+
+  const { filters, term } = useSearch();
+  const [filteredData, setFilteredData] = useState({
+    learningPaths: learningPaths,
+    labs: labs,
+  });
+
+  useEffect(() => {
+    if (term.length > 1) {
+      setFilteredData({
+        learningPaths: learningPaths.filter(
+          item =>
+            item.name?.toLocaleLowerCase().includes(term) ||
+            item.description?.toLocaleLowerCase().includes(term),
+        ),
+        labs: labs.filter(
+          item =>
+            item.name?.toLocaleLowerCase().includes(term) ||
+            item.description?.toLocaleLowerCase().includes(term),
+        ),
+      });
+
+    } else setFilteredData({ learningPaths: learningPaths, labs: labs });
+  }, [term]);
 
   return (
     <>
@@ -160,72 +184,41 @@ const EntityLearnIntroCard = () => {
 
       <Grid container spacing={3}>
         <Grid item xs={2}>
-          <FormControl fullWidth data-testid="search-checkboxfilter-next">
-            <FormControlLabel
-              key="Learning Path"
-              classes={{
-                root: classes.checkboxWrapper,
-                label: classes.textWrapper,
-              }}
-              label="Learning Path"
-              control={
-                <Checkbox
-                  color="primary"
-                  inputProps={{ 'aria-labelledby': 'Learning Path' }}
-                  value="Learning Path"
-                  name="Learning Path"
-                  onChange={() => setShowLearningPaths(!showLearningPaths)}
-                  checked={showLearningPaths}
-                />
-              }
-            />
-            <FormControlLabel
-              key="Labs"
-              classes={{
-                root: classes.checkboxWrapper,
-                label: classes.textWrapper,
-              }}
-              label="Labs"
-              control={
-                <Checkbox
-                  color="primary"
-                  inputProps={{ 'aria-labelledby': 'Learning Path' }}
-                  value="Labs"
-                  name="Labs"
-                  onChange={() => setShowLabs(!showLabs)}
-                  checked={showLabs}
-                />
-              }
-            />
-          </FormControl>
-          {/* <SearchFilter.Checkbox
-            name="Learn Types"
-            values={['Learning Path', 'Lab']}
-            defaultValue={['Learning Path', 'Lab']}
-          /> */}
+          <SearchBar
+            debounceTime={100}
+            className=""
+            clearButton={false}
+            placeholder="Search"
+          />
+          <SearchFilter.Checkbox
+            name="types"
+            values={['Learning Paths', 'Labs']}
+            defaultValue={['Learning Paths', 'Labs']}
+          />
         </Grid>
         <Grid item xs={10}>
-          {showLearningPaths && (
-            <div style={{ marginBottom: '35px' }}>
-              <Typography paragraph>
-                <Typography paragraph>LEARNING PATHS</Typography>
-                <Typography paragraph className={classes.fontSize14}>
-                  Step-by-step enablement curated by Red Hat Ansible.
+          {filters?.types?.includes('Learning Paths') &&
+            filteredData.learningPaths.length > 0 && (
+              <div style={{ marginBottom: '35px' }}>
+                <Typography paragraph>
+                  <Typography paragraph>LEARNING PATHS</Typography>
+                  <Typography paragraph className={classes.fontSize14}>
+                    Step-by-step enablement curated by Red Hat Ansible.
+                  </Typography>
                 </Typography>
-              </Typography>
-              <ItemCardGrid>
-                <RenderCourses data={learningPaths} />
-              </ItemCardGrid>
-            </div>
-          )}
-          {showLabs && (
+                <ItemCardGrid>
+                  <RenderCourses data={filteredData.learningPaths} />
+                </ItemCardGrid>
+              </div>
+            )}
+          {filters?.types?.includes('Labs') && filteredData.labs.length > 0 && (
             <div>
               <Typography paragraph>LABS</Typography>
               <Typography paragraph className={classes.fontSize14}>
                 Hands-on, interactive learning scenarios.
               </Typography>
               <ItemCardGrid>
-                <RenderCourses data={labs} />
+                <RenderCourses data={filteredData.labs} />
               </ItemCardGrid>
             </div>
           )}
@@ -236,5 +229,11 @@ const EntityLearnIntroCard = () => {
 };
 
 export const EntityLearnContent = () => {
-  return <EntityLearnIntroCard />;
+  return (
+    <EntityListProvider>
+      <SearchContextProvider>
+        <EntityLearnIntroCard />;
+      </SearchContextProvider>
+    </EntityListProvider>
+  );
 };

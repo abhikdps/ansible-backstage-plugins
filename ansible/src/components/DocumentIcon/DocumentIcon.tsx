@@ -17,15 +17,15 @@
 import React from 'react';
 import { makeStyles } from '@material-ui/core';
 
-const useStyles = makeStyles({
+const useStyles = makeStyles(theme => ({
   svg: {
     width: '80',
     height: 80,
   },
   path: {
-    fill: '#06C'
+    fill: theme.palette.type === 'light' ? '#06C' : 'currentColor'
   },
-});
+}));
 
 export const DocumentIcon = () => {
   const classes = useStyles()
