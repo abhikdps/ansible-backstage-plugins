@@ -18,11 +18,19 @@ import React from 'react';
 import { ContentHeader, InfoCard } from '@backstage/core-components';
 import { Grid, Typography, makeStyles } from '@material-ui/core';
 import { useAsync } from 'react-use';
-import { CatalogFilterLayout, EntityKindPicker, EntityListProvider, EntitySearchBar, EntityTagPicker, UserListPicker, catalogApiRef } from '@backstage/plugin-catalog-react';
+import {
+  CatalogFilterLayout,
+  EntityKindPicker,
+  EntityListProvider,
+  EntitySearchBar,
+  UserListPicker,
+  catalogApiRef,
+} from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
-import { Content, Page, Progress} from '@backstage/core-components';
+import { Content, Page, Progress } from '@backstage/core-components';
 import { Entity } from '@backstage/catalog-model';
 import { TemplateGroups } from '@backstage/plugin-scaffolder-react/alpha';
+import { useNavigate } from 'react-router';
 
 const useStyles = makeStyles({
   container: {
@@ -55,20 +63,27 @@ const EntityCreateIntroCard = () => {
       <Grid item xs={12}>
         <InfoCard title="Easy creation with templates">
           <Typography variant="body1" className={classes.text}>
-            Create new components with a single, clear,<br />
+            Create new components with a single, clear,
+            <br />
             opinionated method to accomplish a specific task
           </Typography>
         </InfoCard>
       </Grid>
     </Grid>
-  )
-}
+  );
+};
 
 export const EntityCreateContentCards = () => {
-  const classes = useStyles();
+  const navigate = useNavigate();
   const catalogApi = useApi(catalogApiRef);
-  const { value: templates, loading, error } = useAsync(() => {
-    return catalogApi.getEntities({ filter: { kind: 'Template' } });
+  const {
+    value: templates,
+    loading,
+    error,
+  } = useAsync(() => {
+    return catalogApi.getEntities({
+      filter: { kind: 'template', 'metadata.tags': 'ansible' },
+    });
   }, []);
 
   if (loading) {
@@ -79,47 +94,55 @@ export const EntityCreateContentCards = () => {
     return <Typography variant="h6">Failed to load templates</Typography>;
   }
 
-  const ansibleTemplates = templates.items.filter(template =>
-    template.metadata.tags?.includes('ansible'),
-  );
+  const ansibleTemplates = templates?.items;
 
   return (
-<EntityListProvider>
-  <Page themeId="home">
-    <Content>
-      <ContentHeader title="Available Templates" />
+    <EntityListProvider>
+      <Page themeId="home">
+        <Content>
+          <ContentHeader title="Available Templates" />
 
-      <CatalogFilterLayout>
-        <CatalogFilterLayout.Filters>
-          <EntitySearchBar />
-          <EntityKindPicker initialFilter="template" hidden />
-          <UserListPicker
-            initialFilter="all"
-            availableFilters={['starred']}
-          />
-        </CatalogFilterLayout.Filters>
-        <CatalogFilterLayout.Content>
-          {ansibleTemplates.map((template, index) => (
-        <TemplateGroups
-        key={index}
-        groups={[{
-          filter: (entity: Entity) => entity.metadata.tags?.includes('ansible') || false
-        }]}
-        // TemplateCardComponent={undefined}
-        // onTemplateSelected={(_template: Entity) => {}}
-        // additionalLinksForEntity={(entity: Entity) => []}
-        />
-      ))}
-        </CatalogFilterLayout.Content>
-      </CatalogFilterLayout>
-    </Content>
-  </Page>
-</EntityListProvider>
+          <CatalogFilterLayout>
+            <CatalogFilterLayout.Filters>
+              <EntitySearchBar />
+              <EntityKindPicker initialFilter="template" hidden />
+              <UserListPicker
+                initialFilter="all"
+                availableFilters={['starred']}
+              />
+            </CatalogFilterLayout.Filters>
+            <CatalogFilterLayout.Content>
+              {ansibleTemplates.map(({}, index) => (
+                <TemplateGroups
+                  key={index}
+                  groups={[
+                    {
+                      filter: (entity: Entity) =>
+                        entity.metadata.tags?.includes('ansible') || false,
+                    },
+                  ]}
+                  // TemplateCardComponent={undefined}
+                  onTemplateSelected={(entity: Entity) =>
+                    navigate(
+                      `../../../create/templates/default/${entity.metadata.name}`,
+                    )
+                  }
+                  // additionalLinksForEntity={(entity: Entity) => []}
+                />
+              ))}
+            </CatalogFilterLayout.Content>
+          </CatalogFilterLayout>
+        </Content>
+      </Page>
+    </EntityListProvider>
   );
 };
 
 export const EntityCreateContent = () => {
   return (
-    <><EntityCreateIntroCard /><EntityCreateContentCards /></>
+    <>
+      <EntityCreateIntroCard />
+      <EntityCreateContentCards />
+    </>
   );
 };

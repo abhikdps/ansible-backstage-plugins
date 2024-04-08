@@ -23,7 +23,7 @@ import { rootRouteRef } from './routes';
 export const ansiblePlugin = createPlugin({
   id: 'ansible',
   routes: {
-    root: rootRouteRef,
+    root: rootRouteRef
   },
 });
 

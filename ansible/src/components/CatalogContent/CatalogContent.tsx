@@ -18,7 +18,10 @@ import React from 'react';
 import { InfoCard } from '@backstage/core-components';
 import { Grid, Typography, makeStyles } from '@material-ui/core';
 import { useAsync } from 'react-use';
-import { catalogApiRef, getEntitySourceLocation } from '@backstage/plugin-catalog-react';
+import {
+  catalogApiRef,
+  getEntitySourceLocation,
+} from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import { Table, TableColumn } from '@backstage/core-components';
 import { Chip } from '@material-ui/core';
@@ -26,12 +29,9 @@ import { Chip } from '@material-ui/core';
 import { Edit } from '@material-ui/icons';
 import { Link } from '@backstage/core-components';
 import { IconButton, Tooltip } from '@material-ui/core';
-import {
-  scmIntegrationsApiRef,
-} from '@backstage/integration-react';
+import { scmIntegrationsApiRef } from '@backstage/integration-react';
 // eslint-disable-next-line no-restricted-imports
 import { Visibility } from '@material-ui/icons';
-
 
 const useStyles = makeStyles({
   container: {
@@ -49,27 +49,33 @@ const useStyles = makeStyles({
   },
 });
 
-
- const EntityCreateCard = () => {
+const EntityCreateCard = () => {
   const classes = useStyles();
   return (
     <Grid container spacing={3}>
       <Grid item xs={12}>
         <InfoCard title="Find your stuff">
           <Typography variant="body1" className={classes.text}>
-            Here is a list of all the components you created in the Developer Hub, Ansible plugin. <br />
+            Here is a list of all the components you created in the Developer
+            Hub, Ansible plugin. <br />
             Any Anisble content will automatically be tagged with 'ansible'.
           </Typography>
         </InfoCard>
       </Grid>
     </Grid>
-  )
-}
+  );
+};
 
 export const AnsibleComponents = () => {
   const catalogApi = useApi(catalogApiRef);
-  const { value: entities, loading, error } = useAsync(() => {
-    return catalogApi.getEntities();
+  const {
+    value: entities,
+    loading,
+    error,
+  } = useAsync(() => {
+    return catalogApi.getEntities({
+      filter: [{ kind: 'component', 'metadata.tags': 'ansible' }],
+    });
   }, []);
 
   if (loading) {
@@ -80,14 +86,21 @@ export const AnsibleComponents = () => {
     return <div>Error: {error.message}</div>;
   }
 
-  const ansibleEntities = entities?.items.filter(entity =>
-    entity.metadata.tags &&
-    entity.metadata.tags.includes('ansible') &&
-    entity.kind.toLocaleLowerCase('en-US') === 'component'
-  );
-
   const columns: TableColumn[] = [
-    { title: 'Name', field: 'metadata.name', highlight: true },
+    {
+      title: 'Name',
+      field: 'metadata.name',
+      highlight: true,
+      render(entity: any) {
+        return (
+          <Link
+            to={`../../../catalog/default/component/${entity.metadata.name}`}
+          >
+            {entity.metadata.name}
+          </Link>
+        );
+      },
+    },
     { title: 'System', field: 'spec.system' },
     { title: 'Owner', field: 'spec.owner' },
     { title: 'Type', field: 'spec.type' },
@@ -95,7 +108,10 @@ export const AnsibleComponents = () => {
     {
       title: 'Tags',
       field: 'metadata.tags',
-      render: (entity: any) => entity.metadata.tags.map((tag: string) => <Chip key={tag} label={tag} />),
+      render: (entity: any) =>
+        entity.metadata.tags.map((tag: string) => (
+          <Chip key={tag} label={tag} />
+        )),
       cellStyle: { padding: '0px 16px 0px 20px' },
     },
     {
@@ -107,7 +123,10 @@ export const AnsibleComponents = () => {
           entity,
           scmIntegrationsApi,
         );
-        const repoUrl = entitySourceLocation?.locationTargetUrl.replace(/\/$/, "");
+        const repoUrl = entitySourceLocation?.locationTargetUrl.replace(
+          /\/$/,
+          '',
+        );
         const viewUrl = `${repoUrl}/catalog-info.yaml`;
         const editUrl = viewUrl.replace('/tree/', '/edit/');
 
@@ -131,16 +150,19 @@ export const AnsibleComponents = () => {
 
   return (
     <Table
-      title={`All components (${ansibleEntities?.length})`}
+      title={`All components (${entities?.items?.length})`}
       options={{ search: true }}
       columns={columns}
-      data={ansibleEntities || []}
+      data={entities?.items || []}
     />
   );
 };
 
 export const EntityCatalogContent = () => {
   return (
-    <><EntityCreateCard /><AnsibleComponents /></>
+    <>
+      <EntityCreateCard />
+      <AnsibleComponents />
+    </>
   );
 };

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { ReactNode } from 'react';
+import React from 'react';
 import { GitHubIcon, InfoCard, Link } from '@backstage/core-components';
 import {
   Accordion,
@@ -29,9 +29,14 @@ import ansibleWave from '../../../images/ansible-wave.png';
 import { Tool } from '@backstage/plugin-home';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { WorkspaceIcon } from '../WorkspaceIcon';
-import { useStarredEntities } from '@backstage/plugin-catalog-react';
+import {
+  catalogApiRef,
+  useStarredEntities,
+} from '@backstage/plugin-catalog-react';
 import { DocumentIcon } from '../DocumentIcon';
 import Star from '@material-ui/icons/Star';
+import { useApi } from '@backstage/core-plugin-api';
+import useAsync from 'react-use/esm/useAsync';
 
 const useStyles = makeStyles({
   container: {
@@ -74,7 +79,7 @@ const useStyles = makeStyles({
   a_link: {
     display: 'block',
     margin: '4px 8px',
-    textDecoration: 'none'
+    textDecoration: 'none',
   },
   icon_style: {
     display: 'inline-block',
@@ -207,7 +212,7 @@ const EntityGettingStartedCard = ({ onTabChange }) => {
   const classes = useStyles();
   return (
     <InfoCard cardClassName={classes.outline} noPadding>
-      <Typography variant="body1" className={classes.flex}>
+      <Typography className={`${classes.flex} ${classes.fontSize14}`}>
         <img className={classes.img_wave} src={ansibleWave} alt="Hello!" />
         <div className={classes.p16}>
           <div className={`${classes.fw_700}`}>
@@ -215,10 +220,13 @@ const EntityGettingStartedCard = ({ onTabChange }) => {
           </div>
           Let’s help you get on your way and become an Ansible developer. Go to
           the&nbsp;
-          <Link to="../learn" onClick={(e) => {
-            e.stopPropagation();
-            onTabChange(3);
-          }}>
+          <Link
+            to="../learn"
+            onClick={e => {
+              e.stopPropagation();
+              onTabChange(3);
+            }}
+          >
             Learn tab&nbsp;
           </Link>
           to get started.
@@ -298,39 +306,59 @@ const YellowStar = withStyles({
 
 export const StarredItems = () => {
   const classes = useStyles();
-  const { starredEntities } = useStarredEntities();
+  const catalogApi = useApi(catalogApiRef);
+  const {
+    value: entities,
+    loading,
+    error,
+  } = useAsync(() => {
+    return catalogApi.getEntities({ filter: [{ 'metadata.tags': 'ansible' }] });
+  }, []);
+  const { isStarredEntity } = useStarredEntities();
 
-  const getStarredList = () => {
-    const favList: ReactNode[] = [];
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
-    starredEntities.forEach(item => {
-      let kind = item.split(':')[0];
-      kind = kind.charAt(0).toLocaleUpperCase() + kind.slice(1);
-      const name = item.split('/')[1];
-      favList.push(
-        <li style={{ marginBottom: '22px' }}>
-          <Typography variant="body1" className={classes.flex}>
-            <Typography className={classes.star_icon}>
-              <YellowStar />
-            </Typography>
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  }
+
+  const starredEntities = entities?.items.filter(entity =>
+    isStarredEntity(entity),
+  );
+
+  const getStarredList = () => (
+    starredEntities?.map(entity => (
+      <li style={{ marginBottom: '22px' }}>
+        <Typography variant="body1" className={classes.flex}>
+          <Typography className={classes.star_icon}>
+            <YellowStar />
+          </Typography>
+          <Typography>
             <Typography>
-              <Typography>
-                <Link to="#">{name}</Link>
-              </Typography>
-              <Typography variant="subtitle1" className={classes.kind}>
-                {kind}
-              </Typography>
+              <Link
+                to={`${
+                  entity.kind === 'Template'
+                    ? `../../../create/templates/default/${entity.metadata.name}`
+                    : `../../../catalog/default/component/${entity.metadata.name}`
+                }`}
+              >
+                {entity.metadata.name}
+              </Link>
+            </Typography>
+            <Typography variant="subtitle1" className={classes.kind}>
+              {entity.kind}
             </Typography>
           </Typography>
-        </li>,
-      );
-    });
-    return favList;
-  };
+        </Typography>
+      </li>)
+    )
+  );
 
   return (
     <InfoCard title="Starred Ansible Items">
-      {starredEntities.size > 0 ? (
+      {starredEntities?.length > 0 ? (
         <ul style={{ listStyle: 'none', paddingLeft: 10 }}>
           {getStarredList()}
         </ul>
@@ -344,14 +372,14 @@ export const StarredItems = () => {
 };
 
 type IProps = {
-  onTabChange: (index: number) => void
-}
+  onTabChange: (index: number) => void;
+};
 
 export const EntityOverviewContent = (props: IProps) => {
   return (
     <Grid container spacing={2} justifyContent="space-between">
       <Grid item xs={12}>
-        <EntityGettingStartedCard {...props}/>
+        <EntityGettingStartedCard {...props} />
       </Grid>
       <Grid item xs={9}>
         <QuickAccessLinks />

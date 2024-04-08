@@ -14,109 +14,227 @@
  * limitations under the License.
  */
 
-
-import React from 'react';
-import { InfoCard, ItemCardGrid } from '@backstage/core-components';
-import { Grid, Link, Typography, makeStyles } from '@material-ui/core';
-import { CatalogFilterLayout, EntityListProvider, EntitySearchBar } from '@backstage/plugin-catalog-react';
+import React, { useState } from 'react';
+import { InfoCard, ItemCardGrid, Link } from '@backstage/core-components';
+import {
+  Checkbox,
+  FormControl,
+  FormControlLabel,
+  Grid,
+  Typography,
+  makeStyles,
+} from '@material-ui/core';
+import AnsibleLearnIcon from '../../../images/ansible-learn.png';
+import OpenInNew from '@material-ui/icons/OpenInNew';
+import { labs, learningPaths } from './data';
 
 const useStyles = makeStyles({
   container: {
     backgroundColor: 'default',
     padding: '20px',
   },
-  text: {
-    // color: 'white',  
-    marginTop: '5px',
-    fontSize: '15px', // Increase the font size as needed
+  flex: {
+    display: 'flex',
   },
-  divider: {
-    margin: '20px 0',
-    backgroundColor: 'white', // Make the divider white so it stands out on the light blue background
+  img_wave: {
+    width: '50px',
+    height: '50px',
+    margin: '5px',
+  },
+  fw_700: {
+    fontWeight: 700,
+  },
+  ml25: {
+    marginLeft: '25px',
+  },
+  mb40: {
+    marginBottom: '40px',
+  },
+  fontSize14: {
+    fontSize: '14px',
+  },
+  open_in_new: {
+    width: 12,
+    height: 12,
+    fill: '#0066CC',
   },
   infoCard: {
+    display: 'flex',
     height: '100%',
     transition: 'all 0.25s linear',
     textAlign: 'left',
     '&:hover': {
-      boxShadow: '0px 0px 16px 0px rgba(0, 0, 0, 0.8)',
+      boxShadow: '0px 0px 8px 0px rgba(0, 0, 0, 0.8)',
     },
-    '& svg': {
-      fontSize: '80px',
+  },
+  subtitle: {
+    color: 'rgba(0, 0, 0, 0.40)',
+  },
+  textDecorationNone: {
+    '&:hover': {
+      textDecoration: 'none',
     },
-  }
+  },
+  label: {
+    textTransform: 'capitalize',
+  },
+  checkboxWrapper: {
+    display: 'flex',
+    alignItems: 'center',
+    width: '100%',
+  },
+  textWrapper: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
 });
 
-const text =
-  'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.';
-
-
- const EntityLearnIntroCard = () => {
+const RenderCourses = ({ data }) => {
   const classes = useStyles();
-  return (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <InfoCard>
-          <Typography variant="body1" className={classes.text}>
-            End to end learning journey put together by Red Hat Ansible for any user at any level.<br />
-            If you are a complete beginner to Ansible, this will be the perfect place to start. If you are advanced user,<br />
-            we do recommend going over and catch some stuff you missed have missed otherwise.
+
+  return data.map((item, index) => (
+    <Link
+      to={item?.link}
+      target="_blank"
+      key={index}
+      className={classes.textDecorationNone}
+    >
+      <InfoCard
+        className={classes.infoCard}
+        title={
+          <div style={{ display: 'flex' }}>
+            <div>{`${index + 1}.`}</div>
+            {item.name}
+          </div>
+        }
+        subheader={
+          <Typography className={`${classes.subtitle} ${classes.fontSize14}`}>
+            {`${item.time} | Ansible | ${item.level} | ${item.type}`}
           </Typography>
-        </InfoCard>
-      </Grid>
-      <EntityListProvider>
-        <Grid item xs={2}>
-          <CatalogFilterLayout>
-            <CatalogFilterLayout.Filters>
-              <EntitySearchBar />
-            </CatalogFilterLayout.Filters>
-            <CatalogFilterLayout.Content>
-              {/* {ansibleTemplates.map((template, index) => ( */}
-              Test 
-            </CatalogFilterLayout.Content>
-          </CatalogFilterLayout>
+        }
+      >
+        {item.description}
+      </InfoCard>
+    </Link>
+  ));
+};
+
+const EntityLearnIntroCard = () => {
+  const classes = useStyles();
+  const [showLabs, setShowLabs] = useState<boolean>(true);
+  const [showLearningPaths, setShowLearningPaths] = useState<boolean>(true);
+
+  return (
+    <>
+      <Grid container spacing={3}>
+        <Grid item xs={12} className={classes.mb40}>
+          <InfoCard>
+            <Typography variant="body1" className={classes.flex}>
+              <img
+                className={classes.img_wave}
+                src={AnsibleLearnIcon}
+                alt="Learn"
+                title="Learn"
+              />
+              <div className={`${classes.fontSize14}`}>
+                <div className={classes.fw_700}>From zero to hero!</div>
+                These end-to-end learning journeys, created by Red Hat Ansible,
+                are for users of all skill levels. These curated learning paths
+                are a great place to start if you’re beginning your Ansible
+                journey. If you are an advanced user, these learning paths are
+                based on the latest Ansible Automation Platform versions and
+                recommended practices. Learn more at the &nbsp;
+                <Link
+                  to="https://developers.redhat.com/products/ansible/overview"
+                  target="_blank"
+                >
+                  Red Hat Developer website.
+                  <OpenInNew className={classes.open_in_new} />
+                </Link>
+              </div>
+            </Typography>
+          </InfoCard>
         </Grid>
-      </EntityListProvider>
-      <Grid item xs={10}>
-      <div style={{marginBottom: "35px"}}>
-        <Typography paragraph>
-          The most basic setup is to place a bunch of cards into a large grid,
-          leaving styling to the defaults. Try to resize the window to see how they
-          rearrange themselves to fit the viewport.
-        </Typography>
-        <ItemCardGrid>
-          {[...Array(10).keys()].map(index => (
-            <Link href="https://google.com" target='_blank' key={index}>
-              <InfoCard className={classes.infocard} title={`Card #${index}`} subheader="Subtitle" >
-                {text}
-              </InfoCard>
-            </Link>
-          ))}
-        </ItemCardGrid>
-      </div>
-      <div>
-        <Typography paragraph>
-          Labs
-        </Typography>
-        <ItemCardGrid>
-          {[...Array(10).keys()].map(index => (
-            <Link href="https://google.com" target='_blank' key={index}>
-              <InfoCard className={classes.infocard} title={`Card #${index}`} subheader="Subtitle" >
-                {text}
-              </InfoCard>
-            </Link>
-          ))}
-        </ItemCardGrid>
-      </div>
       </Grid>
 
-    </Grid>
-  )
-}
-
+      <Grid container spacing={3}>
+        <Grid item xs={2}>
+          <FormControl fullWidth data-testid="search-checkboxfilter-next">
+            <FormControlLabel
+              key="Learning Path"
+              classes={{
+                root: classes.checkboxWrapper,
+                label: classes.textWrapper,
+              }}
+              label="Learning Path"
+              control={
+                <Checkbox
+                  color="primary"
+                  inputProps={{ 'aria-labelledby': 'Learning Path' }}
+                  value="Learning Path"
+                  name="Learning Path"
+                  onChange={() => setShowLearningPaths(!showLearningPaths)}
+                  checked={showLearningPaths}
+                />
+              }
+            />
+            <FormControlLabel
+              key="Labs"
+              classes={{
+                root: classes.checkboxWrapper,
+                label: classes.textWrapper,
+              }}
+              label="Labs"
+              control={
+                <Checkbox
+                  color="primary"
+                  inputProps={{ 'aria-labelledby': 'Learning Path' }}
+                  value="Labs"
+                  name="Labs"
+                  onChange={() => setShowLabs(!showLabs)}
+                  checked={showLabs}
+                />
+              }
+            />
+          </FormControl>
+          {/* <SearchFilter.Checkbox
+            name="Learn Types"
+            values={['Learning Path', 'Lab']}
+            defaultValue={['Learning Path', 'Lab']}
+          /> */}
+        </Grid>
+        <Grid item xs={10}>
+          {showLearningPaths && (
+            <div style={{ marginBottom: '35px' }}>
+              <Typography paragraph>
+                <Typography paragraph>LEARNING PATHS</Typography>
+                <Typography paragraph className={classes.fontSize14}>
+                  Step-by-step enablement curated by Red Hat Ansible.
+                </Typography>
+              </Typography>
+              <ItemCardGrid>
+                <RenderCourses data={learningPaths} />
+              </ItemCardGrid>
+            </div>
+          )}
+          {showLabs && (
+            <div>
+              <Typography paragraph>LABS</Typography>
+              <Typography paragraph className={classes.fontSize14}>
+                Hands-on, interactive learning scenarios.
+              </Typography>
+              <ItemCardGrid>
+                <RenderCourses data={labs} />
+              </ItemCardGrid>
+            </div>
+          )}
+        </Grid>
+      </Grid>
+    </>
+  );
+};
 
 export const EntityLearnContent = () => {
-  return (
-    <EntityLearnIntroCard />
-  );
+  return <EntityLearnIntroCard />;
 };
