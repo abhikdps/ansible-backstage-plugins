@@ -68,8 +68,6 @@ export async function ansibleCreatorRun(
   collectionName: string,
 ) {
   logger.info(`Running ansible collection create for ${collectionGroup}.${collectionName}`);
-  // const scaffoldPath = "/home/sagpaul/Work/DevHub/temp_scaffold";
-  // const creatorServiceUrl = "http://localhost:3100/fetch_collection_tar";
 
   const scaffoldPath = workspacePath
   ? workspacePath
@@ -82,7 +80,7 @@ export async function ansibleCreatorRun(
   await downloadFromCreatorService(scaffoldPath, logger, creatorServiceUrl, collection_name);
   logger.info(`Out of file download operation`);
 
-  // untar the scafolded collection
+  // untar the scaffolded collection
   await executeShellCommand({
     command: 'tar',
     args: ["-xvf", collection_name],
