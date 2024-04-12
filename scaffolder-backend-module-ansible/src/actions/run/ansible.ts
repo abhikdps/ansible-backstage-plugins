@@ -51,12 +51,12 @@ export function createAnsibleContentAction() {
           },
           projectGroup: {
             title: 'Project',
-            description: 'The "collectionOrg" part of "collectionOrg.collectionName',
+            description: 'The "projectGroup" part of "projectGroup.projectName',
             type: 'string',
           },
           projectName: {
             title: 'Project name',
-            description: 'The "collectionName" part of "collectionOrg.collectionName"',
+            description: 'The "projectName" part of "projectGroup.projectName"',
             type: 'string',
           },
           description: {
