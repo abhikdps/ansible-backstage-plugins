@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-import { createTemplateAction } from "@backstage/plugin-scaffolder-node";
-import { ansibleCreatorRun } from "./ansibleContentCreate";
-import { readAnsibleConfigs } from "../utils/config";
-import { ConfigReader } from "@backstage/config";
-import { Logger } from "winston";
-import { Config } from "@backstage/config";
+import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
+import { ansibleCreatorRun } from './ansibleContentCreate';
+import { readAnsibleConfigs } from '../utils/config';
+import { ConfigReader } from '@backstage/config';
+import { Logger } from 'winston';
+import { Config } from '@backstage/config';
 
 export function createAnsibleContentAction(config: Config) {
   return createTemplateAction<{
@@ -28,45 +28,45 @@ export function createAnsibleContentAction(config: Config) {
     collectionGroup: string;
     collectionName: string;
   }>({
-    id: "ansible:content:create",
-    description: "Runs Ansible creator to scaffold Ansible content",
+    id: 'ansible:content:create',
+    description: 'Runs Ansible creator to scaffold Ansible content',
     schema: {
       input: {
-        type: "object",
-        required: ["repoUrl", "collectionGroup", "collectionName"],
+        type: 'object',
+        required: ['repoUrl', 'collectionGroup', 'collectionName'],
         properties: {
           repoUrl: {
-            title: "Repository URL",
+            title: 'Repository URL',
             description:
-              "The URL of the repository to create the Ansible content",
-            type: "RepoUrlPicker",
+              'The URL of the repository to create the Ansible content',
+            type: 'RepoUrlPicker',
           },
           collectionGroup: {
-            title: "Collection",
+            title: 'Collection',
             description:
-              'The "collectionOrg" part of "collectionOrg.collectionName',
-            type: "string",
+              'The "collectionOrg" part of "collectionOrg.collectionName"',
+            type: 'string',
           },
           collectionName: {
-            title: "Collection name",
+            title: 'Collection name',
             description:
               'The "collectionName" part of "collectionOrg.collectionName"',
-            type: "string",
+            type: 'string',
           },
           description: {
-            title: "Description",
+            title: 'Description',
             description:
-              "Describe this Collection and its purpose to help other users know what to use it for",
-            type: "string",
+              'Describe this Collection and its purpose to help other users know what to use it for',
+            type: 'string',
           },
         },
       },
       output: {
-        type: "object",
-        required: ["repoUrl", "collectionGroup", "collectionName"],
+        type: 'object',
+        required: ['repoUrl', 'collectionGroup', 'collectionName'],
         properties: {
           devSpacesBaseUrl: {
-            type: "string",
+            type: 'string',
           },
         },
       },
@@ -75,10 +75,10 @@ export function createAnsibleContentAction(config: Config) {
       const { repoUrl, description, collectionGroup, collectionName } =
         ctx.input;
       ctx.logger.info(
-        `Creating Ansible content within ${collectionGroup}.${collectionName} collection at ${repoUrl} with description: ${description}`
+        `Creating Ansible content within ${collectionGroup}.${collectionName} collection at ${repoUrl} with description: ${description}`,
       );
 
-      const test = config.getOptionalString("catalog.providers.ansible.port"); // doesn't work
+      const test = config.getOptionalString('catalog.providers.ansible.port'); // doesn't work
       const ansibleDetails = readAnsibleConfigs(config); // doesn't work
 
       await ansibleCreatorRun(
@@ -88,11 +88,11 @@ export function createAnsibleContentAction(config: Config) {
         repoUrl,
         description,
         collectionGroup,
-        collectionName
+        collectionName,
       );
       ctx.output(
-        "devSpacesBaseUrl",
-        "https://devspaces.apps.ansible-rhdh.testing.ansible.com/#https://github.com/" // this to be a variable from app-config.yaml
+        'devSpacesBaseUrl',
+        'https://devspaces.apps.ansible-rhdh.testing.ansible.com/#https://github.com/', // this to be a variable from app-config.yaml
       );
     },
   });

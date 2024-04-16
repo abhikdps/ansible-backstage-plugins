@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import * as os from "os";
+import * as os from 'os';
 
-import { Logger } from "winston";
-import { executeShellCommand } from "@backstage/plugin-scaffolder-node";
-import fetch from "node-fetch";
-import fs from "fs";
+import { Logger } from 'winston';
+import { executeShellCommand } from '@backstage/plugin-scaffolder-node';
+import fetch from 'node-fetch';
+import fs from 'fs';
 
 async function downloadFromCreatorService(
   workspacePath: string,
@@ -27,7 +27,7 @@ async function downloadFromCreatorService(
   collectionOrgName: string
 ) {
   const requestOptions = {
-    method: "GET",
+    method: 'GET',
   };
 
   try {
@@ -37,24 +37,24 @@ async function downloadFromCreatorService(
     const response = await fetch(creatorServiceUrl, requestOptions);
 
     if (!response.ok) {
-      throw new Error("Failed to fetch data");
+      throw new Error('Failed to fetch data');
     }
 
     const fileStream = fs.createWriteStream(
-      workspacePath + "/" + collectionOrgName
+      workspacePath + '/' + collectionOrgName
     );
     await new Promise((resolve, reject) => {
       response.body.pipe(fileStream);
-      response.body.on("error", (err) => {
+      response.body.on('error', (err) => {
         reject(err);
       });
-      fileStream.on("finish", function () {
+      fileStream.on('finish', function () {
         resolve(true);
       });
     });
-    console.log("File downloaded successfully");
+    console.log('File downloaded successfully');
   } catch (error) {
-    console.error("Error:", error);
+    console.error('Error:', error);
   }
 }
 
@@ -67,9 +67,9 @@ export async function ansibleCreatorRun(
   collectionGroup: string,
   collectionName: string
 ) {
-  let creatorServiceUrl = "http://localhost:5000/init?";
+  let creatorServiceUrl = 'http://localhost:5000/init?';
   creatorServiceUrl +=
-    applicationType === "playbook-project"
+    applicationType === 'playbook-project'
       ? `project=ansible-project&scm_org=${collectionGroup}&scm_project=${collectionName}`
       : `collection=${collectionGroup}.${collectionName}`;
 
@@ -96,8 +96,8 @@ export async function ansibleCreatorRun(
 
   // untar the scaffolded collection
   await executeShellCommand({
-    command: "tar",
-    args: ["-xvf", collection_name],
+    command: 'tar',
+    args: ['-xvf', collection_name],
     options: {
       cwd: scaffoldPath,
     },
@@ -105,7 +105,7 @@ export async function ansibleCreatorRun(
   });
   // delete the tarball as it must not be published in Source Control
   await executeShellCommand({
-    command: "rm",
+    command: 'rm',
     args: [collection_name],
     options: {
       cwd: scaffoldPath,

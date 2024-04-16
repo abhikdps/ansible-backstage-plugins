@@ -34,11 +34,11 @@ spec:
           description: Describe this Collection and its purpose to help other users know what to use it for
         collectionGroup:
           title: Collection group name
-          description: The "collectionOrg" part of "collectionOrg.collectionName"
+          description: The 'collectionOrg' part of 'collectionOrg.collectionName'
           type: string
         collectionName:
           title: Collection name
-          description: The "collectionName" part of "collectionOrg.collectionName"
+          description: The 'collectionName' part of 'collectionOrg.collectionName'
           type: string
         owner:
           title: Owner
@@ -62,10 +62,10 @@ spec:
       name: Generating the Ansible Source Code Component
       action: ansible:content:create
       input:
-        repoUrl: "${{ parameters.repoUrl }}"
-        description: "${{ parameters.description }}"
-        collectionGroup: "${{ parameters.collectionGroup }}"
-        collectionName: "${{ parameters.collectionName }}"
+        repoUrl: '${{ parameters.repoUrl }}'
+        description: '${{ parameters.description }}'
+        collectionGroup: '${{ parameters.collectionGroup }}'
+        collectionName: '${{ parameters.collectionName }}'
         applicationType: playbook-project
         sourceControl: github.com
 
@@ -75,7 +75,7 @@ spec:
       input:
         url: ./catalog-info/
         values:
-          repoUrl: "${{ parameters.repoUrl }}"
+          repoUrl: '${{ parameters.repoUrl }}'
           owner: ${{ parameters.owner }}
           system: ${{ parameters.system }}
           applicationType: playbook-project
@@ -99,7 +99,7 @@ spec:
       action: catalog:register
       input:
         repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
-        catalogInfoPath: "/catalog-info.yaml"
+        catalogInfoPath: '/catalog-info.yaml'
 
   output:
     links:

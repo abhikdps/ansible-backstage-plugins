@@ -14,20 +14,21 @@
  * limitations under the License.
  */
 
+
 import {
   coreServices,
   createBackendModule,
-} from "@backstage/backend-plugin-api";
-import { scaffolderActionsExtensionPoint } from "@backstage/plugin-scaffolder-node/alpha";
-import { createAnsibleContentAction } from "./actions";
+} from '@backstage/backend-plugin-api';
+import { scaffolderActionsExtensionPoint } from '@backstage/plugin-scaffolder-node/alpha';
+import { createAnsibleContentAction } from './actions';
 
 /**
  * @public
  * The Ansible Module for the Scaffolder Backend
  */
 export const scaffolderModuleAnsible = createBackendModule({
-  pluginId: "scaffolder",
-  moduleId: "ansible",
+  pluginId: 'scaffolder',
+  moduleId: 'ansible',
   register(env) {
     env.registerInit({
       deps: {
