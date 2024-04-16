@@ -36,7 +36,6 @@ export const scaffolderModuleAnsible = createBackendModule({
         config: coreServices.rootConfig,
       },
       async init({ scaffolder, config }) {
-        console.log(config);
         scaffolder.addActions(createAnsibleContentAction(config));
       },
     });

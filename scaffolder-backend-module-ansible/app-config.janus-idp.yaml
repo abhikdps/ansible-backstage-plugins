@@ -12,5 +12,6 @@ catalog:
         - allow: [Template]
 ansible:
   devSpacesBaseUrl: "https://devspaces.apps.ansible-rhdh.testing.ansible.com/#https://github.com/"
-  baseUrl: "localhost"
-  port: 5000
+  ansibleCreatorService:
+    baseUrl: "localhost"
+    port: "5000"

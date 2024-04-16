@@ -16,8 +16,7 @@
 
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
 import { ansibleCreatorRun } from './ansibleContentCreate';
-import { readAnsibleConfigs } from '../utils/config';
-import { ConfigReader } from '@backstage/config';
+import { getServiceUrlFromAnsibleConfig, getDevSpacesUrlFromAnsibleConfig } from '../utils/config';
 import { Logger } from 'winston';
 import { Config } from '@backstage/config';
 
@@ -78,8 +77,7 @@ export function createAnsibleContentAction(config: Config) {
         `Creating Ansible content within ${collectionGroup}.${collectionName} collection at ${repoUrl} with description: ${description}`,
       );
 
-      const test = config.getOptionalString('catalog.providers.ansible.port'); // doesn't work
-      const ansibleDetails = readAnsibleConfigs(config); // doesn't work
+      const ansibleDetails = getAllAnsibleConfig(config);
 
       await ansibleCreatorRun(
         ctx.workspacePath,
@@ -89,10 +87,11 @@ export function createAnsibleContentAction(config: Config) {
         description,
         collectionGroup,
         collectionName,
+        getServiceUrlFromAnsibleConfig(config)
       );
       ctx.output(
         'devSpacesBaseUrl',
-        'https://devspaces.apps.ansible-rhdh.testing.ansible.com/#https://github.com/', // this to be a variable from app-config.yaml
+        getDevSpacesUrlFromAnsibleConfig(config),
       );
     },
   });

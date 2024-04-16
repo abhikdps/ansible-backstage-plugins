@@ -1,6 +1,4 @@
-import { Config } from "@backstage/config";
-
-const ANSIBLE_PREFIX = "catalog.providers.ansible";
+import { Config } from '@backstage/config';
 
 export type AnsibleDetails = {
   devSpacesBaseUrl: string;
@@ -8,14 +6,27 @@ export type AnsibleDetails = {
   baseUrl?: string;
 };
 
-export const getHubClusterFromConfig = (config: Config): AnsibleDetails => {
+function generateInitUrl(baseUrl: string, port: number): string {
+  return `${baseUrl}:${port}/init?`;
+}
+
+export const getAnsibleConfig = (config: Config): AnsibleDetails => {
   return {
-    devSpacesBaseUrl: config.getString("ansible.devSpacesBaseUrl"),
-    baseUrl: config.getString("ansible.baseUrl"),
-    port: config.getOptionalNumber("ansible.port"),
+    devSpacesBaseUrl: config.getString('ansible.devSpacesBaseUrl'),
+    baseUrl: config.getString('ansible.ansibleCreatorService.baseUrl'),
+    port: parseInt(config.getString('ansible.ansibleCreatorService.port')),
   };
 };
 
-export const readAnsibleConfigs = (config: Config): AnsibleDetails => {
-  return getHubClusterFromConfig(config);
+export const getAllAnsibleConfig = (config: Config): AnsibleDetails => {
+  return getAnsibleConfig(config);
+};
+
+export const getDevSpacesUrlFromAnsibleConfig = (config: Config): string => {
+  return config.getString('ansible.devSpacesBaseUrl');
+};
+
+export const getServiceUrlFromAnsibleConfig = (config: Config): string => {
+  return generateInitUrl(config.getString('ansible.ansibleCreatorService.baseUrl'),
+        parseInt(config.getString('ansible.ansibleCreatorService.port')) );
 };
