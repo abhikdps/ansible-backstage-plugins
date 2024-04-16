@@ -78,19 +78,8 @@ export function createAnsibleContentAction(config: Config) {
         `Creating Ansible content within ${collectionGroup}.${collectionName} collection at ${repoUrl} with description: ${description}`
       );
 
-      const configuration = new ConfigReader({
-        catalog: {
-          providers: {
-            ansible: {
-              devSpacesBaseUrl: "https://localhost:4000",
-              baseUrl: "localhost",
-              port: "5000",
-            },
-          },
-        },
-      }); // dummy
       const test = config.getOptionalString("catalog.providers.ansible.port"); // doesn't work
-      const ansibleDetails = readAnsibleConfigs(configuration); // doesn't work
+      const ansibleDetails = readAnsibleConfigs(config); // doesn't work
 
       await ansibleCreatorRun(
         ctx.workspacePath,

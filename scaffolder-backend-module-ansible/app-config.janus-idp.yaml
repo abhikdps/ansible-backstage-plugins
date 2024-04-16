@@ -10,3 +10,7 @@ catalog:
       target: ../..//scaffolder-backend-module-ansible/templates/all.yaml
       rules:
         - allow: [Template]
+ansible:
+  devSpacesBaseUrl: "https://devspaces.apps.ansible-rhdh.testing.ansible.com/#https://github.com/"
+  baseUrl: "localhost"
+  port: 5000
