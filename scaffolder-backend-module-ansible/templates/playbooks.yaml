@@ -59,12 +59,6 @@ spec:
               kind:
                 - System
   steps:
-    - id: log
-      name: Parse Entity Reference
-      action: debug:log
-      input:
-        extra: 'github.com?owner=${{ parameters.repoOwner }}&repo=${{ parameters.repoName }}'
-
     - id: ansible
       name: Generating the Ansible Source Code Component
       action: ansible:content:create
@@ -76,12 +70,6 @@ spec:
         collectionName: '${{ parameters.collectionName }}'
         applicationType: playbook-project
         sourceControl: github.com
-
-    - id: log
-      name: Parse Entity Reference
-      action: debug:log
-      input:
-        extra: ${{ steps.ansible.output.repoUrl }}
 
     - id: catalogTemplate
       name: Generating the Catalog Info Component
