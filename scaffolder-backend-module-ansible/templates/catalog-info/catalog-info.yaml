@@ -25,12 +25,12 @@ metadata:
     {%- elif values.sourceControl == "dev.azure.com" %}
     dev.azure.com/project-repo: ${{ values.repoUrl | projectSlug }}
     {%- endif %}
+  {%- if values.devSpacesBaseUrl %}
   links:
-    {%- if values.devSpacesBaseUrl %}
-    - url: ${{ values.devSpacesBaseUrl }}${{ values.repoUrl.split("=")[1].split("&")[0] }}/${{ values.repoUrl.split("=")|last}}
-      title: OpenShift Dev Spaces
+    - url: ${{ values.devSpacesBaseUrl }}
+      title: Open in Ansible development workspaces
       icon: web
-    {%- endif %}
+  {%- endif %}
 spec:
   type: ${{ values.applicationType }}
   {%- if values.system %}
