@@ -28,9 +28,23 @@ import {
   useParams,
 } from 'react-router';
 
-// Ansible plug-ins for Red Hat Developer Hub
-// subtitle => Ansible plug-ins for Red Hat Developer Hub provides push-button content provisioning, step-by-step enablement, and a service catalog to accelerate user onboarding and Ansible content creation.
-const AnisbleHeader = () => <Header title="Ansible" subtitle="Ansible plug-ins provide push-button content provisioning, step-by-step enablement, and a service catalog to accelerate user onboarding and Ansible content creation." style={{fontFamily: 'Red Hat Text'}} />;
+
+const AnisbleHeader = () => {
+  const headerTitle = "Welcome to the Ansible plug-ins for Red Hat Developer Hub"
+  const headerSubtitle = (
+    <>
+      This Ansible out-of-the-box experience accelerates content creation and meets you where you are in the development process.
+    </>
+  );
+
+  return (
+    <Header
+      title={headerTitle}
+      subtitle={headerSubtitle}
+      style={{fontFamily: 'Red Hat Text', color: 'white'}}
+    />
+  )
+}
 
 const tabs = [
   { id: 0, label: 'Overview', nav: 'overview' },
@@ -43,7 +57,7 @@ export const AnsiblePage = () => {
   const param = useParams();
   const section = param['*'];
   const navigate = useNavigate();
-  
+
   const selectedTabIndex = tabs.findIndex(
     item => item.nav === section,
   );
@@ -54,7 +68,7 @@ export const AnsiblePage = () => {
       setSelectedTab(tabs[selectedTabIndex])
     }
   }, [selectedTabIndex])
-  
+
   const onTabSelect = (index: number) => {
     setSelectedTab(tabs[index]);
     navigate(tabs[index].nav);
@@ -77,7 +91,7 @@ export const AnsiblePage = () => {
           <Route path="/">
             <Route
               path="overview"
-              element={<EntityOverviewContent onTabChange={onTabSelect}/>}
+              element={<EntityOverviewContent />}
             />
             <Route path="myitems" element={<EntityCatalogContent />} />
             <Route path="create" element={<EntityCreateContent />} />
