@@ -33,9 +33,10 @@ jobs:
         uses: ./.github/actions/test
         with:
           node-version: ${{ matrix.node-version }}
+          plugin: "scaffolder-backend-moudule-ansible"
 
-  build:
-    name: Build scaffolder packages with Node.js ${{ matrix.node-version }}
+  build-backend:
+    name: Build scaffolder-backend packages with Node.js ${{ matrix.node-version }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -50,6 +51,25 @@ jobs:
         uses: ./.github/actions/build
         with:
           node-version: ${{ matrix.node-version }}
+          plugin: "scaffolder-backend-moudule-ansible"
+
+  build-frontend:
+    name: Build frontend packages with Node.js ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
+        with:
+          fetch-depth: 0
+
+      - name: Build
+        uses: ./.github/actions/build
+        with:
+          node-version: ${{ matrix.node-version }}
+          plugin: "ansible"
 
   coverage:
     name: Check code coverage ${{ matrix.node-version }}
@@ -63,7 +83,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Build
+      - name: Coverage
         uses: ./.github/actions/coverage
         with:
           node-version: ${{ matrix.node-version }}
+          plugin: "scaffolder-backend-moudule-ansible"

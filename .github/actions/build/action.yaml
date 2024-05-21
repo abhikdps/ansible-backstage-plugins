@@ -1,7 +1,11 @@
 ---
-name: Build all packages
-description: Build all packages
+name: Build
+description: Build plugins
 inputs:
+  plugin:
+    description: Name of the plugin to build
+    required: true
+    default: ""
   node-version:
     description: Node.js version
     required: true
@@ -18,9 +22,10 @@ runs:
     - name: Setup local Turbo cache
       uses: dtinth/setup-github-actions-caching-for-turbo@a0e976d970c2a94366a26984efcef3030e2c0115 # v1
 
-    - name: Install dependencies
+    - name: Install dependencies for - ${{ inputs.plugin }}
       shell: bash
       run: |
+        cd ${{ inputs.plugin }}
         yarn install
         if [[ $(git diff --name-only . || true) ]]; then
           echo "After 'yarn install', workspace is dirty! The following files have changed:"
@@ -29,8 +34,8 @@ runs:
           exit 42
         fi
 
-    - name: Build all packages
+    - name: Build - ${{ inputs.plugin }}
       shell: bash
       run: |
-        cd scaffolder-backend-module-ansible
+        cd ${{ inputs.plugin }}
         yarn build --concurrency=1

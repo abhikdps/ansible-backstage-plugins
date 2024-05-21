@@ -2,6 +2,10 @@
 name: Test
 description: Test plugins
 inputs:
+  plugin:
+    description: Name of the plugin to build
+    required: true
+    default: ""
   node-version:
     description: Node.js version
     required: true
@@ -21,6 +25,7 @@ runs:
     - name: Install dependencies
       shell: bash
       run: |
+        cd ${{ inputs.plugin }}
         yarn install
         if [[ $(git diff --name-only . || true) ]]; then
           echo "After 'yarn install', workspace is dirty! The following files have changed:"
@@ -32,17 +37,17 @@ runs:
     - name: Run prettier for scaffolder-backend-module-ansible
       shell: bash
       run: |
-        cd scaffolder-backend-module-ansible
+        cd ${{ inputs.plugin }}
         yarn prettier:check
 
     - name: Run lint for scaffolder-backend-module-ansible
       shell: bash
       run: |
-        cd scaffolder-backend-module-ansible
+        cd ${{ inputs.plugin }}
         yarn lint
 
     - name: Run tests for scaffolder-backend-module-ansible
       shell: bash
       run: |
-        cd scaffolder-backend-module-ansible
+        cd ${{ inputs.plugin }}
         yarn test
