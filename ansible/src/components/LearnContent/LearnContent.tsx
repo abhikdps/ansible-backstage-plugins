@@ -135,7 +135,6 @@ const EntityLearnIntroCard = () => {
     learningPaths: learningPaths,
     labs: labs,
   });
-  console.log({term});
 
   useEffect(() => {
     if (term.length > 1) {

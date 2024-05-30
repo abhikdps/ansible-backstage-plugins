@@ -42,7 +42,7 @@ export const getAnsibleConfig = (config: Config): AnsibleDetails => {
   return {
     devSpacesBaseUrl: config.getString('ansible.devSpacesBaseUrl'),
     baseUrl: config.getString('ansible.creatorService.baseUrl'),
-    port: parseInt(config.getString('ansible.creatorService.port')),
+    port: Number(config.getString('ansible.creatorService.port')),
   };
 };
 
@@ -57,7 +57,7 @@ export const getDevSpacesUrlFromAnsibleConfig = (config: Config): string => {
 export const getServiceUrlFromAnsibleConfig = (config: Config): string => {
   return generateInitUrl(
     config.getString('ansible.creatorService.baseUrl'),
-    parseInt(config.getString('ansible.creatorService.port')),
+    Number(config.getString('ansible.creatorService.port')),
   );
 };
 

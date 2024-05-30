@@ -15,11 +15,11 @@
  */
 
 import * as fs from 'fs';
-import fetch from 'node-fetch';
+import fetch, { Response } from 'node-fetch';
 import { Logger } from 'winston';
 
 export class BackendServiceAPI {
-  private async sendPostRequest(url: string, data: any) {
+  private async sendPostRequest(url: string, data: any): Promise<Response> {
     const requestOptions = {
       method: 'POST',
       headers: {
@@ -35,9 +35,13 @@ export class BackendServiceAPI {
       }
       return response;
     } catch (error) {
-      throw new Error(
-        `Failed to send POST request to fetch scaffoled data: ${error.message}`,
-      );
+      if (error instanceof Error){
+        throw new Error(
+          `Failed to send POST request to fetch scaffoled data: ${error.message}`,
+        );
+      } else {
+        throw new Error('Failed to send POST request due to an unknown error');
+      }
     }
   }
 
@@ -54,13 +58,15 @@ export class BackendServiceAPI {
         response.body.on('error', (err: any) => {
           reject(err);
         });
-        fileStream.on('finish', function () {
+        fileStream.on('finish', () => {
           resolve(true);
         });
       });
       logger.info('File downloaded successfully');
     } catch (error) {
-      throw new Error(`Failed to download file: ${error.message}`);
+      if (error instanceof Error){
+        throw new Error(`Failed to download file: ${error.message}`);
+      }
     }
   }
 
@@ -76,7 +82,7 @@ export class BackendServiceAPI {
       logger.debug(
         `[ansible-creator] Request for ansible-playbook-project: ${collectionOrgName}`,
       );
-
+      const playbookUrl = 'v1/creator/playbook';
       const postData = {
         scm_org: collectionOrgName,
         project: 'ansible-project',
@@ -84,7 +90,7 @@ export class BackendServiceAPI {
       };
 
       const response = await this.sendPostRequest(
-        creatorServiceUrl + 'v1/creator/playbook',
+        `${creatorServiceUrl}/${playbookUrl}`,
         postData,
       );
       await this.downloadFile(response, logger, workspacePath, tarName);
@@ -105,14 +111,14 @@ export class BackendServiceAPI {
       logger.debug(
         `[ansible-creator] Request for ansible-collection-project: ${collectionOrgName}`,
       );
-
+      const collectionUrl = 'v1/creator/collection';
       const postData = {
-        collection: collectionOrgName + '.' + collectionName,
+        collection: `${collectionOrgName}.${collectionName}`,
         project: 'collection',
       };
 
       const response = await this.sendPostRequest(
-        creatorServiceUrl + 'v1/creator/collection',
+        `${creatorServiceUrl}/${collectionUrl}`,
         postData,
       );
       await this.downloadFile(response, logger, workspacePath, tarName);

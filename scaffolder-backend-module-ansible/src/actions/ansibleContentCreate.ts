@@ -16,7 +16,7 @@
 import * as os from 'os';
 import { Logger } from 'winston';
 import { executeShellCommand } from '@backstage/plugin-scaffolder-node';
-import { BackendServiceAPI } from '../utils/api';
+import { BackendServiceAPI } from './utils/api';
 
 export async function ansibleCreatorRun(
   workspacePath: string,

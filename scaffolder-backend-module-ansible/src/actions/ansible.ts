@@ -20,7 +20,7 @@ import {
   getServiceUrlFromAnsibleConfig,
   getDevspacesUrlFromAnsibleConfig,
   generateRepoUrl,
-} from '../utils/config';
+} from './utils/config';
 import { Logger } from 'winston';
 import { Config } from '@backstage/config';
 
@@ -31,6 +31,7 @@ export function createAnsibleContentAction(config: Config) {
     description: string;
     collectionGroup: string;
     collectionName: string;
+    applicationType: string;
   }>({
     id: 'ansible:content:create',
     description: 'Runs Ansible creator to scaffold Ansible content',
@@ -51,7 +52,7 @@ export function createAnsibleContentAction(config: Config) {
             type: 'string',
           },
           repoName: {
-            title: 'Repository name',
+            title: 'Repository Name',
             description: 'The name of the new playbook project repository. For example, “my-new-playbook-repo”.',
             type: 'string',
           },
@@ -62,7 +63,7 @@ export function createAnsibleContentAction(config: Config) {
             type: 'string',
           },
           collectionName: {
-            title: 'Collection name',
+            title: 'Collection Name',
             description:
               'The collection name in your new playbook repository. For example, “my-new-collection-name”.',
             type: 'string',
@@ -71,6 +72,12 @@ export function createAnsibleContentAction(config: Config) {
             title: 'Description',
             description:
               'Describe the playbook or collection and its purpose to help other users understand what to use it for.',
+            type: 'string',
+          },
+          applicationType: {
+            title: 'Application type',
+            description:
+              'The Application type.',
             type: 'string',
           },
         },
