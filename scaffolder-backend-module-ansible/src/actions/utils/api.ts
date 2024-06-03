@@ -90,7 +90,7 @@ export class BackendServiceAPI {
       };
 
       const response = await this.sendPostRequest(
-        `${creatorServiceUrl}/${playbookUrl}`,
+        `${creatorServiceUrl}${playbookUrl}`,
         postData,
       );
       await this.downloadFile(response, logger, workspacePath, tarName);
@@ -118,7 +118,7 @@ export class BackendServiceAPI {
       };
 
       const response = await this.sendPostRequest(
-        `${creatorServiceUrl}/${collectionUrl}`,
+        `${creatorServiceUrl}${collectionUrl}`,
         postData,
       );
       await this.downloadFile(response, logger, workspacePath, tarName);

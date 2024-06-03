@@ -34,7 +34,7 @@ describe('BackendServiceAPI', () => {
     const collectionOrgName = 'my-org';
     const collectionName = 'my-collection';
     const tarName = 'my-collection-playbook-project.tar.gz';
-    const creatorServiceUrl = 'http://localhost:8000';
+    const creatorServiceUrl = 'http://localhost:8000/';
 
     const api = new BackendServiceAPI();
 
@@ -63,7 +63,7 @@ describe('BackendServiceAPI', () => {
     const collectionOrgName = 'my-org';
     const collectionName = 'my-collection';
     const tarName = 'my-collection-project.tar.gz';
-    const creatorServiceUrl = 'http://localhost:8000';
+    const creatorServiceUrl = 'http://localhost:8000/';
 
     const api = new BackendServiceAPI();
 
