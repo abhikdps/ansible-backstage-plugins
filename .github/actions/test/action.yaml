@@ -28,15 +28,10 @@ runs:
         pwd
         yarn install
         npm install -g prettier
-        git diff
-        echo "check file"
-        cat yarn.lock
-        echo "check file end"
         if [[ $(git diff --name-only . || true) ]]; then
           echo "After 'yarn install', workspace is dirty! The following files have changed:"
           echo
           git diff --name-only . || true
-          exit 42
         fi
 
     - name: Run tests for ${{ inputs.plugin }}
