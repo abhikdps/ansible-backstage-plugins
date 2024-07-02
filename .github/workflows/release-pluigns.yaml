@@ -36,4 +36,3 @@ jobs:
         uses: ./.github/actions/pack
         with:
           node-version: ${{ matrix.node-version }}
-          plugin: 'scaffolder-backend-module-ansible'
