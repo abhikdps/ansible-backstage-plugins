@@ -56,13 +56,6 @@ describe('SegmentAnalytics', () => {
   });
 
   describe('fromConfig', () => {
-    // it('throws when missing writeKey', () => {
-    //   const config = new ConfigReader({ ansible: { analytics: { segment: {} } } });
-    //   expect(() => SegmentAnalytics.fromConfig(config)).toThrow(
-    //     /Missing required config value/,
-    //   );
-    // });
-
     it('returns implementation', () => {
       const api = SegmentAnalytics.fromConfig(basicValidConfig);
       expect(api.captureEvent).toBeDefined();
