@@ -34,18 +34,22 @@ import { createMockActionContext } from '@backstage/plugin-scaffolder-node-test-
 describe('ansible:content:create', () => {
     const config = new ConfigReader({
         ansible: {
-        devSpacesBaseUrl: 'https://test.apps.test-rhdh.testing.ansible.com/',
-        creatorService: {
-            baseUrl: 'localhost',
-            port: '8000',
+          devSpaces: {
+              baseUrl: 'https://test.apps.test-rhdh.testing.ansible.com/',
+            },
+          creatorService: {
+              baseUrl: 'localhost',
+              port: '8000',
+            },
           },
-      },
-    });
+        });
 
     const action = createAnsibleContentAction(config);
 
     const mockContext = createMockActionContext({
-      input: { repoOwner: 'testOwner',
+      input: {
+        sourceControl: 'github.com',
+        repoOwner: 'testOwner',
         repoName: 'testRepo',
         description: 'test description',
         collectionGroup: 'dummyGroup',
@@ -59,16 +63,16 @@ describe('ansible:content:create', () => {
     });
 
 
-    it('should call output with the devSpacesBaseUrl and the repoUrl', async () => {
+    it('should call output with the devSpaces.baseUrl and the repoUrl', async () => {
       await action.handler(mockContext);
 
       expect(mockContext.output).toHaveBeenCalledWith(
         'devSpacesBaseUrl',
-        getDevspacesUrlFromAnsibleConfig(config, 'testOwner', 'testRepo'),
+        getDevspacesUrlFromAnsibleConfig(config, 'github.com', 'testOwner', 'testRepo'),
       );
       expect(mockContext.output).toHaveBeenCalledWith(
         'repoUrl',
-        generateRepoUrl('testOwner', 'testRepo'),
+        generateRepoUrl('github.com', 'testOwner', 'testRepo'),
       );
     });
 
@@ -87,7 +91,7 @@ describe('ansible:content:create', () => {
       expect(ansibleCreatorRun).toHaveBeenCalledTimes(1);
       expect(mockContext.output).toHaveBeenCalledWith(
         'repoUrl',
-        generateRepoUrl('testOwner', 'testRepo'),
+        generateRepoUrl('github.com', 'testOwner', 'testRepo'),
       );
     });
   });

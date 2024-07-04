@@ -28,19 +28,24 @@ function generateInitUrl(baseUrl: string, port: number): string {
 
 function generateDevSpacesUrl(
   devSpacesBaseUrl: string,
+  sourceControl: string,
   repoOwner: string,
   repoName: string,
 ): string {
-  return `${devSpacesBaseUrl}#https://github.com/${repoOwner}/${repoName}`;
+  return `${devSpacesBaseUrl}#https://${sourceControl}/${repoOwner}/${repoName}`;
 }
 
-export function generateRepoUrl(repoOwner: string, repoName: string): string {
-  return `github.com?owner=${repoOwner}&repo=${repoName}`;
+export function generateRepoUrl(
+  sourceControl: string,
+  repoOwner: string,
+  repoName: string,
+): string {
+  return `${sourceControl}?owner=${repoOwner}&repo=${repoName}`;
 }
 
 export const getAnsibleConfig = (config: Config): AnsibleDetails => {
   return {
-    devSpacesBaseUrl: config.getString('ansible.devSpacesBaseUrl'),
+    devSpacesBaseUrl: config.getString('ansible.devSpaces.baseUrl'),
     baseUrl: config.getString('ansible.creatorService.baseUrl'),
     port: Number(config.getString('ansible.creatorService.port')),
   };
@@ -51,7 +56,7 @@ export const getAllAnsibleConfig = (config: Config): AnsibleDetails => {
 };
 
 export const getDevSpacesUrlFromAnsibleConfig = (config: Config): string => {
-  return config.getString('ansible.devSpacesBaseUrl');
+  return config.getString('ansible.devSpaces.baseUrl');
 };
 
 export const getServiceUrlFromAnsibleConfig = (config: Config): string => {
@@ -63,11 +68,13 @@ export const getServiceUrlFromAnsibleConfig = (config: Config): string => {
 
 export const getDevspacesUrlFromAnsibleConfig = (
   config: Config,
+  sourceControl: string,
   repoOwner: string,
   repoName: string,
 ): string => {
   return generateDevSpacesUrl(
-    config.getString('ansible.devSpacesBaseUrl'),
+    config.getString('ansible.devSpaces.baseUrl'),
+    sourceControl,
     repoOwner,
     repoName,
   );
@@ -85,5 +92,4 @@ export const validateAnsibleConfig = (config: Config) => {
       'Missing required configuration: ansible.creatorService.port',
     );
   }
-
 };

@@ -27,6 +27,7 @@ import { Config } from '@backstage/config';
 
 export function createAnsibleContentAction(config: Config) {
   return createTemplateAction<{
+    sourceControl: string,
     repoOwner: string;
     repoName: string;
     description: string;
@@ -46,6 +47,12 @@ export function createAnsibleContentAction(config: Config) {
           'collectionName',
         ],
         properties: {
+          sourceControl: {
+            title: 'Source control options',
+            description:
+              'The source control source name. For example, “github.com”.',
+            type: 'string',
+          },
           repoOwner: {
             title: ' Source code repository organization name or username',
             description:
@@ -86,6 +93,7 @@ export function createAnsibleContentAction(config: Config) {
       output: {
         type: 'object',
         required: [
+          'sourceControl',
           'repoOwner',
           'repoName',
           'collectionGroup',
@@ -103,6 +111,7 @@ export function createAnsibleContentAction(config: Config) {
     },
     async handler(ctx) {
       const {
+        sourceControl,
         repoOwner,
         repoName,
         description,
@@ -111,7 +120,7 @@ export function createAnsibleContentAction(config: Config) {
       } = ctx.input;
       const pluginLogName = 'plugin-scaffolder-backend-module-backstage-rhaap'
       ctx.logger.info(
-        `[${pluginLogName}] Creating Ansible content ${collectionGroup}.${collectionName}`,
+        `[${pluginLogName}] Creating Ansible content ${collectionGroup}.${collectionName} with source control ${sourceControl}`,
       );
 
       ctx.logger.info(
@@ -137,9 +146,9 @@ export function createAnsibleContentAction(config: Config) {
       );
       ctx.output(
         'devSpacesBaseUrl',
-        getDevspacesUrlFromAnsibleConfig(config, repoOwner, repoName),
+        getDevspacesUrlFromAnsibleConfig(config, sourceControl, repoOwner, repoName),
       );
-      ctx.output('repoUrl', generateRepoUrl(repoOwner, repoName));
+      ctx.output('repoUrl', generateRepoUrl(sourceControl, repoOwner, repoName));
       ctx.logger.debug(
         `[${pluginLogName}] context output processed successfully`,
       );

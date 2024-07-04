@@ -11,7 +11,8 @@ catalog:
       rules:
         - allow: [Template]
 ansible:
-  devSpacesBaseUrl: "https://devspaces.apps.ansible-rhdh.testing.ansible.com/"
+  devSpaces:
+    baseUrl: "https://devspaces.apps.ansible-rhdh.testing.ansible.com/"
   creatorService:
     baseUrl: "localhost"
     port: "5000"

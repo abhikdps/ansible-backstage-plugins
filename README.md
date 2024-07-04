@@ -287,9 +287,6 @@ yarn export-dynamic
 dynamicPlugins:
   backend:
     ansible.plugin-scaffolder-backend-module-backstage-rhaap:
-      mountPoints:
-        - importName: createAnsibleContentAction
-          mountPoint: entity.page.overview/cards
 ```
 
 and register the template catalog section in `app-config.local.yaml` file
