@@ -1,5 +1,5 @@
 ---
-name: CI / backend
+name: CI / scaffolder / backend
 # concurrency:
 #   # group: ${{ github.head_ref || github.run_id }}
 #   cancel-in-progress: true
