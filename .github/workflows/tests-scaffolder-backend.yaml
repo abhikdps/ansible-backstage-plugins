@@ -8,7 +8,7 @@ on:  # yamllint disable-line rule:truthy
   pull_request:
     branches: [main]
     paths:
-      - 'plugins/plugin-scaffolder-backend-module-backstage-rhaap/**'
+      - 'plugins/scaffolder-backend-module-backstage-rhaap/**'
   workflow_dispatch:
   schedule:
     - cron: '0 0 * * *'
@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./plugins/plugin-scaffolder-backend-module-backstage-rhaap
+        working-directory: ./plugins/scaffolder-backend-module-backstage-rhaap
     strategy:
       matrix:
         node-version: [18, 20]
@@ -33,14 +33,14 @@ jobs:
         uses: ./.github/actions/test
         with:
           node-version: ${{ matrix.node-version }}
-          plugin: 'plugins/plugin-scaffolder-backend-module-backstage-rhaap'
+          plugin: 'plugins/scaffolder-backend-module-backstage-rhaap'
 
   lint:
     name: 👷 / lint / Node-${{ matrix.node-version }}
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./plugins/plugin-scaffolder-backend-module-backstage-rhaap
+        working-directory: ./plugins/scaffolder-backend-module-backstage-rhaap
     strategy:
       matrix:
         node-version: [20]
@@ -54,14 +54,14 @@ jobs:
         uses: ./.github/actions/lint
         with:
           node-version: ${{ matrix.node-version }}
-          plugin: 'plugins/plugin-scaffolder-backend-module-backstage-rhaap'
+          plugin: 'plugins/scaffolder-backend-module-backstage-rhaap'
 
   build:
     name: 🛠️ / 📦 build / Node-${{ matrix.node-version }}
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./plugins/plugin-scaffolder-backend-module-backstage-rhaap
+        working-directory: ./plugins/scaffolder-backend-module-backstage-rhaap
     strategy:
       matrix:
         node-version: [18, 20]
@@ -75,14 +75,14 @@ jobs:
         uses: ./.github/actions/build
         with:
           node-version: ${{ matrix.node-version }}
-          plugin: 'plugins/plugin-scaffolder-backend-module-backstage-rhaap'
+          plugin: 'plugins/scaffolder-backend-module-backstage-rhaap'
 
   coverage:
     name: 📝 / coverage / Node-${{ matrix.node-version }}
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./plugins/plugin-scaffolder-backend-module-backstage-rhaap
+        working-directory: ./plugins/scaffolder-backend-module-backstage-rhaap
     strategy:
       matrix:
         node-version: [18]
@@ -96,7 +96,7 @@ jobs:
         uses: ./.github/actions/code-coverage
         with:
           node-version: ${{ matrix.node-version }}
-          plugin: 'plugins/plugin-scaffolder-backend-module-backstage-rhaap'
+          plugin: 'plugins/scaffolder-backend-module-backstage-rhaap'
 
   all-green:
     if: ${{ always() }}

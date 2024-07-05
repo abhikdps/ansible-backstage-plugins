@@ -75,6 +75,6 @@ playwright/.cache/
 # tmp files
 *.tmp*
 
-# js files when yarn tsc is ran
+# tar files when yarn tsc is ran
 ansible-plugins-pack/
 /
