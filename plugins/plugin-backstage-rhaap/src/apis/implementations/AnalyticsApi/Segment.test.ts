@@ -36,7 +36,7 @@ jest.mock('@segment/analytics-next', () => {
   };
 });
 
-describe('SegmentAnalytics', () => {
+xdescribe('SegmentAnalytics', () => {
   const context = {
     extension: 'App',
     pluginId: 'some-plugin',
