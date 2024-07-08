@@ -32,8 +32,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Show GitHub ref tag
+      - name: DEBUG - Show GitHub ref tag
         run: echo "${GITHUB_REF##*/}"
+
+      - name: DEBUG - Show GitHub ref tag only version
+        run: echo "${GITHUB_REF##*/v}"
 
       - name: Pack 📦 & release 🚀
         uses: ./.github/actions/pack
