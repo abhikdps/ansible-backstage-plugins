@@ -191,6 +191,12 @@ const EntityLearnIntroCard = () => {
                 <OpenInNew fontSize='small' style={{marginLeft: '5px', fontSize: '14px'}}/>
               </Link>
             </Typography>
+            <Typography style={{marginTop: '16px', fontSize: '14px'}} component="div">
+              <Link to="http://red.ht/aap-lp-getting-started-rhaap-plugin">
+                User Guide
+                <OpenInNew fontSize='small' style={{marginLeft: '5px', fontSize: '14px'}}/>
+              </Link>
+            </Typography>
           </Typography>
         </Grid>
         <Grid item xs={10}>
