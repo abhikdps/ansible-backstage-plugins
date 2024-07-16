@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { SchedulerServiceTaskScheduleDefinitionConfig } from '@backstage/backend-plugin-api';
+import { TaskScheduleDefinitionConfig } from '@backstage/backend-tasks';
 
 export interface Config {
   /**
@@ -40,7 +40,7 @@ export interface Config {
       /**
        * Set schedule for subscription check
        */
-      schedule?: SchedulerServiceTaskScheduleDefinitionConfig;
+      schedule?: TaskScheduleDefinitionConfig;
     }
   };
 }

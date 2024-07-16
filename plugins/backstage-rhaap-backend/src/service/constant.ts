@@ -19,6 +19,9 @@
  * frequency supports hours, minutes, seconds and can customize as required
  */
 export const DEFAULT_SCHEDULE = {
-  frequency: { hours: 24 },
+  frequency: { minutes: 1 },
   timeout: { minutes: 1 },
 };
+
+export const INVALID_SUBSCRIPTION =
+  'Invalid AAP subscription. Please contact admin for more information.';

@@ -30,7 +30,6 @@ export const backstageRHAAPPlugin = createBackendPlugin({
       deps: {
         config: coreServices.rootConfig,
         logger: coreServices.logger,
-        reader: coreServices.urlReader,
         httpRouter: coreServices.httpRouter,
         scheduler: coreServices.scheduler
       },

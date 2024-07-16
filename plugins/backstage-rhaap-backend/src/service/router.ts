@@ -19,11 +19,10 @@ import { Logger } from 'winston';
 
 import { errorHandler } from '@backstage/backend-common';
 import { Config } from '@backstage/config';
-import {
-  SchedulerService,
-} from '@backstage/backend-plugin-api';
+import { SchedulerService } from '@backstage/backend-plugin-api';
 
-import { AnsibleRHAAPService } from './ansibleRHAAPService';
+import { RHAAPService } from './ansibleRHAAPService';
+import { INVALID_SUBSCRIPTION } from './constant';
 
 export interface RouterOptions {
   logger: Logger;
@@ -31,12 +30,17 @@ export interface RouterOptions {
   scheduler?: SchedulerService;
 }
 
+export interface AAPResponse {
+  isValid: boolean;
+  error_message?: string | null;
+}
+
 export async function createRouter(
   options: RouterOptions,
 ): Promise<express.Router> {
   const { logger, config, scheduler } = options;
 
-  const instance = AnsibleRHAAPService.getInstance(config, logger, scheduler);
+  const instance = RHAAPService.getInstance(config, logger, scheduler);
 
   const router = Router();
   router.use(express.json());
@@ -49,7 +53,12 @@ export async function createRouter(
 
   router.get('/aap/subscription', async (_, response) => {
     // Return the subscription status
-    response.send({ status: 'ok', valid: instance.getSubscriptionStatus() });
+    const { statusCode, isValid } = instance.getSubscriptionStatus();
+    const res: AAPResponse = {
+      isValid,
+    };
+    if (!res.isValid) res.error_message = INVALID_SUBSCRIPTION;
+    response.status(statusCode).json(res);
   });
 
   return router;

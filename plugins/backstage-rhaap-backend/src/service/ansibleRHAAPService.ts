@@ -20,11 +20,17 @@ import https from 'https';
 
 import { DEFAULT_SCHEDULE } from './constant';
 import { Logger } from 'winston';
-import { PluginTaskScheduler, readTaskScheduleDefinitionFromConfig, TaskRunner, TaskScheduleDefinition } from '@backstage/backend-tasks';
+import {
+  PluginTaskScheduler,
+  readTaskScheduleDefinitionFromConfig,
+  TaskRunner,
+  TaskScheduleDefinition,
+} from '@backstage/backend-tasks';
 
-export class AnsibleRHAAPService {
-  private hasValidSubscription!: boolean;
-  private static _instance: AnsibleRHAAPService;
+export class RHAAPService {
+  private hasValidSubscription: boolean = false;
+  private statusCode: number = 0;
+  private static _instance: RHAAPService;
   private readonly scheduleFn!: () => Promise<void>;
   private config!: Config;
   private logger!: Logger;
@@ -34,41 +40,38 @@ export class AnsibleRHAAPService {
     logger: Logger,
     scheduler?: PluginTaskScheduler,
   ) {
-    if (AnsibleRHAAPService._instance)
-      return AnsibleRHAAPService._instance;
+    if (RHAAPService._instance) return RHAAPService._instance;
 
     this.config = config;
     this.logger = logger;
 
-    this.logger.info(`In Ansible RHAAP Service`);
+    this.logger.info(`In RHAAP Service`);
 
     let schedule: TaskScheduleDefinition = DEFAULT_SCHEDULE;
-    if (this.config.has('ansible.aap.schedule')) {
+    if (this.config.has('ansible.rhaap.schedule')) {
       schedule = readTaskScheduleDefinitionFromConfig(
-        this.config.getConfig('ansible.aap.schedule'),
+        this.config.getConfig('ansible.rhaap.schedule'),
       );
     }
 
-    if(scheduler) {
-        const taskRunner = scheduler.createScheduledTaskRunner(schedule);
-
-        this.logger.info(`Scheduling function with task runner ${taskRunner}`);
-        this.scheduleFn = this.createFn(taskRunner);
-        this.scheduleFn();
+    if (scheduler) {
+      const taskRunner = scheduler.createScheduledTaskRunner(schedule);
+      this.scheduleFn = this.createFn(taskRunner);
+      this.scheduleFn();
     }
-    AnsibleRHAAPService._instance = this;
+    RHAAPService._instance = this;
   }
 
   static getInstance(
     config: Config,
     logger: Logger,
     scheduler?: PluginTaskScheduler,
-  ): AnsibleRHAAPService {
-    return new AnsibleRHAAPService(config, logger, scheduler);
+  ): RHAAPService {
+    return new RHAAPService(config, logger, scheduler);
   }
 
   getSubscriptionStatus() {
-    return this.hasValidSubscription;
+    return { statusCode: this.statusCode, isValid: this.hasValidSubscription };
   }
 
   private createFn(taskRunner: TaskRunner) {
@@ -81,33 +84,42 @@ export class AnsibleRHAAPService {
 
   private async checkSubscription() {
     const ansibleConfig = this.config.getConfig('ansible');
-    const aapConfig = ansibleConfig.getConfig('aap');
-    const baseUrl = aapConfig.getString('baseUrl');
-    const token = aapConfig.getString('token');
-    const checkSSL = aapConfig.getBoolean('checkSSL') ?? true;
+    const rhaapConfig = ansibleConfig.getConfig('rhaap');
+    const baseUrl = rhaapConfig.getString('baseUrl');
+    const token = rhaapConfig.getString('token');
+    const checkSSL = rhaapConfig.getBoolean('checkSSL') ?? true;
     try {
-
       const agent = new https.Agent({
         rejectUnauthorized: checkSSL,
       });
 
-      console.log('In Subscription Check: ', this.hasValidSubscription);
-
       // Send request to AAP
-      this.logger.info(
-        `[backstage-rhaap-backend] Checking AAP subscription at ${baseUrl}/api/v2/config/`,
-      );
       const aapResponse = await fetch(`${baseUrl}/api/v2/config/`, {
         headers: { Authorization: `Bearer ${token}` },
         agent,
       });
+      this.logger.info(
+        `[backstage-rhaap-backend] Checking AAP subscription at ${baseUrl}/api/v2/config/`,
+      );
+      this.logger.info({aapResponse})
       const data = await aapResponse.json();
+      this.logger.info({json_fmt: aapResponse.json})
+      this.statusCode = aapResponse.status
       this.hasValidSubscription =
         data?.license_info?.license_type === 'enterprise';
     } catch (error: any) {
-      this.logger.info(
+      this.logger.error(
         `[backstage-rhaap-backend] AAP subscription Check failed at ${baseUrl}/api/v2/config/`,
       );
+      let statusCode;
+      if (error.code === 'CERT_HAS_EXPIRED') {
+        statusCode = 495;
+      } else if (error.code === 'ECONNREFUSED') {
+        statusCode = 404;
+      }
+      else {
+        statusCode = Number.isInteger(error.code) && error.code >= 100 && error.code < 600 ? error.code : 500;
+      }
       this.hasValidSubscription = false;
     }
   }
