@@ -2,6 +2,8 @@
 
 The backstage-rhaap-backend plugin enables APIs to check AAP subscriptions.
 
+    Note: After initialization, this plugin will start sending a request to check for AAP subscription status every 24 hours.
+
 _This plugin was created through the Backstage CLI_
 
 ## Installation - with upstream backstage
@@ -28,7 +30,9 @@ Refer <https://backstage.io/docs/auth/github/provider>
 # From your Backstage root directory
 yarn --cwd packages/backend add @ansible/plugin-backstage-rhaap-backend
 ```
+
 Or
+
 ```bash
 cd plugins/backstage-rhaap-backend
 yarn install
@@ -38,6 +42,7 @@ yarn install
 `plugins` folder at the backstage root directory.
 1. Update the `packages/backend/package.json` file in the backstage root directory.
 1. Add the dependencies under the `dependencies` sections as follows:
+
 ```json
      "@backstage/plugin-azure-sites-common": "workspace:^",
 +    "@ansible/plugin-backstage-rhaap-backend": "^x.y.z",
@@ -147,6 +152,7 @@ dynamicPlugins:
 ```
 
 ### Start the backend by running the command in the root folder of ``
+
    cloned repository path.
 
 ```bash

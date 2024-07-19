@@ -239,17 +239,14 @@ data:
       analytics:
         enabled: true
       devSpaces:
-        baseUrl: 'https://MyOwnDevSpacesUrl/'
+        baseUrl: '<https://MyOwnDevSpacesUrl/>'
       creatorService:
         baseUrl: '127.0.0.1'
         port: '8000'
       rhaap:
-        baseUrl: 'https://MyAapSubcriptionUrl'
-        token: 'TopSecretAAPToken'
+        baseUrl: '<https://MyAapSubcriptionUrl>'
+        token: '<TopSecretAAPToken>'
         checkSSL: true
-        schedule:
-          frequency: { minutes: 5 }
-          timeout: { minutes: 1 }
 ```
 
 ### Add RBAC configuration in your RHDH ROSA instance
