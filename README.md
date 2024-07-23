@@ -236,8 +236,8 @@ data:
   app-config.yaml: |
     ...
     ansible:
-      analytics:
-        enabled: true
+      automationHub:
+        baseUrl: '<https://MyAutomationHubUrl/>'
       devSpaces:
         baseUrl: '<https://MyOwnDevSpacesUrl/>'
       creatorService:
