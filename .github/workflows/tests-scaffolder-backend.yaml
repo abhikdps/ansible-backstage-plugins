@@ -77,8 +77,9 @@ jobs:
   coverage:
     name: 📝 / coverage / Node-${{ matrix.node-version }}
     runs-on: ubuntu-latest
-    # permissions:
-    #  id-token: write
+    permissions:
+      id-token: write
+      checks: read
     defaults:
       run:
         working-directory: ./plugins/scaffolder-backend-module-backstage-rhaap
