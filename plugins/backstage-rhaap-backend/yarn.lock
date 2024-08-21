@@ -2022,7 +2022,7 @@
     yauzl "^3.0.0"
     yn "^4.0.0"
 
-"@backstage/backend-common@^0.23.2^", "@backstage/backend-common@^0.24.0":
+"@backstage/backend-common@^0.24.0":
   version "0.24.0"
   resolved "https://registry.yarnpkg.com/@backstage/backend-common/-/backend-common-0.24.0.tgz#c3c6f17dc5ae909a96f5969114a17c72a4fcb234"
   integrity sha512-dnkNfweck6ds9fasuiXDziK00Ln0Plh/DDwLkZkcbnZmEJKSrV7tHAcOa2lxVTqBBr6m2+NLwxWM1ze96DFYYA==
