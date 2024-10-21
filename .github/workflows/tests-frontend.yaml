@@ -5,6 +5,8 @@ on:  # yamllint disable-line rule:truthy
   pull_request:
     branches: [main]
     paths:
+      - '.github/actions/**'
+      - '.github/workflows/**'
       - 'plugins/backstage-rhaap/**'
   workflow_dispatch:
   schedule:
