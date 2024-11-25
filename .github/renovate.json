@@ -10,34 +10,32 @@
     "enabled": true,
     "automerge": true
   },
-  "labels": [
-    "dependency",
-    "skip-changelog"
-  ],
+  "labels": ["dependency", "skip-changelog"],
   "npm": {
     "minimumReleaseAge": "1 day"
   },
   "major": {
     "dependencyDashboardApproval": true
   },
-  "docker": {
-    "digest": {
-      "enabled": false
-    }
-  },
   "prCreation": "status-success",
   "packageRules": [
+    {
+      "matchCategories": ["docker"],
+      "digest": {
+        "enabled": false
+      }
+    },
     {
       "matchDepTypes": ["devDependencies"],
       "matchUpdateTypes": ["patch", "minor"],
       "matchCurrentVersion": "!/^0/",
-      "groupName": ["DevDependencies (non-major)"],
+      "groupName": "DevDependencies (non-major)",
       "automerge": true
     },
     {
       "matchDepTypes": ["devDependencies"],
       "matchUpdateTypes": ["major"],
-      "groupName": ["DevDependencies "]
+      "groupName": "DevDependencies "
     },
     {
       "extends": ["packages:test"],
@@ -61,24 +59,24 @@
       "groupName": "material-ui"
     },
     {
-      "extends": "monorepo:react",
+      "extends": ["monorepo:react"],
       "matchUpdateTypes": ["patch", "minor"],
       "groupName": "react (non-major)"
     },
     {
-      "extends": "monorepo:react",
+      "extends": ["monorepo:react"],
       "matchUpdateTypes": ["major"],
       "groupName": "react"
     },
     {
-      "matchPackagePrefixes": ["@types/"],
       "matchUpdateTypes": ["patch", "minor"],
-      "groupName": "types (non-major)"
+      "groupName": "types (non-major)",
+      "matchPackageNames": ["@types/{/,}**"]
     },
     {
-      "matchPackagePrefixes": ["@types/"],
       "matchUpdateTypes": ["major"],
-      "groupName": "types "
+      "groupName": "types ",
+      "matchPackageNames": ["@types/{/,}**"]
     }
   ],
   "separateMajorMinor": true,

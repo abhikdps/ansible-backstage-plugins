@@ -31,10 +31,8 @@ cd $DYNAMIC_PLUGIN_ROOT_DIR
 ```bash
 DYNAMIC_PLUGIN_ROOT_DIR=<ansible-backstage-plugins-local-path-changeme>/.tmp/dynamic-plugin-root
 git clone git@github.com:ansible/ansible-backstage-plugins.git
-cd ansible-backstage-plugins/plugins/<TO_BE_REPLACED_WITH_PLUGIN_NAME>
-yarn install
-yarn export-dynamic
-INTEGRITY_HASH=$(npm pack --pack-destination $DYNAMIC_PLUGIN_ROOT_DIR --json | jq -r '.[0].integrity')
+cd ansible-backstage-plugins
+./.github/actions/pack/pack.sh
 ls -l $DYNAMIC_PLUGIN_ROOT_DIR
 echo "Integrity Hash: $INTEGRITY_HASH"
 ```
