@@ -24,7 +24,7 @@ describe('Header with breadcrumbs', () => {
 
   const breadcrumbs = [
     { label: 'My items', href: '/my-items' },
-    { label: 'Breadcrumb Title' || 'Unnamed' },
+    { label: 'Breadcrumb Title' },
   ];
 
   it('should render', async () => {
