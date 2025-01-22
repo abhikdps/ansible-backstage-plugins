@@ -20,12 +20,7 @@ import https from 'https';
 
 import { DEFAULT_SCHEDULE, VALID_LICENSE_TYPES } from './constant';
 import { Logger } from 'winston';
-import {
-  PluginTaskScheduler,
-  readTaskScheduleDefinitionFromConfig,
-  TaskRunner,
-  TaskScheduleDefinition,
-} from '@backstage/backend-tasks';
+import { readSchedulerServiceTaskScheduleDefinitionFromConfig, SchedulerService, SchedulerServiceTaskRunner, SchedulerServiceTaskScheduleDefinition } from '@backstage/backend-plugin-api';
 
 export interface AAPSubscriptionCheck {
   status: number;
@@ -56,7 +51,7 @@ export class RHAAPService {
   private constructor(
     config: Config,
     logger: Logger,
-    scheduler?: PluginTaskScheduler,
+    scheduler?: SchedulerService,
   ) {
     if (RHAAPService._instance) return RHAAPService._instance;
 
@@ -65,9 +60,9 @@ export class RHAAPService {
 
     this.logger.info(`[backstage-rhaap-backend] Setting up the scheduler`);
 
-    let schedule: TaskScheduleDefinition = DEFAULT_SCHEDULE;
+    let schedule: SchedulerServiceTaskScheduleDefinition = DEFAULT_SCHEDULE;
     if (this.config.has('ansible.rhaap.schedule')) {
-      schedule = readTaskScheduleDefinitionFromConfig(
+      schedule = readSchedulerServiceTaskScheduleDefinitionFromConfig(
         this.config.getConfig('ansible.rhaap.schedule'),
       );
     }
@@ -87,7 +82,7 @@ export class RHAAPService {
   static getInstance(
     config: Config,
     logger: Logger,
-    scheduler?: PluginTaskScheduler,
+    scheduler?: SchedulerService,
   ): RHAAPService {
     return new RHAAPService(config, logger, scheduler);
   }
@@ -100,7 +95,7 @@ export class RHAAPService {
     };
   }
 
-  private createFn(taskRunner: TaskRunner) {
+  private createFn(taskRunner: SchedulerServiceTaskRunner) {
     return async () =>
       taskRunner.run({
         id: 'backstage-rhaap-subscription-check',
