@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "cy:open": "cypress open --browser chrome --e2e",
+    "e2e": "cypress run --browser chrome",
+    "e2e:portal": "cypress run --browser chrome --spec 'cypress/e2e/portal/**/*'",
+    "e2e:rhdh": "cypress run --browser chrome --spec 'cypress/e2e/rhdh/**/*'"
+  },
+  "devDependencies": {
+    "cypress": "^13.11.0",
+    "otplib": "^12.0.1",
+    "typescript": "^5.7.2"
+  }
+}
