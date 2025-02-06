@@ -37,7 +37,7 @@
     "@backstage/integration": "^1.15.0",
     "@backstage/plugin-catalog-backend": "1.27.1",
     "@backstage/plugin-catalog-node": "^1.12.5",
-    "undici": "6.19.8"
+    "undici": "6.21.1"
   },
   "devDependencies": {
     "@backstage/backend-test-utils": "^0.4.4",

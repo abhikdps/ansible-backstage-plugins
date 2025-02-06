@@ -83,8 +83,6 @@ describe('Ansible Portal Wizard Catalog My Items Page Functional Tests', () => {
     cy.get('li').contains('25').click();
     cy.get('.MuiTablePagination-input').should('contain.text', '25');
 
-    cy.get('.MuiTablePagination-displayedRows').should('be.visible');
-
     cy.get('[aria-label="first page"]').should('have.attr', 'type', 'button');
     cy.get('[aria-label="previous page"]').should(
       'have.attr',

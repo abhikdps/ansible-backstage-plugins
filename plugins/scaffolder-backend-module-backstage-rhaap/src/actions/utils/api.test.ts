@@ -29,7 +29,7 @@ describe('BackendServiceAPI', () => {
     const workspacePath = '/tmp/workspace';
     const collectionOrgName = 'my-org';
     const collectionName = 'my-collection';
-    const tarName = 'my-collection-playbook-project.tar.gz';
+    const tarName = 'my-collection-playbook-project.tar';
     const creatorServiceUrl = 'http://localhost:8000/';
 
     const api = new BackendServiceAPI();
@@ -71,7 +71,7 @@ describe('BackendServiceAPI', () => {
     const workspacePath = '/tmp/workspace';
     const collectionOrgName = 'my-org';
     const collectionName = 'my-collection';
-    const tarName = 'my-collection-playbook-project.tar.gz';
+    const tarName = 'my-collection-playbook-project.tar';
     const creatorServiceUrl = 'http://localhost:8000/';
 
     const api = new BackendServiceAPI();
@@ -116,7 +116,7 @@ describe('BackendServiceAPI', () => {
     const workspacePath = '/tmp/workspace';
     const collectionOrgName = 'my-org';
     const collectionName = 'my-collection';
-    const tarName = 'my-collection-playbook-project.tar.gz';
+    const tarName = 'my-collection-playbook-project.tar';
     const creatorServiceUrl = 'http://localhost:8000/';
 
     const api = new BackendServiceAPI();
@@ -146,7 +146,7 @@ describe('BackendServiceAPI', () => {
     const workspacePath = '/tmp/workspace';
     const collectionOrgName = 'my-org';
     const collectionName = 'my-collection';
-    const tarName = 'my-collection-project.tar.gz';
+    const tarName = 'my-collection-project.tar';
     const creatorServiceUrl = 'http://localhost:8000/';
 
     const api = new BackendServiceAPI();
@@ -187,7 +187,7 @@ describe('BackendServiceAPI', () => {
     const workspacePath = '/tmp/workspace';
     const collectionOrgName = 'my-org';
     const collectionName = 'my-collection';
-    const tarName = 'my-collection-project.tar.gz';
+    const tarName = 'my-collection-project.tar';
     const creatorServiceUrl = 'http://localhost:8000/';
 
     const api = new BackendServiceAPI();
@@ -231,7 +231,7 @@ describe('BackendServiceAPI', () => {
     const workspacePath = '/tmp/workspace';
     const collectionOrgName = 'my-org';
     const collectionName = 'my-collection';
-    const tarName = 'my-collection-project.tar.gz';
+    const tarName = 'my-collection-project.tar';
     const creatorServiceUrl = 'http://localhost:8000/';
 
     const api = new BackendServiceAPI();

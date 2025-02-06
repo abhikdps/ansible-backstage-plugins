@@ -95,15 +95,15 @@ export class BackendServiceAPI {
     tarName: string,
   ) {
     try {
-      logger.debug(
-        `${BackendServiceAPI.pluginLogName}] Request for ansible playbook-project: ${collectionOrgName}`,
-      );
       const playbookUrl = 'v2/creator/playbook';
       const postData = {
         namespace: collectionOrgName,
         project: 'ansible-project',
         collection_name: collectionName,
       };
+      logger.info(
+        `${BackendServiceAPI.pluginLogName}] Request for ansible playbook-project: ${collectionOrgName} using ${playbookUrl}`,
+      );
 
       const response = await this.sendPostRequest(
         `${creatorServiceUrl}${playbookUrl}`,
@@ -121,6 +121,10 @@ export class BackendServiceAPI {
           project: 'ansible-project',
           scm_project: collectionName,
         };
+
+        logger.info(
+          `${BackendServiceAPI.pluginLogName}] Request for ansible playbook-project: ${collectionOrgName} using ${playbookUrlV1}`,
+        );
 
         const responseV1 = await this.sendPostRequest(
           `${creatorServiceUrl}${playbookUrlV1}`,
@@ -145,14 +149,15 @@ export class BackendServiceAPI {
     tarName: string,
   ) {
     try {
-      logger.debug(
-        `${BackendServiceAPI.pluginLogName}] Request for ansible collection-project: ${collectionOrgName}`,
-      );
       const collectionUrl = 'v2/creator/collection';
       const postData = {
         collection: `${collectionOrgName}.${collectionName}`,
         project: 'collection',
       };
+
+      logger.debug(
+        `${BackendServiceAPI.pluginLogName}] Request for ansible collection-project: ${collectionOrgName} using ${collectionUrl}`,
+      );
 
       const response = await this.sendPostRequest(
         `${creatorServiceUrl}${collectionUrl}`,
@@ -169,6 +174,10 @@ export class BackendServiceAPI {
           collection: `${collectionOrgName}.${collectionName}`,
           project: 'collection',
         };
+
+        logger.debug(
+          `${BackendServiceAPI.pluginLogName}] Request for ansible collection-project: ${collectionOrgName} using ${collectionUrlV1}`,
+        );
 
         const responseV1 = await this.sendPostRequest(
           `${creatorServiceUrl}${collectionUrlV1}`,
