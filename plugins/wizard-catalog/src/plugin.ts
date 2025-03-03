@@ -8,9 +8,11 @@ import {
   createTaskRouteRef,
   runTaskRouteRef,
 } from './routes';
+import { AapApi } from './apis';
 
 export const wizardCatalogPlugin = createPlugin({
   id: 'wizard-catalog',
+  apis: [AapApi],
   routes: {
     wizardCatalog: wizardCatalogRouteRef,
   },
