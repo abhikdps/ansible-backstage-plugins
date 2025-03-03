@@ -39,7 +39,7 @@ import OpenInNew from '@material-ui/icons/OpenInNew';
 import { useAnalytics } from '@backstage/core-plugin-api';
 import { Link } from '@backstage/core-components';
 
-const feedbackModalStyles = makeStyles(theme => ({
+const feedbackModalStyles = makeStyles(() => ({
   required: {
     color: '#c00',
   },
@@ -47,7 +47,7 @@ const feedbackModalStyles = makeStyles(theme => ({
     fontWeight: 600,
   },
   formControl: {
-    margin: theme.spacing(1),
+    margin: '8px',
     minWidth: 180,
   },
 }));

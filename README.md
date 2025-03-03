@@ -1,6 +1,15 @@
 [![CI / frontend](https://github.com/ansible/ansible-backstage-plugins/actions/workflows/tests-frontend.yaml/badge.svg?branch=main&event=schedule)](https://github.com/ansible/ansible-backstage-plugins/actions/workflows/tests-frontend.yaml) [![CI / backend](https://github.com/ansible/ansible-backstage-plugins/actions/workflows/test-backend.yaml/badge.svg?event=schedule)](https://github.com/ansible/ansible-backstage-plugins/actions/workflows/test-backend.yaml)
 [![CI / scaffolder / backend](https://github.com/ansible/ansible-backstage-plugins/actions/workflows/tests-scaffolder-backend.yaml/badge.svg?event=schedule)](https://github.com/ansible/ansible-backstage-plugins/actions/workflows/tests-scaffolder-backend.yaml)
 
+# [Backstage](https://backstage.io)
+
+To start the app, run:
+
+```sh
+./install-deps
+yarn dev
+```
+
 # Ansible plugins for Red Hat Developer Hub
 
 ## Plugin httpd registry creation steps -
@@ -47,6 +56,28 @@ ansible-plugin-backstage-rhaap-1.0.0.tgz
 ansible-plugin-backstage-rhaap-backend-1.0.0.tgz
 ansible-plugin-scaffolder-backend-module-backstage-rhaap-1.0.0.tgz
 ```
+
+#### Bake plugins as OCI image
+
+The built plugins can packed as OCI image and pushed to container image registry.
+To use this, set needed environ vars and run `pack.sh`.
+
+```bash
+cd ansible-backstage-plugins
+export OCI_REGISTRY_NAMESPACE=quay.io/my-namespace/
+export OCI_REGISTRY_USERNAME=TODO
+export OCI_REGISTRY_PASSWORD=TODO
+export OCI_IMAGE_PUSH=true
+./.github/actions/pack/pack.sh
+```
+
+This example will try to push N different images, like;
+
+- quay.io/my-namespace/backstage-rhaap:vA.B.C
+- quay.io/my-namespace/wizard-catalog:vD.E.F
+- ...
+
+Make sure to create needed image repositories before.
 
 ### Create and upload the plugins to build an httpd service and call it plugin-registry
 

@@ -1,9 +1,12 @@
 ---
 exclude: >
   (?x)^(
-    .github/.*|
-    .yarn/.*|
-    .yarnrc.yml
+    .github\/.*|
+    .yarn\/.*|
+    .yarnrc.yml|
+    .*.yaml|
+    .*.yml|
+    .*.map
   )$
 repos:
   - repo: https://github.com/Lucas-C/pre-commit-hooks

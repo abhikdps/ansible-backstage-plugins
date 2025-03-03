@@ -16,13 +16,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Progress } from '@backstage/core-components';
-import {
-  Divider,
-  Grid,
-  Typography,
-  makeStyles,
-  useTheme,
-} from '@material-ui/core';
+import { Divider, Grid, Typography, makeStyles } from '@material-ui/core';
 import {
   CatalogFilterLayout,
   EntityKindPicker,
@@ -46,18 +40,17 @@ import StarBorder from '@material-ui/icons/StarBorder';
 import { useApi } from '@backstage/core-plugin-api';
 import { useEffectOnce } from 'react-use';
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles(() => ({
   flex: {
     display: 'flex',
   },
   ml_16: {
-    marginLeft: theme.spacing(2),
+    marginLeft: '16px',
   },
 }));
 
 export const AnsibleComponents = () => {
   const classes = useStyles();
-  const theme = useTheme();
   const catalogApi = useApi(catalogApiRef);
   const { isStarredEntity, toggleStarredEntity } = useStarredEntities();
   const [loading, setLoading] = useState<boolean>(true);
@@ -180,7 +173,7 @@ export const AnsibleComponents = () => {
   return (
     <CatalogFilterLayout>
       <CatalogFilterLayout.Filters>
-        <Typography variant="h6" style={{ margin: theme.spacing(1) }}>
+        <Typography variant="h6" style={{ margin: '8px' }}>
           Filters
         </Typography>
         <Divider />

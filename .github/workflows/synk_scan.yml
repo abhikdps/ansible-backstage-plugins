@@ -18,6 +18,15 @@ jobs:
         with:
           node-version: 18
 
+      - name: Setup yarn
+        run: npm install -g yarn
+
+      - name: Get Node v18 with yarn caching
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: yarn
+
       - name: Install dependencies
         run: yarn install
 

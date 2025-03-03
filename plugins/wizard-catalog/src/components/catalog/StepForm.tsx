@@ -6,7 +6,6 @@ import StepContent from '@mui/material/StepContent';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import { IChangeEvent } from '@rjsf/core';
-import { ScaffolderForm } from './ScaffolderFormWrapper';
 import validator from '@rjsf/validator-ajv8';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -25,6 +24,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import { createTheme, ThemeProvider } from '@material-ui/core/styles';
 import { formExtraFields } from '../../constants/formExtraFields';
+import { ScaffolderForm } from './ScaffolderFormWrapper';
 
 interface StepFormProps {
   steps: Array<{

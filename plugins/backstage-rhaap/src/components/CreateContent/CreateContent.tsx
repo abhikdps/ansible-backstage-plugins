@@ -53,7 +53,7 @@ export const EntityCreateContentCards = () => {
 
   if (loading) {
     return (
-      <div data-testid="progress">
+      <div>
         <Progress />
       </div>
     );

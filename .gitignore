@@ -15,7 +15,7 @@ coverage
 # Dependencies
 node_modules/
 
-# Yarn 3 files
+# Yarn files
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -23,7 +23,13 @@ node_modules/
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+plugins/*/.yarn
+plugins/*/.yarnrc.yml
+
+# Node version directives
+.nvmrc
 plugins/**/.yarn/*
+e2e-tests/.yarn/*
 
 # dotenv environment variables file
 .env
@@ -34,8 +40,6 @@ dist
 dist-types
 dist-scalprum
 plugins/*/dist-dynamic/*
-!/plugins/*/dist-dynamic/package.json
-!/plugins/*/dist-dynamic/yarn.lock
 storybook-static
 
 # Temporary change files created by Vim
@@ -80,6 +84,8 @@ playwright/.cache/
 ansible-plugins-pack/
 /
 
+# E2E test reports
+e2e-test-report/
 # Videos
 videos/
 **/videos
@@ -87,3 +93,5 @@ videos/
 # Screenshots
 screenshots/
 **/screenshots
+
+plugins/**/*.d.ts

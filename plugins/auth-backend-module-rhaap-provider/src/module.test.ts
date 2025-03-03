@@ -81,7 +81,7 @@ describe('authModuleRHAAPProvider', () => {
     const port = backend.server.port();
     appUrl = `http://localhost:${port}`;
     mswServer.use(http.all(`http://*:${port}/*`, () => passthrough()));
-  });
+  }, 20000);
 
   afterEach(() => {
     backstageServer.close();

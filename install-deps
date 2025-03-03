@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Variables
+pluginsDir="plugins"
+
+# Check if the plugins directory exists
+if [ ! -d "$pluginsDir" ]; then
+  echo "The directory $pluginsDir does not exist."
+  exit 1
+fi
+
+# Loop through each subdirectory in the ./plugins directory
+for pluginDir in "$pluginsDir"/*; do
+  if [ -d "$pluginDir" ]; then
+    echo "==================== $pluginDir ===================="
+    yarn install
+    printf "\n"
+  fi
+done
+printf "==================== Step: Plugin Deps Installation => Complete ====================\n"
+
+printf "==================== Step: Root Deps Installation => Start ====================\n"
+yarn install
+printf "==================== Step: Root Deps Installation => Complete ====================\n"
+
+printf "==================== Step: yarn tsc => Start ====================\n"
+if ! yarn tsc; then
+  echo "==================== Step: yarn tsc => Failed ===================="
+  popd > /dev/null || exit
+  exit 1
+fi
+echo "==================== Step: yarn tsc => Complete ===================="

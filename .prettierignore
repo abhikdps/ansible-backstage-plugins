@@ -6,3 +6,7 @@ CHANGELOG.md
 generated
 templates
 *.hbs
+*.yaml
+*.yml
+.yarn
+packages/app/src/build-metadata.json
