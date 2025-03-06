@@ -6,6 +6,13 @@ To start the app, run:
 
 ```sh
 ./install-deps
+```
+
+Once the install step is done update `app-config.yaml` file with changes to `integrations.github.token` and other settings which are mentioned as `changeme`.
+
+Then start the project with
+
+```sh
 yarn dev
 ```
 
