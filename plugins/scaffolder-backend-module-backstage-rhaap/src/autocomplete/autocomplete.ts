@@ -31,17 +31,6 @@ export async function handleAutocompleteRequest({
       }),
     };
   }
-  if(resource === 'aaphostname'){
-    const data = [
-      ansibleConfig.baseUrl
-    ];
-    return {
-      results: data.map((value, index) => {
-        return { id: index, name: value };
-      }),
-    };
-  }
-
   const apiClient = new AAPApiClient({ ansibleConfig, logger, token });
   const data = await apiClient.getResourceData(resource);
   return { results: data.results };
