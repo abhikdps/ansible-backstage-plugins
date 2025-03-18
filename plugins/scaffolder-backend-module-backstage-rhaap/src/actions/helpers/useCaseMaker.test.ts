@@ -8,7 +8,7 @@ import { Organization, UseCase } from '../../types';
 import { createLogger } from 'winston';
 import { setupServer } from 'msw/node';
 import fs from 'node:fs';
-import { http } from 'msw';
+import { http, HttpResponse } from 'msw';
 
 jest.mock('crypto');
 jest.mock('winston', () => {
@@ -45,12 +45,46 @@ jest.mock('octokit', () => ({
     }
   },
 }));
-
-describe('ansible-aap:useCaseMaker', () => {
-  const config = new ConfigReader(MOCK_CONFIG.data);
-  const ansibleConfig = getAnsibleConfig(config);
+describe('ansible-aap:useCaseMaker:github', () => {
+  let config;
+  let ansibleConfig: any;
+  const MOCK_CONF = {
+    data: {
+      integrations: {
+        github: [
+          {
+            host: 'github.com',
+            token: 'mockGitHubPAT',
+          },
+        ],
+        gitlab: [
+          {
+            host: 'gitlab.com',
+            token: 'mockGitlabPAT',
+          },
+        ],
+      },
+      ansible: {
+        rhaap: {
+          baseUrl: 'https://rhaap.test',
+          token: MOCK_TOKEN,
+          checkSSL: false,
+          : {
+            type: 'url',
+            target: 'https://gitlab.com/testUser/testRepo',
+            gitBranch: 'main',
+            gitUser: 'testUser',
+            gitEmail: 'username@example.com',
+          },
+        },
+      },
+    },
+  };
+  config = new ConfigReader(MOCK_CONFIG.data);
+  ansibleConfig = getAnsibleConfig(config);
   const logger = mockServices.logger.mock();
   const organization = MOCK_ORGANIZATION;
+  const scmType = 'Github';
   const token = MOCK_TOKEN;
   const apiClient = new AAPApiClient({ ansibleConfig, logger, token });
   const useCases = [
@@ -128,19 +162,32 @@ describe('ansible-aap:useCaseMaker', () => {
         );
       },
     ),
+    http.get(
+      'https://api.github.com/repos/testUser/testRepo',
+      // @ts-ignore
+      (req, res, ctx) => {
+        return res(ctx.status(404));
+      },
+    ),
+    http.get(
+      'https://api.github.com/repos/devUser/devRepo',
+      // @ts-ignore
+      (req, res, ctx) => {
+        return res(
+          ctx.status(200),
+          ctx.json({
+            id: 12345,
+            default_branch: 'main',
+          }),
+        );
+      },
+    ),
   ];
 
   const server = setupServer(...handlers);
 
   // @ts-ignore
-  const useCaseMaker = new UseCaseMaker({
-    ansibleConfig,
-    logger,
-    organization,
-    apiClient,
-    useCases,
-    winstonLogger,
-  });
+  let useCaseMaker: any;
 
   beforeEach(() => {
     jest.resetAllMocks();
@@ -149,7 +196,47 @@ describe('ansible-aap:useCaseMaker', () => {
 
   afterAll(() => server.close());
 
-  it('makeTemplates', async () => {
+  it('makeTemplates - error', async () => {
+    config = new ConfigReader(MOCK_CONF.data);
+    ansibleConfig = getAnsibleConfig(config);
+    useCaseMaker = new UseCaseMaker({
+      ansibleConfig,
+      logger,
+      organization,
+      scmType,
+      apiClient,
+      useCases,
+      winstonLogger,
+    });
+    jest
+      .spyOn(AAPApiClient.prototype, 'getJobTemplatesByName')
+      .mockImplementation(
+        (templateNames: string[], _organization: Organization) => {
+          expect(templateNames).toHaveLength(1);
+          let id = 1;
+          if (templateNames[0] === 'AWS Operations / Terminate EC2 Instance') {
+            id = 2;
+          }
+          return Promise.resolve([{ id: id, name: templateNames[0] }]);
+        },
+      );
+    await expect(useCaseMaker.makeTemplates()).rejects.toThrow(
+      'Error checking if github repo testRepo exists.',
+    );
+  });
+
+  it('makeTemplates - writeLocally', async () => {
+    config = new ConfigReader(MOCK_CONFIG.data);
+    ansibleConfig = getAnsibleConfig(config);
+    useCaseMaker = new UseCaseMaker({
+      ansibleConfig,
+      logger,
+      organization,
+      scmType,
+      apiClient,
+      useCases,
+      winstonLogger,
+    });
     jest
       .spyOn(AAPApiClient.prototype, 'getJobTemplatesByName')
       .mockImplementation(
@@ -188,10 +275,525 @@ describe('ansible-aap:useCaseMaker', () => {
       value: 'devfile content',
       repositoryUrl: 'https://github.com/invalid-url', // Invalid URL
     };
+    config = new ConfigReader(MOCK_CONFIG.data);
+    ansibleConfig = getAnsibleConfig(config);
+    useCaseMaker = new UseCaseMaker({
+      ansibleConfig,
+      logger,
+      organization,
+      scmType,
+      apiClient,
+      useCases,
+      winstonLogger,
+    });
 
     // Call the method and assert that it throws the expected error for invalid URL
     await expect(
       useCaseMaker.devfilePushToGithub(invalidOptions),
     ).rejects.toThrow('Invalid repository URL');
+
+    const validOptions = {
+      value: 'devfile content',
+      repositoryUrl: 'https://github.com/devUser/devRepo',
+    };
+    config = new ConfigReader(MOCK_CONF.data);
+    ansibleConfig = getAnsibleConfig(config);
+    useCaseMaker = new UseCaseMaker({
+      ansibleConfig,
+      logger,
+      organization,
+      scmType,
+      apiClient,
+      useCases,
+      winstonLogger,
+    });
+    await expect(
+      useCaseMaker.devfilePushToGithub(validOptions),
+    ).rejects.toThrow("Cannot read properties of undefined (reading 'status')");
+  });
+});
+
+describe('ansible-aap:useCaseMaker:gitlab', () => {
+  let config;
+  let ansibleConfig: any;
+  const MOCK_CONF = {
+    data: {
+      integrations: {
+        github: [
+          {
+            host: 'github.com',
+            token: 'mockGitHubPAT',
+          },
+        ],
+        gitlab: [
+          {
+            host: 'gitlab.com',
+            token: 'mockGitlabPAT',
+          },
+        ],
+      },
+      ansible: {
+        rhaap: {
+          baseUrl: 'https://rhaap.test',
+          token: MOCK_TOKEN,
+          checkSSL: false,
+          : {
+            type: 'url',
+            target: 'https://gitlab.com/testUser/testRepo',
+            gitBranch: 'main',
+            gitUser: 'testUser',
+            gitEmail: 'username@example.com',
+          },
+        },
+      },
+    },
+  };
+  config = new ConfigReader(MOCK_CONF.data);
+  ansibleConfig = getAnsibleConfig(config);
+  const logger = mockServices.logger.mock();
+  const organization = MOCK_ORGANIZATION;
+  const scmType = 'Gitlab';
+  const token = MOCK_TOKEN;
+  const apiClient = new AAPApiClient({ ansibleConfig, logger, token });
+  const useCases = [
+    {
+      name: 'Network',
+      version: 'main',
+      url: 'https://gitlab.com/userName/repoName',
+    },
+  ] as UseCase[];
+  const winstonLogger = createLogger();
+
+  const handlers = [
+    http.get(
+      'https://gitlab.com/api/v4/projects/userName%2FrepoName/repository/tree?path=extensions/patterns&ref=main',
+      // @ts-ignore
+      () => {
+        return HttpResponse.json([
+          { path: 'extensions/patterns/test_folder', type: 'tree' },
+        ]);
+      },
+    ),
+    http.get(
+      'https://gitlab.com/api/v4/projects/userName%2FrepoName/repository/tree?path=extensions%2Fpatterns%2Ftest_folder&ref=main',
+      // @ts-ignore
+      () => {
+        return HttpResponse.json([
+          {
+            name: 'setup.yml',
+            type: 'blob',
+            path: 'extensions/patterns/test_folder/setup.yml',
+          },
+        ]);
+      },
+    ),
+    http.get(
+      'https://gitlab.com/api/v4/projects/userName%2FrepoName/repository/files/extensions%2Fpatterns%2Ftest_folder%2Fsetup.yml/raw?ref=main',
+      // @ts-ignore
+      () => {
+        return HttpResponse.text(`
+            ---
+            # Labels
+            #
+            controller_labels:
+              - name: network.backup
+                organization: "{{ organization | default('Default') }}"
+              - name: backup_pattern
+                organization: "{{ organization | default('Default') }}"
+              - name: run_network_backup
+                organization: "{{ organization | default('Default') }}"
+
+            # Execution Environment
+            #
+            controller_execution_environments:
+              - name: apd-ee-25-networking
+                description: Allow running Network experience demo. Based on apd-ee 25.
+                image: quay.io/portal_mvp_patterns/redhat-cop-network-backup-ee:latest
+                pull: always
+
+            # Projects
+            #
+            controller_projects:
+              - name: Network Operations / Backup & Restore Project
+                description: >
+                  This project provides the foundation for automating the backup of network configurations.
+                  It organizes all necessary resources, including playbooks, job templates, and surveys, to ensure
+                  secure and reliable archiving of device settings and operational data. Designed to support network
+                  backups, it enables users to safeguard critical network configurations for
+                  disaster recovery and operational continuity.
+                organization: "{{ organization | default('Default') }}"
+                scm_branch: main
+                scm_clean: 'no'
+                scm_delete_on_update: 'no'
+                scm_type: git
+                scm_update_on_launch: 'no'
+                scm_url: https://github.com/redhat-cop/network.backup.git
+
+
+            # Job Templates
+            #
+            controller_templates:
+              - name: Network Operations / Create Full Network Backup
+                ask_inventory_on_launch: true
+                ask_credential_on_launch: true
+                execution_environment: apd-ee-25-networking
+                description: >
+                  This job template performs a comprehensive backup of the entire network configuration,
+                  capturing device settings and operational data. It ensures network resilience by securely
+                  archiving all necessary configurations for disaster recovery and operational continuity. Suitable
+                  for routine or on-demand backup tasks, this job provides a reliable mechanism to safeguard critical
+                  network configurations.
+                project: Network Operations / Backup & Restore Project
+                playbook: extensions/patterns/backup/playbooks/run_network_backup.yaml
+                job_type: "run"
+                organization: "{{ organization | default('Default') }}"
+                labels:
+                  - network.backup
+                  - backup_pattern
+                  - run_network_backup
+                survey_enabled: true
+                survey_spec: "{{ lookup('file', pattern.path.replace('setup.yml', '') + 'template_surveys/backup.yaml') | from_yaml }}"'),
+          `);
+      },
+    ),
+    http.get(
+      'https://gitlab.com/api/v4/projects/userName%2FrepoName/repository/files/extensions%2Fpatterns%2Ftest_folder%2Ftemplate_rhdh%2Fbackup.yaml/raw?ref=main',
+      // @ts-ignore
+      (req, res, ctx) => {
+        return res(
+          ctx.status(200),
+          ctx.ok,
+          ctx.text(`
+            apiVersion: scaffolder.backstage.io/v1beta3
+            kind: Template
+            metadata:
+              name: network-create-full-network-backup
+              title: Network backup
+              description: >-
+                This wizard will guide you on how to create, compare, and tag network
+                backups
+              namespace: default
+              tags:
+                - aap-operations
+                - intermediate
+                - network
+            spec:
+              type: service
+              parameters:
+                - title: Prompts
+                  description: >-
+                    Manage network backups on supported network platforms in a
+                    platform-agnostic way
+                  required:
+                    - token
+                    - inventory
+                    - credentials
+                  properties:
+                    token:
+                      title: Token
+                      type: string
+                      description: Oauth2 token
+                      ui:field: AAPTokenField
+                      ui:widget: password
+                      ui:backstage:
+                        review:
+                          show: false
+                    inventory:
+                      title: Inventory
+                      description: Please enter the inventory you want to use the services on
+                      resource: inventories
+                      ui:field: AAPResourcePicker
+                    credentials:
+                      title: Credentials
+                      description: >-
+                        Select credentials for accessing the nodes this job will be ran
+                        against. You can only select one credential of each type. For
+                        machine credentials (SSH), checking "Prompt on launch" without
+                        selecting credentials will require you to select a machine
+                        credential at run time. If you select credentials and check "Prompt
+                        on launch", the selected credential(s) become the defaults that can
+                        be updated at run time.
+                      type: array
+                      ui:field: AAPResourcePicker
+                      resource: credentials
+                - title: Survey
+                  required:
+                    - backupType
+                    - ghRepo
+                    - ghToken
+                    - ghUserName
+                    - ghEmail
+                  description: >-
+                    Manage network backups on supported network platforms in a
+                    platform-agnostic way
+                  properties:
+                    backupType:
+                      title: Backup Type
+                      description: Select the type of backup
+                      type: string
+                      enum:
+                        - ''
+                        - full
+                        - diff
+                    ghRepo:
+                      title: GitHub Repository URL
+                      type: string
+                      description: URL of the GitHub repository for storing the backup
+                      ui:options:
+                        rows: 5
+                    ghToken:
+                      title: GitHub Token
+                      type: string
+                      description: Personal access token for GitHub repository
+                      ui:options:
+                        rows: 5
+                    ghUserName:
+                      title: GitHub Username
+            apiVersion: scaffolder.backstage.io/v1beta3
+            kind: Template
+
+            metadata:
+              name: generic-seed
+              title: Create wizard use cases
+              description: Use this template to create actual wizard use case templates
+              namespace: default
+              tags:
+                - aap-operations
+                  required:
+                      type: string
+                      description: GitHub username for the repository
+                      ui:options:
+                        rows: 5
+                    ghEmail:
+                      title: GitHub Email
+                      type: string
+                      description: GitHub email associated with the repository
+                      ui:options:
+                        rows: 5
+                    backupFileName:
+                      title: Backup File Name
+                      type: string
+                      description: >-
+                        Name of the backup file (optional). If not provided, a timestamp
+                        will be used.
+                      ui:options:
+                        rows: 5
+              steps:
+                - id: launch-job
+                  name: Launch Network Operations / Create Full Network Backup
+                  action: rhaap:launch-job-template
+                  input:
+                    token: parameters.token
+                    values:
+                      templateID: null
+                      inventory: parameters.inventory
+                      credentials: {{ parameters.credentials }}
+                      extraVariables:
+                        backup_type: {{ parameters.backupType }}
+                        GH_REPO: {{ parameters.ghRepo }}
+                        GH_TOKEN: {{ parameters.ghToken }}
+                        GH_USER: {{ parameters.ghUserName }}
+                        GH_EMAIL: {{ parameters.ghEmail }}
+                        backup_file_name: {{ parameters.backupFileName }}
+              output:
+                text:
+                  - title: >-
+                      Network Operations / Create Full Network Backup template executed
+                      successfully
+                    content: |
+                      **Job ID:** {{ steps['launch-job'].output.data.id }}
+                      **Job STATUS:** {{ steps['launch-job'].output.data.status }}
+                links:
+                  - title: View in RH AAP
+                    url: {{ steps['launch-job'].output.data.url }}
+          `),
+        );
+      },
+    ),
+    http.get(
+      'https://gitlab.com/api/v4/projects/testUser%2FtestRepo',
+      // @ts-ignore
+      () => {
+        return new HttpResponse('Not found', {
+          status: 404,
+        });
+      },
+    ),
+    http.get(
+      'https://gitlab.com/api/v4/namespaces',
+      // @ts-ignore
+      () => {
+        return new HttpResponse(
+          JSON.stringify([
+            {
+              id: 12345,
+              path: 'testUser',
+            },
+          ]),
+          {
+            status: 200,
+          },
+        );
+      },
+    ),
+    http.post(
+      'https://gitlab.com/api/v4/projects',
+      // @ts-ignore
+      () => {
+        return new HttpResponse('ok', {
+          status: 201,
+        });
+      },
+    ),
+    http.get(
+      'https://gitlab.com/api/v4/projects/devUser%2FdevRepo',
+      // @ts-ignore
+      () => {
+        return new HttpResponse(
+          JSON.stringify([
+            {
+              id: 12345,
+              default_branch: 'main',
+            },
+          ]),
+          {
+            status: 200,
+          },
+        );
+      },
+    ),
+    http.post(
+      'https://gitlab.com/api/v4/projects/12345/repository/branches',
+      // @ts-ignore
+      () => {
+        return new HttpResponse('ok', {
+          status: 201,
+        });
+      },
+    ),
+  ];
+
+  const server = setupServer(...handlers);
+
+  // @ts-ignore
+  let useCaseMaker;
+
+  beforeAll(() => server.listen());
+  afterEach(() => server.resetHandlers());
+  afterAll(() => server.close());
+
+  it('makeTemplates - error', async () => {
+    useCaseMaker = new UseCaseMaker({
+      ansibleConfig,
+      logger,
+      organization,
+      scmType,
+      apiClient,
+      useCases,
+      winstonLogger,
+    });
+    jest
+      .spyOn(AAPApiClient.prototype, 'getJobTemplatesByName')
+      .mockImplementation(
+        (templateNames: string[], _organization: Organization) => {
+          expect(templateNames).toHaveLength(1);
+          let id = 1;
+          if (templateNames[0] === 'Network / Backup') {
+            id = 2;
+          }
+          return Promise.resolve([{ id: id, name: templateNames[0] }]);
+        },
+      );
+    await expect(useCaseMaker.makeTemplates()).rejects.toThrow(
+      'Something went wrong: git error.',
+    );
+  });
+
+  it('makeTemplates - writeLocally', async () => {
+    config = new ConfigReader(MOCK_CONFIG.data);
+    ansibleConfig = getAnsibleConfig(config);
+    useCaseMaker = new UseCaseMaker({
+      ansibleConfig,
+      logger,
+      organization,
+      scmType,
+      apiClient,
+      useCases,
+      winstonLogger,
+    });
+    jest
+      .spyOn(AAPApiClient.prototype, 'getJobTemplatesByName')
+      .mockImplementation(
+        (templateNames: string[], _organization: Organization) => {
+          expect(templateNames).toHaveLength(1);
+          let id = 1;
+          if (templateNames[0] === 'Network / Backup') {
+            id = 2;
+          }
+          return Promise.resolve([{ id: id, name: templateNames[0] }]);
+        },
+      );
+    await useCaseMaker.makeTemplates();
+    const dirPath = MOCK_CONFIG.data.ansible.rhaap..target;
+    const isDirExist = await fs.promises
+      .access(dirPath)
+      .then(() => true)
+      .catch(() => false);
+
+    expect(isDirExist).toBe(true);
+
+    const isTemplateDirExist = await fs.promises
+      .access(`${dirPath}/templates`)
+      .then(() => true)
+      .catch(() => false);
+
+    expect(isTemplateDirExist).toBe(true);
+    await fs.promises.rm(dirPath, {
+      recursive: true,
+      force: true,
+    });
+  });
+
+  it('should throw an error if the repository URL is invalid', async () => {
+    const invalidOptions = {
+      value: 'devfile content',
+      repositoryUrl: 'https://gitlab.com/invalid-url',
+    };
+    config = new ConfigReader(MOCK_CONFIG.data);
+    ansibleConfig = getAnsibleConfig(config);
+    useCaseMaker = new UseCaseMaker({
+      ansibleConfig,
+      logger,
+      organization,
+      scmType,
+      apiClient,
+      useCases,
+      winstonLogger,
+    });
+
+    await expect(
+      useCaseMaker.devfilePushToGitLab(invalidOptions),
+    ).rejects.toThrow('Invalid repository URL');
+
+    const validOptions = {
+      value: 'devfile content',
+      repositoryUrl: 'https://gitlab.com/devUser/devRepo',
+    };
+    config = new ConfigReader(MOCK_CONF.data);
+    ansibleConfig = getAnsibleConfig(config);
+    useCaseMaker = new UseCaseMaker({
+      ansibleConfig,
+      logger,
+      organization,
+      scmType,
+      apiClient,
+      useCases,
+      winstonLogger,
+    });
+    await expect(
+      useCaseMaker.devfilePushToGitLab(validOptions),
+    ).rejects.toThrow(
+      "Cannot read properties of undefined (reading 'toString')",
+    );
   });
 });

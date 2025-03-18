@@ -525,7 +525,9 @@ export class AAPApiClient {
       });
       if (duplicates.length) {
         throw new Error(
-          `Cannot assign multiple credentials of the same type. Duplicated credential types are: ${duplicates.join(', ')}`,
+          `Cannot assign multiple credentials of the same type. Duplicated credential types are: ${duplicates.join(
+            ', ',
+          )}`,
         );
       }
       data.credentials = payload.credentials.map(c => c.id);

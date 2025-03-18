@@ -194,6 +194,7 @@ export function createAnsibleContentAction(
           const prLink = await handleDevfileProject(
             ansibleConfig,
             logger,
+            sourceControl,
             ctx.input.repositoryUrl,
             ctx.workspacePath,
           );

@@ -141,12 +141,17 @@ export async function ansibleCreatorRun(
 export async function handleDevfileProject(
   ansibleConfig: AnsibleConfig,
   logger: Logger,
+  sourceControl: string,
   repositoryUrl: string,
   workspacePath: string,
 ) {
+  const scmType = sourceControl
+    .replace(/\.com$/, '')
+    .replace(/^./, c => c.toUpperCase());
   const useCaseMaker = new UseCaseMaker({
     ansibleConfig,
     logger,
+    scmType,
     apiClient: null,
     useCases: [],
     organization: null,
@@ -162,7 +167,12 @@ export async function handleDevfileProject(
       repositoryUrl,
     };
 
-    const prLink = useCaseMaker.devfilePushToGithub(options);
+    let prLink;
+    if (scmType === 'Github') {
+      prLink = useCaseMaker.devfilePushToGithub(options);
+    } else if (scmType === 'Gitlab') {
+      prLink = useCaseMaker.devfilePushToGitLab(options);
+    }
     return prLink;
   } catch (error: any) {
     console.error('Error reading the file or pushing to GitHub:', error);

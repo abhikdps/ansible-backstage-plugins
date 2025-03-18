@@ -350,9 +350,9 @@ ansible:
       # Use cases on github:
       #type: url
       #target: https://github.com/kcagran/test-templates
-      #githubBranch: main
-      #githubUser: { $GITHUB_USER }
-      #githubEmail: { $GITHUB_EMAIL }
+      #gitBranch: main
+      #gitUser: { $GIT_USER }
+      #gitEmail: { $GIT_EMAIL }
 # If showcase location type is url:
 #integrations:
 #  github:

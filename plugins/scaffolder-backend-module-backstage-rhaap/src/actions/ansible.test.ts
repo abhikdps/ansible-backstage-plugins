@@ -21,9 +21,14 @@ jest.mock('./ansibleContentCreate', () => {
   };
 });
 
+import * as fs from 'fs';
+import * as path from 'path';
 import { getVoidLogger } from '@backstage/backend-common';
 import { createAnsibleContentAction } from './ansible';
-import { ansibleCreatorRun } from './ansibleContentCreate';
+import {
+  ansibleCreatorRun,
+  handleDevfileProject,
+} from './ansibleContentCreate';
 import {
   getDevspacesUrlFromAnsibleConfig,
   generateRepoUrl,
@@ -62,16 +67,22 @@ describe('ansible:content:create', () => {
     : {
       type: 'url',
       target: 'https://showcase.example.com',
-      githubBranch: 'main',
-      githubUser: 'dummyUser',
-      githubEmail: 'dummyuser@example.com',
+      gitBranch: 'main',
+      gitUser: 'dummyUser',
+      gitEmail: 'dummyuser@example.com',
     },
-    gitHubIntegration: {
+    githubIntegration: {
       host: 'github.com',
       apiBaseUrl: 'https://api.github.com',
       rawBaseUrl: 'https://raw.githubusercontent.com',
       token: 'dummy-personal-access-token',
       apps: [],
+    },
+    gitlabIntegration: {
+      host: 'gitlab.com',
+      apiBaseUrl: 'https://api.gitlab.com',
+      baseUrl: 'https://raw.gitlabusercontent.com',
+      token: 'dummy-personal-access-token',
     },
   };
 
@@ -143,5 +154,41 @@ describe('ansible:content:create', () => {
       'repoUrl',
       generateRepoUrl('github.com', 'testOwner', 'testRepo'),
     );
+  });
+
+  it('should run tests for devfileHandler with invalid repo URL', async () => {
+    // @ts-ignore
+    await action.handler(mockContext);
+    const devfilePath = path.join(mockContext.workspacePath, 'devfile.yaml');
+    if (!fs.existsSync(mockContext.workspacePath)) {
+      fs.mkdirSync(mockContext.workspacePath, { recursive: true });
+    }
+    fs.writeFileSync(
+      devfilePath,
+      'schemaVersion: 2.1.0\nmetadata:\n  name: test-devfile',
+      'utf8',
+    );
+    await expect(
+      handleDevfileProject(
+        ansibleConfig,
+        logger,
+        'gitlab.com',
+        'https://gitlab.com/inValidUrl',
+        mockContext.workspacePath,
+      ),
+    ).rejects.toThrow('Invalid repository URL');
+    // For github
+    await expect(
+      handleDevfileProject(
+        ansibleConfig,
+        logger,
+        'github.com',
+        'https://github.com/inValidUrl',
+        mockContext.workspacePath,
+      ),
+    ).rejects.toThrow('Invalid repository URL');
+    if (fs.existsSync(mockContext.workspacePath)) {
+      fs.rmdirSync(mockContext.workspacePath, { recursive: true });
+    }
   });
 });

@@ -1,4 +1,7 @@
-import { GithubIntegrationConfig } from '@backstage/integration';
+import {
+  GithubIntegrationConfig,
+  GitLabIntegrationConfig,
+} from '@backstage/integration';
 
 export type Organization = {
   id: number;
@@ -95,16 +98,17 @@ export type AAPTemplate = {
 export type ShowCaseLocation = {
   type: 'url' | 'file';
   target: string;
-  githubBranch?: string;
-  githubUser?: string;
-  githubEmail?: string;
+  gitBranch?: string;
+  gitUser?: string;
+  gitEmail?: string;
 };
 
 export type AnsibleConfig = {
   baseUrl: string;
   checkSSL?: boolean;
   : ShowCaseLocation;
-  gitHubIntegration: GithubIntegrationConfig;
+  githubIntegration: GithubIntegrationConfig;
+  gitlabIntegration: GitLabIntegrationConfig;
 };
 
 export type CreatedTemplate = {

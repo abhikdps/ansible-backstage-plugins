@@ -8,6 +8,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { Git } from './scm';
+import {
+  GithubIntegrationConfig,
+  GitLabIntegrationConfig,
+} from '@backstage/integration';
 import { randomBytes } from 'crypto';
 
 import {
@@ -31,26 +35,44 @@ export type GithubConfig = {
   githubOrganizationName: string | null;
 };
 
+export type GitLabConfig = {
+  url: string;
+  gitlabOwner: string;
+  gitlabRepo: string;
+  gitlabBranch: string;
+  gitlabUser: string;
+  gitlabEmail: string;
+  gitlabToken: string;
+  gitlabOrganizationName: string | null;
+};
+
 export class UseCaseMaker {
   static pluginLogName =
     'plugin-scaffolder-backend-module-backstage-rhaap:UseCaseMaker';
   private readonly logger: LoggerService;
+  private readonly scmType: string;
   private readonly organization!: Organization;
-  private ansibleConfig: AnsibleConfig;
   private apiClient!: AAPApiClient;
+  private ansibleConfig: AnsibleConfig;
   private readonly useCases: UseCase[];
   private showCaseFolder: string;
   private octokit: Octokit;
+  private scmIntegration:
+    | GithubIntegrationConfig
+    | GitLabIntegrationConfig
+    | null = null;
   private readonly winstonLogger: Logger;
   constructor({
     ansibleConfig,
     logger,
     organization,
+    scmType,
     apiClient,
     useCases,
     winstonLogger,
   }: {
     ansibleConfig: AnsibleConfig;
+    scmType: string;
     apiClient: AAPApiClient | null;
     organization: Organization | null;
     logger: LoggerService;
@@ -59,6 +81,7 @@ export class UseCaseMaker {
   }) {
     this.ansibleConfig = ansibleConfig;
     this.logger = logger;
+    this.scmType = scmType;
     if (organization) {
       this.organization = organization;
     }
@@ -70,11 +93,16 @@ export class UseCaseMaker {
       this.ansibleConfig..type === 'file'
         ? (this.ansibleConfig.?.target ?? '')
         : '';
+    if (this.scmType === 'Github') {
+      this.scmIntegration = this.ansibleConfig.githubIntegration;
+    } else if (this.scmType === 'Gitlab') {
+      this.scmIntegration = this.ansibleConfig.gitlabIntegration;
+    }
     const octokitOptions = {
-      baseUrl: this.ansibleConfig.gitHubIntegration.apiBaseUrl,
+      baseUrl: this.scmIntegration?.apiBaseUrl,
     } as OctokitOptions;
-    if (this.ansibleConfig.gitHubIntegration.token) {
-      octokitOptions.auth = this.ansibleConfig.gitHubIntegration.token;
+    if (this.scmIntegration?.token) {
+      octokitOptions.auth = this.scmIntegration?.token;
     }
     this.octokit = new Octokit(octokitOptions);
     this.winstonLogger = winstonLogger;
@@ -104,7 +132,39 @@ export class UseCaseMaker {
       return response;
     }
     this.logger.error(
-      `[${UseCaseMaker.pluginLogName}] Error fetching GitHub data ${url}. ${response}`,
+      `[${UseCaseMaker.pluginLogName}] Error fetching GitHub data ${url}.`,
+    );
+    return null;
+  }
+
+  private async fetchGitLabData(options: {
+    url: string;
+  }): Promise<string | null> {
+    const { url } = options;
+    const gitlabApiUrl = this.scmIntegration?.apiBaseUrl;
+    const headers = new Headers();
+    if (this.scmIntegration?.token) {
+      headers.append('Private-Token', this.scmIntegration.token);
+    }
+    this.logger.info(
+      `[${UseCaseMaker.pluginLogName}] Fetching GitLab data ${url}.`,
+    );
+    try {
+      const response = await fetch(`${gitlabApiUrl}/${url}`, {
+        method: 'GET',
+        headers,
+      });
+
+      if (response.ok) {
+        return response.text();
+      }
+    } catch (error) {
+      this.logger.error(
+        `[${UseCaseMaker.pluginLogName}] Error fetching GitLab data ${url}. ${error}`,
+      );
+    }
+    this.logger.error(
+      `[${UseCaseMaker.pluginLogName}] Error fetching GitLab data ${url}.`,
     );
     return null;
   }
@@ -226,6 +286,164 @@ export class UseCaseMaker {
     return locations;
   }
 
+  private async getGitLabTemplatesLocation(options: {
+    userName: string;
+    repoName: string;
+    branch: string;
+  }): Promise<{ path: string; templateName: string }[]> {
+    const { userName, repoName, branch } = options;
+    const locations: { path: string; templateName: string }[] = [];
+
+    const gitlabApiUrl = this.scmIntegration?.apiBaseUrl;
+    const headers: HeadersInit = this.scmIntegration?.token
+      ? { 'Private-Token': this.scmIntegration.token }
+      : {};
+
+    try {
+      const locationsResponse = await fetch(
+        `${gitlabApiUrl}/projects/${encodeURIComponent(
+          userName,
+        )}%2F${encodeURIComponent(
+          repoName,
+        )}/repository/tree?path=extensions/patterns&ref=${encodeURIComponent(
+          branch,
+        )}`,
+        { headers },
+      );
+
+      if (!locationsResponse.ok) {
+        this.winstonLogger.warn(
+          `Failed to fetch locations. Status: ${locationsResponse.status}`,
+        );
+        return locations;
+      }
+
+      const locationsData = await locationsResponse.json();
+
+      if (!Array.isArray(locationsData) || locationsData.length === 0) {
+        this.winstonLogger.warn('No locations found.');
+        return locations;
+      }
+
+      const folders = locationsData.filter(item => item.type === 'tree');
+      this.winstonLogger.info(`Found ${folders.length} folders in GitLab.`);
+
+      await Promise.all(
+        folders.map(async folder => {
+          this.winstonLogger.info(
+            `Searching for setup files in ${folder.path}`,
+          );
+          const filesResponse = await fetch(
+            `${gitlabApiUrl}/projects/${encodeURIComponent(
+              userName,
+            )}%2F${encodeURIComponent(
+              repoName,
+            )}/repository/tree?path=${encodeURIComponent(
+              folder.path,
+            )}&ref=${encodeURIComponent(branch)}`,
+            { headers },
+          );
+          if (!filesResponse.ok) {
+            this.winstonLogger.warn(
+              `Failed to fetch files. Status: ${filesResponse.status}`,
+            );
+            return;
+          }
+          const filesData = await filesResponse.json();
+          if (Array.isArray(filesData)) {
+            const setupFiles = filesData.filter(
+              file =>
+                file.type === 'blob' &&
+                (file.name === 'setup.yml' || file.name === 'setup.yaml'),
+            );
+
+            if (setupFiles.length) {
+              const setupFile = setupFiles[0];
+
+              const setupFileResponse = await fetch(
+                `${gitlabApiUrl}/projects/${encodeURIComponent(
+                  userName,
+                )}%2F${encodeURIComponent(
+                  repoName,
+                )}/repository/files/${encodeURIComponent(
+                  setupFile.path,
+                )}/raw?ref=${encodeURIComponent(branch)}`,
+                { headers },
+              );
+
+              if (!setupFileResponse.ok) {
+                this.winstonLogger.warn(
+                  `Failed to fetch setup file. Status: ${setupFileResponse.status}`,
+                );
+                return;
+              }
+
+              const setupFileData = await setupFileResponse.text();
+
+              let jsonContent;
+              try {
+                jsonContent = YAML.parse(setupFileData);
+              } catch (e) {
+                this.winstonLogger.error(
+                  `Error while parsing YAML file ${setupFile.path}.`,
+                );
+                return;
+              }
+
+              if (
+                jsonContent &&
+                Array.isArray(jsonContent?.controller_templates)
+              ) {
+                jsonContent.controller_templates.forEach(
+                  (controllerTemplate: any) => {
+                    const regex = /.*['"]template_surveys\/([^'"]+)/gm;
+                    const templateName = controllerTemplate?.name ?? null;
+                    const surveySpec = controllerTemplate?.survey_spec ?? '';
+                    const tmp = regex.exec(surveySpec);
+                    let filename;
+
+                    if (Array.isArray(tmp) && tmp.length > 1) {
+                      filename = tmp[1];
+                      this.winstonLogger.info(`Filename found ${filename}`);
+                    } else {
+                      this.winstonLogger.warn(
+                        `Filename of the template not found.`,
+                      );
+                    }
+
+                    if (templateName && filename) {
+                      this.winstonLogger.info(
+                        `Added location for ${templateName}`,
+                      );
+                      locations.push({
+                        path: `projects/${encodeURIComponent(
+                          userName,
+                        )}%2F${encodeURIComponent(
+                          repoName,
+                        )}/repository/files/${encodeURIComponent(
+                          `${folder.path}/template_rhdh/${filename}`,
+                        )}/raw?ref=${encodeURIComponent(branch)}`,
+                        templateName,
+                      });
+                    }
+                  },
+                );
+              }
+            } else {
+              this.winstonLogger.warn(`No setup files found.`);
+            }
+          }
+        }),
+      );
+    } catch (error) {
+      this.logger.error(
+        `[${UseCaseMaker.pluginLogName}] Error fetching GitLab data: ${error}`,
+      );
+    }
+
+    return locations;
+  }
+
   private async getJsonTemplates(options: {
     useCase: UseCase;
   }): Promise<CreatedTemplate[]> {
@@ -233,6 +451,7 @@ export class UseCaseMaker {
     const retval = [] as CreatedTemplate[];
     const userName = useCase.url.split('/').slice(-2)[0];
     const repoName = useCase.url.split('/').pop();
+
     if (!repoName) {
       this.logger.error(
         `[${UseCaseMaker.pluginLogName}] Can't parse repo name from ${useCase.url}.`,
@@ -240,24 +459,47 @@ export class UseCaseMaker {
       throw new Error(`Can't parse repo name from ${useCase.url}.`);
     }
     const branch = useCase.version;
+    let templatesLocations: { path: string; templateName: string }[] | null =
+      null;
+
     this.winstonLogger.info('Search for use case templates.');
-    const templatesLocations = await this.getTemplatesLocation({
-      userName,
-      repoName,
-      branch,
-    });
+    if (useCase.url.includes('github')) {
+      templatesLocations = await this.getTemplatesLocation({
+        userName,
+        repoName,
+        branch,
+      });
+    } else if (useCase.url.includes('gitlab')) {
+      templatesLocations = await this.getGitLabTemplatesLocation({
+        userName,
+        repoName,
+        branch,
+      });
+    }
+    if (!templatesLocations) {
+      throw new Error('No valid Template location found on the specified url.');
+    }
     await Promise.all(
       templatesLocations.map(async location => {
-        const template = await this.fetchGithubData({ url: location.path });
+        let template: any = null;
+        if (useCase.url.includes('github')) {
+          template = await this.fetchGithubData({ url: location.path });
+        } else if (useCase.url.includes('gitlab')) {
+          template = await this.fetchGitLabData({ url: location.path });
+        }
         let jsonTemplate;
-        if (template && template?.data.content) {
-          try {
-            jsonTemplate = YAML.parse(atob(template.data.content));
-          } catch (e) {
-            this.logger.error(
-              `[${UseCaseMaker.pluginLogName}] Error while parsing yaml template ${location.path}.`,
-            );
+        if (useCase.url.includes('github')) {
+          if (template && template?.data.content) {
+            try {
+              jsonTemplate = YAML.parse(atob(template.data.content));
+            } catch (e) {
+              this.logger.error(
+                `[${UseCaseMaker.pluginLogName}] Error while parsing yaml template ${location.path}.`,
+              );
+            }
           }
+        } else {
+          jsonTemplate = YAML.parse(template);
         }
         if (jsonTemplate) {
           retval.push({
@@ -276,7 +518,7 @@ export class UseCaseMaker {
     const { jsonData } = options;
     let spec;
     let steps;
-    const githubTemplate = jsonData.template as {
+    const userTemplate = jsonData.template as {
       metadata?: {
         name?: string;
       };
@@ -294,8 +536,8 @@ export class UseCaseMaker {
         }[];
       };
     };
-    if (Object.hasOwn(githubTemplate, 'spec')) {
-      spec = githubTemplate.spec;
+    if (Object.hasOwn(userTemplate, 'spec')) {
+      spec = userTemplate.spec;
     } else {
       this.logger.error(
         `[${UseCaseMaker.pluginLogName}] Template configuration incorrect. Missing key spec. ${jsonData.templateName}`,
@@ -336,8 +578,8 @@ export class UseCaseMaker {
       return null;
     }
     spec.steps[index] = action;
-    githubTemplate.spec = spec;
-    const filename = githubTemplate?.metadata?.name ?? null;
+    userTemplate.spec = spec;
+    const filename = userTemplate?.metadata?.name ?? null;
     if (!filename) {
       this.logger.error(
         `[${UseCaseMaker.pluginLogName}] Template configuration incorrect. Missing keys metadata.filename ${jsonData.templateName}`,
@@ -346,7 +588,7 @@ export class UseCaseMaker {
     }
     return {
       filename: `${filename}.yaml`,
-      fileContent: YAML.stringify(githubTemplate),
+      fileContent: YAML.stringify(userTemplate),
     };
   }
 
@@ -583,7 +825,7 @@ export class UseCaseMaker {
       }
       if (createRepoResponse.status !== 201) {
         this.logger.error(
-          `[${UseCaseMaker.pluginLogName}] Error creating github repo ${githubConfig.githubRepo}. ${createRepoResponse}`,
+          `[${UseCaseMaker.pluginLogName}] Error creating github repo ${githubConfig.githubRepo}.`,
         );
         throw new Error(
           `Error creating github repo ${githubConfig.githubRepo}.`,
@@ -626,13 +868,166 @@ export class UseCaseMaker {
         isNew = branchesResponse.data.length === 0;
       } else {
         this.logger.error(
-          `[${UseCaseMaker.pluginLogName}] Error fetching repo branches ${githubConfig.githubRepo}. ${branchesResponse}`,
+          `[${UseCaseMaker.pluginLogName}] Error fetching repo branches ${githubConfig.githubRepo}.`,
         );
         throw new Error(
           `Error fetching repo branches ${githubConfig.githubRepo}.`,
         );
       }
     }
+    return isNew;
+  }
+
+  private async createGitLabRepoIfNotExists(options: {
+    gitlabConfig: GitLabConfig;
+  }): Promise<boolean> {
+    const { gitlabConfig } = options;
+    const gitlabApiUrl = this.scmIntegration?.apiBaseUrl;
+    const token = this.scmIntegration?.token;
+
+    if (!gitlabApiUrl || !token) {
+      this.logger.error(
+        `[${UseCaseMaker.pluginLogName}] GitLab API URL or token is missing.`,
+      );
+      throw new Error('GitLab API URL or token is missing.');
+    }
+
+    const headers = {
+      'PRIVATE-TOKEN': token,
+      'Content-Type': 'application/json',
+    };
+
+    let isNew = false;
+    let response: Response | null = null;
+
+    try {
+      this.logger.info(
+        `[${UseCaseMaker.pluginLogName}] Checking if GitLab repo ${gitlabConfig.gitlabRepo} exists.`,
+      );
+
+      response = await fetch(
+        `${gitlabApiUrl}/projects/${encodeURIComponent(
+          gitlabConfig.gitlabUser,
+        )}%2F${encodeURIComponent(gitlabConfig.gitlabRepo)}`,
+        { headers },
+      );
+
+      if (!response.ok && response.status !== 404) {
+        throw new Error(
+          `Error checking GitLab repo: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (response.status === 404) {
+        this.logger.info(
+          `[${UseCaseMaker.pluginLogName}] GitLab repo ${gitlabConfig.gitlabRepo} does not exist.`,
+        );
+        response = null;
+      }
+    } catch (error: any) {
+      this.logger.error(
+        `[${UseCaseMaker.pluginLogName}] Error checking GitLab repo ${gitlabConfig.gitlabRepo}: ${error.message}`,
+      );
+      throw new Error(
+        `Error checking GitLab repo ${gitlabConfig.gitlabRepo}: ${error.message}`,
+      );
+    }
+
+    if (!response) {
+      this.logger.info(
+        `[${UseCaseMaker.pluginLogName}] Creating GitLab repo ${gitlabConfig.gitlabRepo}.`,
+      );
+      isNew = true;
+
+      try {
+        const namespaceResponse = await fetch(`${gitlabApiUrl}/namespaces`, {
+          headers,
+        });
+
+        if (!namespaceResponse.ok) {
+          throw new Error(
+            `Error fetching namespaces: ${namespaceResponse.status} ${namespaceResponse.statusText}`,
+          );
+        }
+
+        const namespaces = await namespaceResponse.json();
+        if (!Array.isArray(namespaces)) {
+          throw new Error('Invalid response from GitLab namespaces API.');
+        }
+
+        const namespace = namespaces.find(
+          (ns: { path: string }) => ns.path === gitlabConfig.gitlabUser,
+        );
+        if (!namespace) {
+          throw new Error(
+            `Namespace for user ${gitlabConfig.gitlabUser} not found.`,
+          );
+        }
+
+        const createRepoResponse = await fetch(`${gitlabApiUrl}/projects`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            name: gitlabConfig.gitlabRepo,
+            namespace_id: namespace.id,
+            visibility: 'private',
+          }),
+        });
+
+        if (createRepoResponse.status !== 201) {
+          throw new Error(
+            `Unexpected response status ${createRepoResponse.status} while creating repository.`,
+          );
+        }
+
+        this.logger.info(
+          `[${UseCaseMaker.pluginLogName}] GitLab repo ${gitlabConfig.gitlabRepo} successfully created.`,
+        );
+      } catch (error: any) {
+        this.logger.error(
+          `[${UseCaseMaker.pluginLogName}] Error creating GitLab repo ${gitlabConfig.gitlabRepo}: ${error.message}`,
+        );
+        throw new Error(
+          `Error creating GitLab repo ${gitlabConfig.gitlabRepo}: ${error.message}`,
+        );
+      }
+    } else {
+      this.logger.info(
+        `[${UseCaseMaker.pluginLogName}] GitLab repo ${gitlabConfig.gitlabRepo} already exists.`,
+      );
+
+      try {
+        const branchesResponse = await fetch(
+          `${gitlabApiUrl}/projects/${encodeURIComponent(
+            gitlabConfig.gitlabUser,
+          )}%2F${encodeURIComponent(
+            gitlabConfig.gitlabRepo,
+          )}/repository/branches`,
+          { headers },
+        );
+
+        if (!branchesResponse.ok) {
+          throw new Error(
+            `Error fetching branches: ${branchesResponse.status} ${branchesResponse.statusText}`,
+          );
+        }
+
+        const branches = await branchesResponse.json();
+        if (!Array.isArray(branches)) {
+          throw new Error('Unexpected response while fetching branches.');
+        }
+
+        isNew = branches.length === 0;
+      } catch (error: any) {
+        this.logger.error(
+          `[${UseCaseMaker.pluginLogName}] Error fetching branches for GitLab repo ${gitlabConfig.gitlabRepo}: ${error.message}`,
+        );
+        throw new Error(
+          `Error fetching branches for GitLab repo ${gitlabConfig.gitlabRepo}: ${error.message}`,
+        );
+      }
+    }
+
     return isNew;
   }
 
@@ -725,13 +1120,102 @@ export class UseCaseMaker {
     }
   }
 
+  private async createGitLabContent(options: {
+    gitlabConfig: GitLabConfig;
+    parsedTemplates: ParsedTemplate[];
+    isNewRepo: boolean;
+  }) {
+    const { gitlabConfig, parsedTemplates, isNewRepo } = options;
+    const tempDir = os.tmpdir();
+    const folderName = `aap_content_${new Date().getTime()}`;
+    this.showCaseFolder = path.join(tempDir, folderName);
+    this.createFolder({ dirPath: this.showCaseFolder });
+    try {
+      const git = Git.fromAuth({
+        username: gitlabConfig.gitlabUser,
+        password: gitlabConfig.gitlabToken,
+      });
+      this.logger.info(`[${UseCaseMaker.pluginLogName}] Init git.`);
+      await git.init({
+        dir: this.showCaseFolder,
+        defaultBranch: gitlabConfig.gitlabBranch,
+      });
+      if (isNewRepo) {
+        this.logger.info(
+          `[${UseCaseMaker.pluginLogName}] Creating new branch ${this.showCaseFolder} - ${gitlabConfig.gitlabBranch}.`,
+        );
+        await git.createBranch({
+          dir: this.showCaseFolder,
+          ref: gitlabConfig.gitlabBranch,
+        });
+      } else {
+        this.logger.info(
+          `[${UseCaseMaker.pluginLogName}] Cloning git repo ${gitlabConfig.url}.git`,
+        );
+        await git.clone({
+          url: `${gitlabConfig.url}.git`,
+          dir: this.showCaseFolder,
+        });
+        this.logger.info(
+          `[${UseCaseMaker.pluginLogName}] Fetching into ${this.showCaseFolder}`,
+        );
+        await git.fetch({ dir: this.showCaseFolder });
+        this.logger.info(
+          `[${UseCaseMaker.pluginLogName}] Checkout or create branch ${this.showCaseFolder}`,
+        );
+        await git.checkoutOrCreate({
+          dir: this.showCaseFolder,
+          ref: gitlabConfig.gitlabBranch,
+        });
+      }
+      this.logger.info(
+        `[${UseCaseMaker.pluginLogName}] Creating local content ${this.showCaseFolder}`,
+      );
+      const type = 'url';
+      await this.writeLocally({ parsedTemplates, type });
+      this.logger.info(
+        `[${UseCaseMaker.pluginLogName}] Commit and push to remote ${this.showCaseFolder}`,
+      );
+      this.winstonLogger.info(`Start commit and push.`);
+      await git.commitAndPush({
+        url: `${gitlabConfig.url}.git`,
+        dir: this.showCaseFolder,
+        gitAuthorInfo: {
+          email: gitlabConfig.gitlabEmail,
+          name: gitlabConfig.gitlabUser,
+        },
+        commitMessage: `AAP showcase templates at: ${new Date().toString()}`,
+        branch: gitlabConfig.gitlabBranch,
+      });
+      this.winstonLogger.info(`End commit and push.`);
+    } catch (e) {
+      this.logger.error(`[${UseCaseMaker.pluginLogName}] Git error ${e}`);
+      throw new Error('Something went wrong: git error.');
+    } finally {
+      try {
+        this.logger.info(
+          `[${UseCaseMaker.pluginLogName}] Removing temp folder ${this.showCaseFolder}`,
+        );
+        await fs.promises.rm(this.showCaseFolder, {
+          recursive: true,
+          force: true,
+        });
+      } catch (e) {
+        this.logger.error(
+          `[${UseCaseMaker.pluginLogName}] Error while removing temp folder ${this.showCaseFolder} ${e}`,
+        );
+      }
+      this.showCaseFolder = '';
+    }
+  }
+
   private async pushToGithub(options: { parsedTemplates: ParsedTemplate[] }) {
     const { parsedTemplates } = options;
     if (
       !this.ansibleConfig?.?.target ||
-      !this.ansibleConfig?.gitHubIntegration.token ||
-      !this.ansibleConfig?.?.githubEmail ||
-      !this.ansibleConfig?.?.githubUser
+      !this.scmIntegration?.token ||
+      !this.ansibleConfig?.?.gitEmail ||
+      !this.ansibleConfig?.?.gitUser
     ) {
       throw new Error('Missing show case target github configuration');
     }
@@ -748,11 +1232,11 @@ export class UseCaseMaker {
     }
     const githubConfig = {
       url: `${url.origin}${url.pathname.replace('/orgs/', '/')}`,
-      githubBranch: this.ansibleConfig..githubBranch,
-      githubEmail: this.ansibleConfig..githubEmail,
-      githubUser: this.ansibleConfig..githubUser,
+      githubBranch: this.ansibleConfig..gitBranch,
+      githubEmail: this.ansibleConfig..gitEmail,
+      githubUser: this.ansibleConfig..gitUser,
       githubRepo: this.ansibleConfig..target.split('/').pop(),
-      githubToken: this.ansibleConfig.gitHubIntegration.token,
+      githubToken: this.scmIntegration?.token,
       githubOrganizationName: url.pathname.startsWith('/orgs/')
         ? url.pathname.split('/')[2]
         : null,
@@ -770,6 +1254,51 @@ export class UseCaseMaker {
     this.winstonLogger.info(`End creating gitHub content.`);
   }
 
+  private async pushToGitLab(options: { parsedTemplates: ParsedTemplate[] }) {
+    const { parsedTemplates } = options;
+    if (
+      !this.ansibleConfig?.?.target ||
+      !this.scmIntegration?.token ||
+      !this.ansibleConfig?.?.gitEmail ||
+      !this.ansibleConfig?.?.gitUser
+    ) {
+      throw new Error('Missing show case target gitlab configuration');
+    }
+    let url;
+    try {
+      url = new URL(this.ansibleConfig..target);
+    } catch (e) {
+      this.logger.error(
+        `[${UseCaseMaker.pluginLogName}] Not valid gitlab url ${this.ansibleConfig..target}.`,
+      );
+      throw new Error(
+        `Not valid gitlab url ${this.ansibleConfig..target}.`,
+      );
+    }
+    const gitlabConfig = {
+      url: `${url.origin}${url.pathname.replace('/orgs/', '/')}`,
+      gitlabBranch: this.ansibleConfig..gitBranch,
+      gitlabEmail: this.ansibleConfig..gitEmail,
+      gitlabUser: this.ansibleConfig..gitUser,
+      gitlabRepo: this.ansibleConfig..target.split('/').pop(),
+      gitlabToken: this.scmIntegration?.token,
+      gitlabOrganizationName: url.pathname.startsWith('/orgs/')
+        ? url.pathname.split('/')[2]
+        : null,
+    } as GitLabConfig;
+
+    const isNewRepo = await this.createGitLabRepoIfNotExists({
+      gitlabConfig,
+    });
+    this.winstonLogger.info(`Start creating gitLab content.`);
+    await this.createGitLabContent({
+      gitlabConfig,
+      parsedTemplates,
+      isNewRepo,
+    });
+    this.winstonLogger.info(`End creating gitLab content.`);
+  }
+
   async devfilePushToGithub(options: { value: string; repositoryUrl: string }) {
     // Extract repository owner and name from the URL
     const repoUrlPattern = /https:\/\/github\.com\/([^/]+)\/([^/]+)/;
@@ -780,15 +1309,13 @@ export class UseCaseMaker {
 
     const owner = matches[1];
     const repo = matches[2];
-    this.logger.info(owner);
-    this.logger.info(repo);
-    if (!this.ansibleConfig?.gitHubIntegration.token) {
+
+    if (!this.scmIntegration?.token) {
       throw new Error('Missing show case target GitHub configuration');
     }
-    this.logger.info('in devfile push to github');
 
     const octokit = new Octokit({
-      auth: this.ansibleConfig?.gitHubIntegration.token,
+      auth: this.scmIntegration?.token,
     });
 
     // Prepare the content for devfile.yaml (i.e., the raw string value)
@@ -894,10 +1421,114 @@ export class UseCaseMaker {
         },
       );
 
-      console.log(`Pull request created: ${prData.html_url}`);
+      this.logger.info(`Pull request created: ${prData.html_url}`);
       return prData.html_url;
     } catch (error) {
-      console.error('Error creating pull request:', error);
+      this.logger.error(`Error creating pull request: ${error}`);
+      throw error;
+    }
+  }
+
+  async devfilePushToGitLab(options: { value: string; repositoryUrl: string }) {
+    const repoUrlPattern = /https:\/\/gitlab\.com\/([^/]+)\/([^/]+)/;
+    const matches = RegExp(repoUrlPattern).exec(options.repositoryUrl);
+    if (!matches) {
+      throw new Error('Invalid repository URL');
+    }
+
+    const owner = matches[1];
+    const repo = matches[2];
+
+    if (!this.scmIntegration?.token || !this.scmIntegration?.apiBaseUrl) {
+      throw new Error('Missing GitLab configuration');
+    }
+
+    const headers = {
+      'PRIVATE-TOKEN': this.scmIntegration.token,
+      'Content-Type': 'application/json',
+    };
+
+    try {
+      const repoResponse = await fetch(
+        `${this.scmIntegration.apiBaseUrl}/projects/${encodeURIComponent(`${owner}/${repo}`)}`,
+        { headers },
+      );
+      if (!repoResponse.ok) {
+        throw new Error(
+          `Failed to fetch repository details: ${repoResponse.statusText}`,
+        );
+      }
+      const repoData = await repoResponse.json();
+      this.logger.info(repoData.id);
+      const defaultBranch = repoData.default_branch;
+
+      const branchName = `create-devfile-${randomBytes(2).toString('hex')}`;
+      const branchResponse = await fetch(
+        `${this.scmIntegration.apiBaseUrl}/projects/${repoData.id}/repository/branches`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            branch: branchName,
+            ref: defaultBranch,
+          }),
+        },
+      );
+
+      if (!branchResponse.ok) {
+        throw new Error(
+          `Failed to create new branch: ${branchResponse.statusText}`,
+        );
+      }
+
+      const devfileContent = Buffer.from(options.value).toString('base64');
+
+      const fileResponse = await fetch(
+        `${this.scmIntegration.apiBaseUrl}/projects/${repoData.id}/repository/files/devfile.yaml`,
+        {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({
+            branch: branchName,
+            content: devfileContent,
+            commit_message: 'Create devfile.yaml with new content',
+            encoding: 'base64',
+          }),
+        },
+      );
+
+      if (!fileResponse.ok) {
+        throw new Error(
+          `Failed to create/update devfile.yaml: ${fileResponse.statusText}`,
+        );
+      }
+
+      const prResponse = await fetch(
+        `${this.scmIntegration.apiBaseUrl}/projects/${repoData.id}/merge_requests`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            source_branch: branchName,
+            target_branch: defaultBranch,
+            title: 'Add devfile.yaml',
+            description:
+              'This MR adds a devfile.yaml file with the provided content.',
+          }),
+        },
+      );
+
+      if (!prResponse.ok) {
+        throw new Error(
+          `Failed to create merge request: ${prResponse.statusText}`,
+        );
+      }
+
+      const prData = await prResponse.json();
+      this.logger.info(`Merge request created: ${prData.web_url}`);
+      return prData.web_url;
+    } catch (error) {
+      this.logger.error(`Error creating merge request: ${error}`);
       throw error;
     }
   }
@@ -934,7 +1565,11 @@ export class UseCaseMaker {
       }),
     );
     if (this.ansibleConfig.?.type === 'url') {
-      await this.pushToGithub({ parsedTemplates });
+      if (this.scmType === 'Github') {
+        await this.pushToGithub({ parsedTemplates });
+      } else if (this.scmType === 'Gitlab') {
+        await this.pushToGitLab({ parsedTemplates });
+      }
     } else {
       await this.writeLocally({ parsedTemplates });
     }

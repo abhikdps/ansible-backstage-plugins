@@ -9,7 +9,11 @@ export const createShowCases = (
 ) => {
   return createTemplateAction<{
     token: string;
-    values: { organization: Organization; useCases: UseCase[] };
+    values: {
+      organization: Organization;
+      scmType: string;
+      useCases: UseCase[];
+    };
   }>({
     id: 'rhaap:create-show-cases',
     schema: {
@@ -23,6 +27,12 @@ export const createShowCases = (
           values: {
             type: 'object',
             properties: {
+              scmType: {
+                title: 'Source control type',
+                description:
+                  'The source control source type. For example, “Github”.',
+                type: 'string',
+              },
               organization: {
                 title: 'Organization',
                 type: 'object',
@@ -66,6 +76,7 @@ export const createShowCases = (
         ansibleConfig: ansibleConfig,
         logger: logger,
         organization: input.values.organization,
+        scmType: input.values.scmType,
         apiClient: apiClient,
         useCases: input.values.useCases,
         winstonLogger: winstonLogger,

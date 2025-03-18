@@ -7467,6 +7467,25 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@backstage/plugin-scaffolder-backend-module-gitlab@npm:^0.8.0":
+  version: 0.8.0
+  resolution: "@backstage/plugin-scaffolder-backend-module-gitlab@npm:0.8.0"
+  dependencies:
+    "@backstage/backend-common": "npm:^0.25.0"
+    "@backstage/backend-plugin-api": "npm:^1.2.0"
+    "@backstage/config": "npm:^1.3.2"
+    "@backstage/errors": "npm:^1.2.7"
+    "@backstage/integration": "npm:^1.16.1"
+    "@backstage/plugin-scaffolder-node": "npm:^0.7.0"
+    "@gitbeaker/rest": "npm:^41.2.0"
+    luxon: "npm:^3.0.0"
+    winston: "npm:^3.2.1"
+    yaml: "npm:^2.0.0"
+    zod: "npm:^3.22.4"
+  checksum: 10/0a2d8abc5f4a042bdccef5ca956bc13ddf7b99a1242ed0ea7c2aff821bb47e11084342b2af717f2961d0606eb249c8a1d2f90d9682d838fad4c434d8688a1297
+  languageName: node
+  linkType: hard
+
 "@backstage/plugin-scaffolder-backend@npm:^1.28.0":
   version: 1.28.0
   resolution: "@backstage/plugin-scaffolder-backend@npm:1.28.0"
@@ -19939,6 +19958,7 @@ __metadata:
     "@backstage/plugin-proxy-backend": "npm:^0.5.9"
     "@backstage/plugin-scaffolder-backend": "npm:^1.28.0"
     "@backstage/plugin-scaffolder-backend-module-github": "npm:^0.6.0"
+    "@backstage/plugin-scaffolder-backend-module-gitlab": "npm:^0.8.0"
     "@backstage/plugin-search-backend": "npm:^1.8.0"
     "@backstage/plugin-search-backend-module-catalog": "npm:^0.2.6"
     "@backstage/plugin-search-backend-module-pg": "npm:^0.5.39"
