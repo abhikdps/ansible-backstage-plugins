@@ -1442,7 +1442,6 @@ export class UseCaseMaker {
         );
       }
       const repoData = await repoResponse.json();
-      this.logger.info(repoData.id);
       const defaultBranch = repoData.default_branch;
 
       const branchName = `create-devfile-${randomBytes(2).toString('hex')}`;
@@ -1466,19 +1465,23 @@ export class UseCaseMaker {
 
       const devfileContent = Buffer.from(options.value).toString('base64');
 
-      const fileResponse = await fetch(
-        `${this.scmIntegration.apiBaseUrl}/projects/${repoData.id}/repository/files/devfile.yaml`,
-        {
-          method: 'PUT',
-          headers,
-          body: JSON.stringify({
-            branch: branchName,
-            content: devfileContent,
-            commit_message: 'Create devfile.yaml with new content',
-            encoding: 'base64',
-          }),
-        },
-      );
+      // Check if the file exists
+      const fileUrl = `${this.scmIntegration.apiBaseUrl}/projects/${repoData.id}/repository/files/devfile.yaml?ref=${branchName}`;
+      const checkResponse = await fetch(fileUrl, { method: 'GET', headers });
+
+      // Use PUT if exists, else POST
+      const method = checkResponse.ok ? 'PUT' : 'POST';
+
+      const fileResponse = await fetch(fileUrl, {
+        method: method,
+        headers,
+        body: JSON.stringify({
+          branch: branchName,
+          content: devfileContent,
+          commit_message: 'Create devfile.yaml with new content',
+          encoding: 'base64',
+        }),
+      });
 
       if (!fileResponse.ok) {
         throw new Error(
