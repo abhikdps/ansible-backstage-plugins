@@ -1,9 +1,9 @@
 # wizard-catalog
 
-The wizard-catalog plugin is frontend plugin for Red Hat Ansible Automation Platform.
+The wizard-catalog plugin is the frontend plugin for Red Hat Ansible Automation Platform.
 First page (catalog) is available at `/wizard/catalog`.
 
-To be fully functional it requires other plugins for Red Hat Ansible Automation Platform:
+To be fully functional, it requires other plugins for Red Hat Ansible Automation Platform:
 
 - scaffolder-backend-module-rhaap
 
