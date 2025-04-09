@@ -136,11 +136,11 @@ catalog:
     #   rules:
     #     - allow: [User, Group]
     - type: url
-      target: https://github.com/ansible/ansible-rhdh-templates/blob/main/all.yaml
+      target: https://github.com/ansible/ansible-rhdh-templates/blob/devel/all.yaml
       rules:
         - allow: [Template]
     - type: url
-      target: https://github.com/ansible/ansible-rhdh-templates/blob/main/seed.yaml
+      target: https://github.com/ansible/ansible-rhdh-templates/blob/devel/seed.yaml
       rules:
         - allow: [Template]
     - type: file
@@ -151,8 +151,8 @@ catalog:
     rhaap:
       development:
         schedule:
-          frequency: { minutes: 1 }
-          timeout: { seconds: 5 }
+          frequency: { minutes: 5 }
+          timeout: { seconds: 30 }
 
 ansible:
   analytics:
