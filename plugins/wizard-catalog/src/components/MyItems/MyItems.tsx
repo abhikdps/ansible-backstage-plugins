@@ -181,7 +181,7 @@ export const MyItems = () => {
     if (!name) {
       return;
     }
-    navigate(`/wizard/my-items/${namespace}/${name}`);
+    navigate(`/my-items/${namespace}/${name}`);
   };
 
   const getStatusIcon = (status: string) => {

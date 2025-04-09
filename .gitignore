@@ -93,5 +93,3 @@ videos/
 # Screenshots
 screenshots/
 **/screenshots
-
-plugins/**/*.d.ts

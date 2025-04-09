@@ -45,6 +45,7 @@ import {
   WizardCatalogPage,
 } from '@ansible/backstage-plugin-wizard-catalog';
 import { DelayingComponentFieldExtension } from './components/scaffolder/customScaffolderExtensions';
+import { PortalPage } from '@ansible/plugin-backstage-portal';
 
 const app = createApp({
   apis,
@@ -120,6 +121,7 @@ const routes = (
     <Route path="/catalog-graph" element={<CatalogGraphPage />} />
     <Route path="/ansible" element={<AnsiblePage />} />
     <Route path="/wizard" element={<WizardCatalogPage />} />
+    <Route path="/portal" element={<PortalPage />} />
   </FlatRoutes>
 );
 

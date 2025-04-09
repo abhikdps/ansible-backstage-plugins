@@ -5,13 +5,6 @@ __metadata:
   version: 8
   cacheKey: 10
 
-"@adobe/css-tools@npm:^4.0.1":
-  version: 4.4.2
-  resolution: "@adobe/css-tools@npm:4.4.2"
-  checksum: 10/893d97ba524d92d5fdcee517a47fa7a144ca89dfcc559f5e1c3a9894599bf64c4ee5fc811fb11de0ab84da6778f4b69ea6aede73813534aeb5dfbc412d0788db
-  languageName: node
-  linkType: hard
-
 "@ampproject/remapping@npm:^2.2.0":
   version: 2.3.0
   resolution: "@ampproject/remapping@npm:2.3.0"
@@ -45,9 +38,6 @@ __metadata:
     "@backstage/types": "npm:^1.2.0"
     "@janus-idp/cli": "npm:^1.18.0"
     "@octokit/core": "npm:^5.0.0"
-    "@testing-library/jest-dom": "npm:6.0.0"
-    "@testing-library/react": "npm:16.0.0"
-    "@testing-library/user-event": "npm:14.0.0"
     "@types/jest": "npm:^29.5.12"
     "@types/node": "npm:^22.13.4"
     "@types/node-fetch": "npm:2.6.11"
@@ -9319,56 +9309,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@testing-library/jest-dom@npm:6.0.0":
-  version: 6.0.0
-  resolution: "@testing-library/jest-dom@npm:6.0.0"
-  dependencies:
-    "@adobe/css-tools": "npm:^4.0.1"
-    "@babel/runtime": "npm:^7.9.2"
-    aria-query: "npm:^5.0.0"
-    chalk: "npm:^3.0.0"
-    css.escape: "npm:^1.5.1"
-    dom-accessibility-api: "npm:^0.5.6"
-    lodash: "npm:^4.17.15"
-    redent: "npm:^3.0.0"
-  peerDependencies:
-    "@jest/globals": ">= 28"
-    "@types/jest": ">= 28"
-    jest: ">= 28"
-    vitest: ">= 0.32"
-  peerDependenciesMeta:
-    "@jest/globals":
-      optional: true
-    "@types/jest":
-      optional: true
-    jest:
-      optional: true
-    vitest:
-      optional: true
-  checksum: 10/bb379e5c6957b63559feffde96a9bd08f7536da5a662a11811c625714f303e530536fa1b1e8d69555c733fd70a82b6651da9368a34c3384aa60cf1797347bd63
-  languageName: node
-  linkType: hard
-
-"@testing-library/react@npm:16.0.0":
-  version: 16.0.0
-  resolution: "@testing-library/react@npm:16.0.0"
-  dependencies:
-    "@babel/runtime": "npm:^7.12.5"
-  peerDependencies:
-    "@testing-library/dom": ^10.0.0
-    "@types/react": ^18.0.0
-    "@types/react-dom": ^18.0.0
-    react: ^18.0.0
-    react-dom: ^18.0.0
-  peerDependenciesMeta:
-    "@types/react":
-      optional: true
-    "@types/react-dom":
-      optional: true
-  checksum: 10/b32894be94e31276138decfa6bcea69dfebc0c37cf91499ff6c878f41eb1154a43a7df6eb1e72e7bede78468af6cb67ca59e4acd3206b41f3ecdae2c6efdf67e
-  languageName: node
-  linkType: hard
-
 "@testing-library/react@npm:^16.0.0":
   version: 16.2.0
   resolution: "@testing-library/react@npm:16.2.0"
@@ -9386,15 +9326,6 @@ __metadata:
     "@types/react-dom":
       optional: true
   checksum: 10/cf10bfa9a363384e6861417696fff4a464a64f98ec6f0bb7f1fa7cbb550d075d23a2f6a943b7df85dded7bde3234f6ea6b6e36f95211f4544b846ea72c288289
-  languageName: node
-  linkType: hard
-
-"@testing-library/user-event@npm:14.0.0":
-  version: 14.0.0
-  resolution: "@testing-library/user-event@npm:14.0.0"
-  peerDependencies:
-    "@testing-library/dom": ">=7.21.4"
-  checksum: 10/296e5aaa7edd498cfd16bebce0e643b65d4035c4b793e5e692e23629aeb373e3ab63dac19f98ade34bfb21029a25a81186fb3da36762c9734cd885b4ef3246cc
   languageName: node
   linkType: hard
 
@@ -11068,7 +10999,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"aria-query@npm:^5.0.0, aria-query@npm:^5.3.2":
+"aria-query@npm:^5.3.2":
   version: 5.3.2
   resolution: "aria-query@npm:5.3.2"
   checksum: 10/b2fe9bc98bd401bc322ccb99717c1ae2aaf53ea0d468d6e7aebdc02fac736e4a99b46971ee05b783b08ade23c675b2d8b60e4a1222a95f6e27bc4d2a0bfdcc03
@@ -12239,7 +12170,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chalk@npm:3.0.0, chalk@npm:^3.0.0":
+"chalk@npm:3.0.0":
   version: 3.0.0
   resolution: "chalk@npm:3.0.0"
   dependencies:
@@ -13352,13 +13283,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"css.escape@npm:^1.5.1":
-  version: 1.5.1
-  resolution: "css.escape@npm:1.5.1"
-  checksum: 10/f6d38088d870a961794a2580b2b2af1027731bb43261cfdce14f19238a88664b351cc8978abc20f06cc6bbde725699dec8deb6fe9816b139fc3f2af28719e774
-  languageName: node
-  linkType: hard
-
 "cssesc@npm:^3.0.0":
   version: 3.0.0
   resolution: "cssesc@npm:3.0.0"
@@ -14125,13 +14049,6 @@ __metadata:
   dependencies:
     esutils: "npm:^2.0.2"
   checksum: 10/b4b28f1df5c563f7d876e7461254a4597b8cabe915abe94d7c5d1633fed263fcf9a85e8d3836591fc2d040108e822b0d32758e5ec1fe31c590dc7e08086e3e48
-  languageName: node
-  linkType: hard
-
-"dom-accessibility-api@npm:^0.5.6":
-  version: 0.5.16
-  resolution: "dom-accessibility-api@npm:0.5.16"
-  checksum: 10/377b4a7f9eae0a5d72e1068c369c99e0e4ca17fdfd5219f3abd32a73a590749a267475a59d7b03a891f9b673c27429133a818c44b2e47e32fec024b34274e2ca
   languageName: node
   linkType: hard
 
@@ -20799,13 +20716,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"min-indent@npm:^1.0.0":
-  version: 1.0.1
-  resolution: "min-indent@npm:1.0.1"
-  checksum: 10/bfc6dd03c5eaf623a4963ebd94d087f6f4bbbfd8c41329a7f09706b0cb66969c4ddd336abeb587bc44bc6f08e13bf90f0b374f9d71f9f01e04adc2cd6f083ef1
-  languageName: node
-  linkType: hard
-
 "mini-css-extract-plugin@npm:^2.4.2":
   version: 2.9.2
   resolution: "mini-css-extract-plugin@npm:2.9.2"
@@ -23888,16 +23798,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"redent@npm:^3.0.0":
-  version: 3.0.0
-  resolution: "redent@npm:3.0.0"
-  dependencies:
-    indent-string: "npm:^4.0.0"
-    strip-indent: "npm:^3.0.0"
-  checksum: 10/fa1ef20404a2d399235e83cc80bd55a956642e37dd197b4b612ba7327bf87fa32745aeb4a1634b2bab25467164ab4ed9c15be2c307923dd08b0fe7c52431ae6b
-  languageName: node
-  linkType: hard
-
 "redis-errors@npm:^1.0.0, redis-errors@npm:^1.2.0":
   version: 1.2.0
   resolution: "redis-errors@npm:1.2.0"
@@ -25769,15 +25669,6 @@ __metadata:
   version: 2.0.0
   resolution: "strip-final-newline@npm:2.0.0"
   checksum: 10/69412b5e25731e1938184b5d489c32e340605bb611d6140344abc3421b7f3c6f9984b21dff296dfcf056681b82caa3bb4cc996a965ce37bcfad663e92eae9c64
-  languageName: node
-  linkType: hard
-
-"strip-indent@npm:^3.0.0":
-  version: 3.0.0
-  resolution: "strip-indent@npm:3.0.0"
-  dependencies:
-    min-indent: "npm:^1.0.0"
-  checksum: 10/18f045d57d9d0d90cd16f72b2313d6364fd2cb4bf85b9f593523ad431c8720011a4d5f08b6591c9d580f446e78855c5334a30fb91aa1560f5d9f95ed1b4a0530
   languageName: node
   linkType: hard
 
