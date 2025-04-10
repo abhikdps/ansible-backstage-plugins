@@ -123,6 +123,7 @@ describe('ansible-aap:api', () => {
       id: 1,
       templateName: 'Test template',
       templateDescription: 'Test template description',
+      scmType: 'Github',
       project: {
         id: 1,
         url: 'https/testProject.ur',
@@ -145,7 +146,25 @@ describe('ansible-aap:api', () => {
         image: 'some.image',
         pull: 'always',
       },
+      extraVariables: {
+        aap_hostname: 'https://rhaap.test',
+        aap_token: 'mockedToken',
+        usecases: [
+          {
+            name: 'pattern name',
+            url: 'https://github.com/pattern/repo',
+            version: 'main',
+          },
+        ],
+      },
       url: 'https://rhaap.test/execution/templates/job-template/1/details',
+      credentials: {
+        id: 1,
+        name: 'mock credential',
+        inputs: {
+          username: 'mock user',
+        },
+      },
     });
   });
 

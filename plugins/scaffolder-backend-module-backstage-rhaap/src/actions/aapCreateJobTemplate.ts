@@ -35,6 +35,12 @@ export const createJobTemplate = (ansibleConfig: AnsibleConfig) => {
                 type: 'string',
                 description: 'Job template description',
               },
+              scmType: {
+                title: 'Source control type',
+                description:
+                  'The source control source type. For example, “Github”.',
+                type: 'string',
+              },
               project: {
                 title: 'Project',
                 type: 'object',
@@ -64,6 +70,33 @@ export const createJobTemplate = (ansibleConfig: AnsibleConfig) => {
                   name: {
                     type: 'string',
                     description: 'Organization name',
+                  },
+                },
+              },
+              credentials: {
+                title: 'Credentials',
+                type: 'object',
+                description: 'Credentials',
+                required: ['id'],
+                properties: {
+                  id: {
+                    type: 'number',
+                    description: 'Credential id',
+                  },
+                  name: {
+                    type: 'string',
+                    description: 'Credential name',
+                  },
+                  inputs: {
+                    type: 'object',
+                    description: 'Credential Inputs',
+                    required: ['username'],
+                    properties: {
+                      username: {
+                        type: 'string',
+                        description: 'SCM User',
+                      },
+                    },
                   },
                 },
               },

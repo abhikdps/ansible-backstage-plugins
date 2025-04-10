@@ -13,6 +13,14 @@ export type Inventory = {
   name: string;
 };
 
+export type Credential = {
+  id: number;
+  name: string;
+  inputs?: {
+    username: string;
+  };
+};
+
 export type Project = {
   id?: number;
   projectName: string;
@@ -23,6 +31,7 @@ export type Project = {
   scmUpdateOnLaunch?: boolean;
   status?: string;
   url?: string;
+  credentials?: Credential;
 };
 
 export type ExecutionEnvironment = {
@@ -39,6 +48,7 @@ export type JobTemplate = {
   id?: number;
   templateName: string;
   templateDescription?: string;
+  scmType?: string;
   project: Project;
   organization: Organization;
   jobInventory: Inventory;
@@ -47,6 +57,7 @@ export type JobTemplate = {
   extraVariables?: string | object;
   status?: string;
   url?: string;
+  credentials?: Credential;
 };
 
 export type CleanUp = {

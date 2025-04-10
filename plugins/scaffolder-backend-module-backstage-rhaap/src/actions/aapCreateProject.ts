@@ -49,6 +49,22 @@ export const createProjectAction = (ansibleConfig: AnsibleConfig) => {
                   },
                 },
               },
+              credentials: {
+                title: 'Credential',
+                type: 'object',
+                description: 'Credential ID',
+                required: ['id'],
+                properties: {
+                  id: {
+                    type: 'number',
+                    description: 'Credential id',
+                  },
+                  name: {
+                    type: 'string',
+                    description: 'Credential name',
+                  },
+                },
+              },
               scmUrl: {
                 title: 'Source control URL',
                 type: 'string',

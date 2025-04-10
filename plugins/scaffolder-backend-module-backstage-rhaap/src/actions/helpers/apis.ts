@@ -255,6 +255,7 @@ export class AAPApiClient {
       scm_type: 'git',
       scm_url: payload.scmUrl,
       scm_branch: payload?.scmBranch ?? '',
+      credential: payload.credentials?.id,
       scm_update_on_launch: payload.scmUpdateOnLaunch,
     };
     this.logOutput('info', `Begin creating project ${payload.projectName}.`);
@@ -376,6 +377,23 @@ export class AAPApiClient {
     }
   }
 
+  async updateUseCaseUrls(
+    extraVariables: any,
+    git_username: string | undefined,
+    git_password: string | undefined,
+  ) {
+    return {
+      ...extraVariables,
+      usecases: extraVariables.usecases.map((usecase: any) => ({
+        ...usecase,
+        url: usecase.url.replace(
+          'https://',
+          `https://${git_username}:${git_password}@`,
+        ),
+      })),
+    };
+  }
+
   async createJobTemplate(
     payload: JobTemplate,
     deleteIfExist: boolean,
@@ -387,12 +405,26 @@ export class AAPApiClient {
       );
     }
     const endPoint = 'api/controller/v2/job_templates/';
-    const extraVariables = payload?.extraVariables
+    let extraVariables;
+    extraVariables = payload?.extraVariables
       ? JSON.parse(JSON.stringify(payload.extraVariables))
       : '';
     if (extraVariables !== '') {
       extraVariables.aap_validate_certs = this.ansibleConfig.checkSSL;
       extraVariables.aap_hostname = this.ansibleConfig.baseUrl;
+      if (payload.credentials) {
+        let git_password;
+        if (payload.scmType === 'Github') {
+          git_password = this.ansibleConfig.githubIntegration.token;
+        } else if (payload.scmType === 'Gitlab') {
+          git_password = this.ansibleConfig.gitlabIntegration.token;
+        }
+        extraVariables = await this.updateUseCaseUrls(
+          extraVariables,
+          payload.credentials?.inputs?.username,
+          git_password,
+        );
+      }
     }
     const data = {
       name: payload.templateName,
