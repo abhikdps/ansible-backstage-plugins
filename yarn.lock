@@ -70,7 +70,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ansible/plugin-backstage-portal@npm:^0.1.0, @ansible/plugin-backstage-portal@workspace:plugins/portal":
+"@ansible/plugin-backstage-portal@npm:^1.0.0, @ansible/plugin-backstage-portal@workspace:plugins/portal":
   version: 0.0.0-use.local
   resolution: "@ansible/plugin-backstage-portal@workspace:plugins/portal"
   dependencies:
@@ -19383,7 +19383,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "app@workspace:packages/app"
   dependencies:
-    "@ansible/plugin-backstage-portal": "npm:^0.1.0"
+    "@ansible/plugin-backstage-portal": "npm:^1.0.0"
     "@ansible/plugin-backstage-rhaap": "workspace:^"
     "@backstage-community/plugin-rbac": "npm:1.38.3"
     "@backstage/app-defaults": "npm:^1.5.15"
