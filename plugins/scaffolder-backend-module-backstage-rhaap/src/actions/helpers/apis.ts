@@ -88,8 +88,12 @@ export class AAPApiClient {
       }
     }
     if (!response.ok) {
+      const errorOutput = await response.json();
       this.logger.error(
         `[${AAPApiClient.pluginLogName}] Failed to send POST request to ${url}. ${response.statusText}`,
+      );
+      this.logger.error(
+        `[${AAPApiClient.pluginLogName}] Error: ${JSON.stringify(errorOutput)}`,
       );
       if (response.status === 403) {
         throw new Error(

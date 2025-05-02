@@ -71,6 +71,8 @@ site
 
 .tmp
 
+.cache
+
 # playwright
 test-results/
 playwright-report/
