@@ -30,6 +30,9 @@ export const MOCK_ORG_TEAMS_RESPONSE = {
           name: 'Team A',
           groupName: 'team-a',
           description: 'Team A description',
+          related: {
+            users: '/api/gateway/v1/teams/1/users',
+          },
         },
         {
           id: 2,
@@ -54,12 +57,38 @@ export const MOCK_ORG_USERS_RESPONSE = {
           first_name: 'User1',
           last_name: 'Last1',
           is_superuser: false,
+          is_orguser: false,
         },
         {
           id: 2,
           username: 'user2',
           email: 'user2@test.com',
           first_name: 'User2',
+          last_name: 'Last2',
+          is_superuser: false,
+        },
+      ],
+    }),
+};
+
+export const MOCK_ORG_TEAM_USERS_RESPONSE = {
+  ok: true,
+  json: () =>
+    Promise.resolve({
+      results: [
+        {
+          id: 1,
+          username: 'team_user1',
+          email: 'teamuser1@test.com',
+          first_name: 'TeamUser1',
+          last_name: 'Last1',
+          is_superuser: false,
+        },
+        {
+          id: 2,
+          username: 'team_user2',
+          email: 'teamuser2@test.com',
+          first_name: 'TeamUser2',
           last_name: 'Last2',
           is_superuser: false,
         },

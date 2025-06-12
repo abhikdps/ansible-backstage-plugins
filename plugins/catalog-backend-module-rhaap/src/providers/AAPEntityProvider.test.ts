@@ -9,6 +9,7 @@ import {
   MOCK_ORG_TEAMS_RESPONSE,
   MOCK_ORG_USERS_RESPONSE,
   MOCK_ORGANIZATION_DETAILS_RESPONSE,
+  MOCK_ORG_TEAM_USERS_RESPONSE,
 } from '../mock';
 import { AAPEntityProvider } from './AAPEntityProvider';
 import {
@@ -26,6 +27,9 @@ jest.mock('undici', () => ({
     }
     if (input === `${MOCK_BASE_URL}/api/gateway/v1/teams/`) {
       return Promise.resolve(MOCK_ORG_TEAMS_RESPONSE);
+    }
+    if (input === `${MOCK_BASE_URL}/api/gateway/v1/teams/1/users`) {
+      return Promise.resolve(MOCK_ORG_TEAM_USERS_RESPONSE);
     }
     if (input === `${MOCK_BASE_URL}/api/gateway/v1/users/`) {
       return Promise.resolve(MOCK_ORG_USERS_RESPONSE);
@@ -85,7 +89,7 @@ describe('AAPEntityProvider', () => {
       spec: {
         type: 'organization',
         children: ['team-a', 'team-b'],
-        members: ['user1', 'user2'],
+        members: ['user1', 'user2', 'team_user1', 'team_user2'],
       },
     },
     {
@@ -174,6 +178,52 @@ describe('AAPEntityProvider', () => {
           email: 'user2@test.com',
         },
         memberOf: ['team-b'],
+      },
+    },
+    {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'User',
+      metadata: {
+        annotations: {
+          'backstage.io/managed-by-location':
+            'url:https://rhaap.test/access/users/1/details',
+          'backstage.io/managed-by-origin-location':
+            'url:https://rhaap.test/access/users/1/details',
+        },
+        name: 'team_user1',
+        namespace: 'default',
+        title: 'TeamUser1 Last1',
+      },
+      spec: {
+        memberOf: ['team-a', 'team-b'],
+        profile: {
+          displayName: 'TeamUser1 Last1',
+          email: 'teamuser1@test.com',
+          username: 'team_user1',
+        },
+      },
+    },
+    {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'User',
+      metadata: {
+        annotations: {
+          'backstage.io/managed-by-location':
+            'url:https://rhaap.test/access/users/2/details',
+          'backstage.io/managed-by-origin-location':
+            'url:https://rhaap.test/access/users/2/details',
+        },
+        name: 'team_user2',
+        namespace: 'default',
+        title: 'TeamUser2 Last2',
+      },
+      spec: {
+        memberOf: ['team-b'],
+        profile: {
+          displayName: 'TeamUser2 Last2',
+          email: 'teamuser2@test.com',
+          username: 'team_user2',
+        },
       },
     },
   ].map(entity => ({

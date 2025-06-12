@@ -97,13 +97,34 @@ export class AAPConnector {
 
       const orgData = await Promise.all(
         rawOrgs.map(async (org: any) => {
-          const teamsUrl: string | undefined = org.related?.teams;
           const usersUrl: string | undefined = org.related?.users;
+          const teamsUrl: string = org.related.teams;
 
           const [rawTeams, rawUsers] = await Promise.all([
             teamsUrl ? this.executeGetRequest(teamsUrl) : [],
-            usersUrl ? this.executeGetRequest(usersUrl) : [],
+            (usersUrl ? this.executeGetRequest(usersUrl) : []) as Users,
           ]);
+
+          const users: User[] = rawUsers;
+          rawTeams.map(async (team: any) => {
+            const teamUsersUrl: string | undefined = team.related?.users;
+            if (!teamUsersUrl) {
+              return;
+            }
+
+            let [teamUsers] = (await Promise.all([
+              teamUsersUrl ? this.executeGetRequest(teamUsersUrl) : [],
+            ])) as Users[];
+
+            teamUsers = teamUsers.map((user: User) => {
+              if (!users.includes(user)) {
+                user.is_orguser = false;
+              }
+              return user;
+            });
+            // merge elements of array rawUsers into the teamUsers
+            users.push(...teamUsers);
+          });
 
           const teams: Team[] = (rawTeams || []).map((item: Team) => ({
             id: item.id,
@@ -112,8 +133,6 @@ export class AAPConnector {
             groupName: item.name.toLowerCase().replace(/\s/g, '-'),
             description: item?.description,
           }));
-
-          const users: User[] = rawUsers || [];
 
           return {
             organization: {

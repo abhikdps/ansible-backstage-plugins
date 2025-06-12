@@ -203,7 +203,14 @@ export class AAPEntityProvider implements EntityProvider {
           ? Object.values(org.teams).map(team => team.groupName)
           : [];
         const orgUsers = org.users
-          ? Object.values(org.users).map(user => user.username)
+          ? (Object.values(org.users)
+              .map(user => {
+                if (user.is_orguser && !user.is_orguser) {
+                  return null;
+                }
+                return user.username;
+              })
+              .filter(user => !!user) as string[])
           : [];
 
         entities.push(

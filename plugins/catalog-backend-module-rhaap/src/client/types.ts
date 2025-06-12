@@ -13,6 +13,7 @@ export type User = {
   first_name: string;
   last_name: string;
   is_superuser: boolean;
+  is_orguser?: boolean;
 };
 
 export type Users = User[];
