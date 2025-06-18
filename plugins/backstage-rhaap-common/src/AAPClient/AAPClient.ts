@@ -25,6 +25,12 @@ import {
   Project,
   AnsibleConfig,
   TokenResponse,
+  PaginatedResponse,
+  RoleAssignmentResponse,
+  RoleAssignments,
+  Team,
+  User,
+  Users,
 } from '../types';
 
 import { getAnsibleConfig } from './utils/config';
@@ -61,10 +67,14 @@ export interface IAAPService
     | 'rhAAPAuthenticate'
     | 'fetchProfile'
     | 'checkSubscription'
+    | 'getOrganizationsWithDetails'
+    | 'listSystemUsers'
+    | 'getTeamsByUserId'
+    | 'getUserRoleAssignments'
   > {}
 
 export class AAPClient implements IAAPService {
-  static pluginLogName = 'backstage-rhaap-common';
+  static readonly pluginLogName = 'backstage-rhaap-common';
   private readonly config: Config;
   private readonly ansibleConfig: AnsibleConfig;
   private readonly proxyAgent: Agent;
@@ -244,9 +254,19 @@ export class AAPClient implements IAAPService {
     token: string | null,
     fullUrl?: string,
   ): Promise<any> {
+    const baseUrl = this.ansibleConfig.rhaap?.baseUrl ?? '';
+    const formattedBaseUrl = baseUrl.endsWith('/')
+      ? baseUrl.slice(0, -1)
+      : baseUrl;
+
+    const formattedEndPoint = endPoint.startsWith('/')
+      ? endPoint
+      : `/${endPoint}`;
+
     const url = fullUrl
-      ? this.ansibleConfig.rhaap?.baseUrl + fullUrl
-      : `${this.ansibleConfig.rhaap?.baseUrl}/${endPoint}`;
+      ? `${formattedBaseUrl}${fullUrl.startsWith('/') ? '' : '/'}${fullUrl}`
+      : `${formattedBaseUrl}${formattedEndPoint}`;
+
     this.logger.info(
       `[${this.pluginLogName}]: Executing get request to ${url}.`,
     );
@@ -980,5 +1000,171 @@ export class AAPClient implements IAAPService {
         isCompliant: false,
       };
     }
+  }
+
+  private formatNameSpace(name: string): string {
+    return name
+      .toLowerCase()
+      .replace(/[^\w\s]/gi, '')
+      .replace(/\s/g, '-');
+  }
+
+  private async executeCatalogRequest(
+    endPoint: string,
+    token: string | null,
+    results?: never[],
+  ): Promise<never[]> {
+    let result = results ?? [];
+    const response = await this.executeGetRequest(endPoint, token);
+    const jsonResponse = (await response.json()) as PaginatedResponse;
+    result = [...result, ...jsonResponse.results];
+    if (jsonResponse.next) {
+      return await this.executeCatalogRequest(jsonResponse.next, token, result);
+    }
+    return result;
+  }
+
+  public async getOrganizationsWithDetails(): Promise<
+    Array<{
+      organization: Organization;
+      teams: Team[];
+      users: User[];
+    }>
+  > {
+    const orgEndPoint = 'api/controller/v2/organizations/';
+    try {
+      const token = this.ansibleConfig.rhaap?.token ?? null;
+      let orgSync: string;
+      if (this.config.has('catalog.providers.rhaap.development')) {
+        orgSync =
+          this.config.getOptionalString(
+            'catalog.providers.rhaap.development.orgs',
+          ) ?? '';
+      } else if (this.config.has('catalog.providers.rhaap.production')) {
+        orgSync =
+          this.config.getOptionalString(
+            'catalog.providers.rhaap.production.orgs',
+          ) ?? '';
+      }
+      let rawOrgs = await this.executeCatalogRequest(orgEndPoint, token);
+      rawOrgs = rawOrgs.filter(
+        (org: any) =>
+          orgSync.toLocaleLowerCase() === org.name.toLocaleLowerCase(),
+      );
+
+      const orgData = await Promise.all(
+        rawOrgs.map(async (org: any) => {
+          const usersUrl: string | undefined = org.related?.users;
+          const teamsUrl: string = org.related.teams;
+
+          const [rawTeams, rawUsers] = await Promise.all([
+            teamsUrl ? this.executeCatalogRequest(teamsUrl, token) : [],
+            (usersUrl
+              ? this.executeCatalogRequest(usersUrl, token)
+              : []) as Users,
+          ]);
+
+          const users: User[] = rawUsers;
+          rawTeams.map(async (team: any) => {
+            const teamUsersUrl: string | undefined = team.related?.users;
+            if (!teamUsersUrl) {
+              return;
+            }
+
+            let [teamUsers] = (await Promise.all([
+              teamUsersUrl
+                ? this.executeCatalogRequest(teamUsersUrl, token)
+                : [],
+            ])) as Users[];
+
+            teamUsers = teamUsers.map((user: User) => {
+              if (!users.includes(user)) {
+                user.is_orguser = false;
+              }
+              return user;
+            });
+            // merge elements of array rawUsers into the teamUsers
+            users.push(...teamUsers);
+          });
+
+          const teams: Team[] = (rawTeams || []).map((item: Team) => ({
+            id: item.id,
+            organization: item.organization,
+            name: item.name,
+            groupName: item.name.toLowerCase().replace(/\s/g, '-'),
+            description: item?.description,
+          }));
+
+          return {
+            organization: {
+              id: org.id,
+              name: org.name,
+              namespace:
+                org.namespace ?? org.name.toLowerCase().replace(/\s/g, '-'),
+            },
+            teams,
+            users,
+          };
+        }),
+      );
+
+      return orgData;
+    } catch (err) {
+      this.logger.error(
+        `Error retrieving organization details from ${orgEndPoint}.`,
+      );
+      throw new Error(
+        `Error retrieving organization details from ${orgEndPoint} : ${err}.`,
+      );
+    }
+  }
+
+  public async listSystemUsers(): Promise<Users> {
+    const endPoint = 'api/controller/v2/users/';
+    const token = this.ansibleConfig.rhaap?.token ?? null;
+    this.logger.info(`Fetching users from RH AAP.`);
+    const users = await this.executeCatalogRequest(endPoint, token);
+    return users.filter((user: User) => user.is_superuser) as Users;
+  }
+
+  public async getTeamsByUserId(
+    userID: number,
+  ): Promise<{ name: string; groupName: string; id: number; orgId: number }[]> {
+    const endPoint = `api/controller/v2/users/${userID}/teams/`;
+    const token = this.ansibleConfig.rhaap?.token ?? null;
+    this.logger.info(`Fetching teams for user ID: ${userID} from RH AAP.`);
+    const teams = await this.executeCatalogRequest(endPoint, token);
+    return teams
+      .filter((team: any) => team?.name)
+      .map((team: any) => ({
+        name: team.name,
+        groupName: this.formatNameSpace(team.name),
+        id: team.id,
+        orgId: team.organization,
+      }));
+  }
+
+  public async getUserRoleAssignments(): Promise<RoleAssignments> {
+    const endPoint = 'api/controller/v2/role_user_assignments/';
+    const token = this.ansibleConfig.rhaap?.token ?? null;
+    this.logger.info(`Fetching role assignments from RH AAP.`);
+    const roles = await this.executeCatalogRequest(endPoint, token);
+    return roles.reduce(
+      (map: RoleAssignments, item: RoleAssignmentResponse) => {
+        const tmp = map?.[item.user] ? map[item.user] : {};
+        if (item?.summary_fields?.role_definition?.name) {
+          const roleDef = tmp?.[item.summary_fields.role_definition.name]
+            ? tmp[item.summary_fields.role_definition.name]
+            : [];
+          if (item?.object_id) {
+            roleDef.push(item.object_id);
+          }
+          tmp[item.summary_fields.role_definition.name] = roleDef;
+        }
+        map[item.user] = tmp;
+        return map;
+      },
+      {},
+    ) as RoleAssignments;
   }
 }

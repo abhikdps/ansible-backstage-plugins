@@ -14,13 +14,13 @@ import { readAapApiEntityConfigs } from './config';
 import { InputError, isError, NotFoundError } from '@backstage/errors';
 import { AapConfig } from './types';
 import {
-  AAPConnector,
-  Organization,
+  IAAPService,
   RoleAssignments,
-  Team,
-  Users,
   User,
-} from '../client';
+  Users,
+  Team,
+  Organization,
+} from '@ansible/backstage-rhaap-common';
 import { Entity } from '@backstage/catalog-model';
 import { OrganizationParser, teamParser, userParser } from './entityParser';
 
@@ -28,16 +28,15 @@ export class AAPEntityProvider implements EntityProvider {
   private readonly env: string;
   private readonly baseUrl: string;
   private readonly logger: LoggerService;
-  private readonly orgSync: string = '';
+  private readonly ansibleServiceRef: IAAPService;
   private readonly scheduleFn: () => Promise<void>;
   private connection?: EntityProviderConnection;
-  private readonly accessToken: string;
-  private readonly checkSSL: boolean;
 
   static pluginLogName = 'plugin-catalog-rh-aap';
 
   static fromConfig(
     config: Config,
+    ansibleServiceRef: IAAPService,
     options: {
       logger: LoggerService;
       schedule?: SchedulerServiceTaskRunner;
@@ -71,7 +70,12 @@ export class AAPEntityProvider implements EntityProvider {
           `No schedule provided via config for AapResourceEntityProvider:${providerConfig.id}.`,
         );
       }
-      return new AAPEntityProvider(providerConfig, logger, taskRunner);
+      return new AAPEntityProvider(
+        providerConfig,
+        logger,
+        taskRunner,
+        ansibleServiceRef,
+      );
     });
   }
 
@@ -79,17 +83,16 @@ export class AAPEntityProvider implements EntityProvider {
     config: AapConfig,
     logger: LoggerService,
     taskRunner: SchedulerServiceTaskRunner,
+    ansibleServiceRef: IAAPService,
   ) {
     this.env = config.id;
     this.baseUrl = config.baseUrl;
     this.logger = logger.child({
       target: this.getProviderName(),
     });
+    this.ansibleServiceRef = ansibleServiceRef;
 
     this.scheduleFn = this.createScheduleFn(taskRunner);
-    this.accessToken = config.token;
-    this.checkSSL = config.checkSSL;
-    this.orgSync = config.orgSync ?? '';
   }
 
   createScheduleFn(
@@ -144,15 +147,8 @@ export class AAPEntityProvider implements EntityProvider {
     }> = [];
 
     let error = false;
-    const apiClient = new AAPConnector({
-      logger: this.logger,
-      baseUrl: this.baseUrl,
-      token: this.accessToken,
-      checkSSL: this.checkSSL,
-      orgSync: this.orgSync,
-    });
     try {
-      orgsDetails = await apiClient.getOrganizationsWithDetails();
+      orgsDetails = await this.ansibleServiceRef.getOrganizationsWithDetails();
       this.logger.info(
         `[${AAPEntityProvider.pluginLogName}]: Fetched ${
           Object.keys(orgsDetails).length
@@ -168,7 +164,8 @@ export class AAPEntityProvider implements EntityProvider {
     }
 
     try {
-      userRoleAssignments = await apiClient.getUserRoleAssignments();
+      userRoleAssignments =
+        await this.ansibleServiceRef.getUserRoleAssignments();
       this.logger.info(
         `[${AAPEntityProvider.pluginLogName}]: Fetched ${
           Object.keys(userRoleAssignments).length
@@ -184,7 +181,7 @@ export class AAPEntityProvider implements EntityProvider {
     }
 
     try {
-      systemUsers = await apiClient.listSystemUsers();
+      systemUsers = await this.ansibleServiceRef.listSystemUsers();
       this.logger.info(
         `[${AAPEntityProvider.pluginLogName}]: Fetched ${systemUsers.length} system users.`,
       );
@@ -240,7 +237,9 @@ export class AAPEntityProvider implements EntityProvider {
       }
 
       for (const user of orgsDetails.flatMap(org => org.users || [])) {
-        const userTeams = await apiClient.getTeamsByUserId(user.id);
+        const userTeams = await this.ansibleServiceRef.getTeamsByUserId(
+          user.id,
+        );
         const userMembers: string[] = [];
         for (const team of userTeams) {
           let matched = false;
@@ -256,7 +255,9 @@ export class AAPEntityProvider implements EntityProvider {
           if (!matched) {
             for (const org of orgsDetails) {
               if (org.organization.id === team.orgId) {
-                userMembers.push(org.organization.namespace);
+                if (org.organization.namespace) {
+                  userMembers.push(org.organization.namespace);
+                }
                 break;
               }
             }
@@ -274,7 +275,9 @@ export class AAPEntityProvider implements EntityProvider {
       }
 
       for (const user of systemUsers) {
-        const userTeams = await apiClient.getTeamsByUserId(user.id);
+        const userTeams = await this.ansibleServiceRef.getTeamsByUserId(
+          user.id,
+        );
         const userMembers: string[] = [];
         for (const team of userTeams) {
           for (const org of orgsDetails) {

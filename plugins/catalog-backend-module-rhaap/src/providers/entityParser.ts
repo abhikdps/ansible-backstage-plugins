@@ -5,7 +5,7 @@ import {
   ANNOTATION_ORIGIN_LOCATION,
   Entity,
 } from '@backstage/catalog-model';
-import { Team, User, Organization } from '../client';
+import { Team, User, Organization } from '@ansible/backstage-rhaap-common';
 
 export function OrganizationParser(options: {
   baseUrl: string;

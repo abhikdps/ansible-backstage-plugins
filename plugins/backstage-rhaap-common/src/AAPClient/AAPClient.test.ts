@@ -91,8 +91,10 @@ describe('AAPClient', () => {
           'ansible.rhaap..gitEmail': 'test@example.com',
           'ansible.creatorService.baseUrl': 'localhost',
           'ansible.creatorService.port': '8000',
+          'catalog.providers.rhaap.development.orgs': 'TestOrg',
+          'catalog.providers.rhaap.production.orgs': 'TestOrg',
         };
-        return paths[path];
+        return paths[path] || '';
       }),
       getString: jest.fn().mockImplementation((path: string) => {
         const paths: Record<string, string> = {
@@ -263,6 +265,8 @@ describe('AAPClient', () => {
           'rhaap.checkSSL',
           'analytics.enabled',
           'catalog.providers.rhaap.developement.schedule',
+          'catalog.providers.rhaap.development',
+          'catalog.providers.rhaap.production',
         ].includes(key);
       }),
       keys: jest.fn().mockReturnValue([]),
@@ -1438,6 +1442,358 @@ describe('AAPClient', () => {
         await expect(client.fetchProfile('test-token')).rejects.toThrow(
           'Failed to retrieve profile data from RH AAP.',
         );
+      });
+    });
+  });
+
+  describe('Catalog Functions', () => {
+    describe('getOrganizationsWithDetails', () => {
+      it('should fetch organizations with teams and users details', async () => {
+        const mockOrgsData = [
+          {
+            id: 1,
+            name: 'TestOrg',
+            namespace: 'testorg',
+            related: {
+              users:
+                'https://test.example.com/api/controller/v2/organizations/1/users/',
+              teams:
+                'https://test.example.com/api/controller/v2/organizations/1/teams/',
+            },
+          },
+        ];
+
+        const mockTeamsData = [
+          {
+            id: 1,
+            organization: 1,
+            name: 'Test Team',
+            description: 'A test team',
+            related: {
+              users:
+                'https://test.example.com/api/controller/v2/teams/1/users/',
+            },
+          },
+        ];
+
+        const mockOrgUsersData = [
+          {
+            id: 1,
+            username: 'user1',
+            email: 'user1@example.com',
+            first_name: 'User',
+            last_name: 'One',
+          },
+        ];
+
+        const mockTeamUsersData = [
+          {
+            id: 2,
+            username: 'user2',
+            email: 'user2@example.com',
+            first_name: 'User',
+            last_name: 'Two',
+          },
+        ];
+
+        jest
+          .spyOn(client as any, 'executeCatalogRequest')
+          .mockResolvedValueOnce(mockOrgsData)
+          .mockResolvedValueOnce(mockTeamsData)
+          .mockResolvedValueOnce(mockOrgUsersData)
+          .mockResolvedValueOnce(mockTeamUsersData);
+
+        const result = await client.getOrganizationsWithDetails();
+
+        expect(result).toHaveLength(1);
+        expect(result[0]).toEqual({
+          organization: {
+            id: 1,
+            name: 'TestOrg',
+            namespace: 'testorg',
+          },
+          teams: [
+            {
+              id: 1,
+              organization: 1,
+              name: 'Test Team',
+              groupName: 'test-team',
+              description: 'A test team',
+            },
+          ],
+          users: expect.arrayContaining([
+            expect.objectContaining({
+              id: 1,
+              username: 'user1',
+              email: 'user1@example.com',
+            }),
+            expect.objectContaining({
+              id: 2,
+              username: 'user2',
+              email: 'user2@example.com',
+              is_orguser: false,
+            }),
+          ]),
+        });
+      });
+
+      it('should handle errors when fetching organization details', async () => {
+        jest
+          .spyOn(client as any, 'executeCatalogRequest')
+          .mockRejectedValueOnce(new Error('API Error'));
+
+        await expect(client.getOrganizationsWithDetails()).rejects.toThrow(
+          'Error retrieving organization details from api/controller/v2/organizations/ : Error: API Error.',
+        );
+      });
+
+      it('should filter organizations based on config orgs setting', async () => {
+        const mockOrgsData = [
+          {
+            id: 1,
+            name: 'TestOrg',
+            namespace: 'testorg',
+            related: {
+              users:
+                'https://test.example.com/api/controller/v2/organizations/1/users/',
+              teams:
+                'https://test.example.com/api/controller/v2/organizations/1/teams/',
+            },
+          },
+          {
+            id: 2,
+            name: 'OtherOrg',
+            namespace: 'otherorg',
+            related: {
+              users:
+                'https://test.example.com/api/controller/v2/organizations/2/users/',
+              teams:
+                'https://test.example.com/api/controller/v2/organizations/2/teams/',
+            },
+          },
+        ];
+
+        jest
+          .spyOn(client as any, 'executeCatalogRequest')
+          .mockResolvedValueOnce(mockOrgsData)
+          .mockResolvedValueOnce([])
+          .mockResolvedValueOnce([]);
+
+        const result = await client.getOrganizationsWithDetails();
+
+        expect(result).toHaveLength(1);
+        expect(result[0].organization.name).toBe('TestOrg');
+      });
+    });
+
+    describe('listSystemUsers', () => {
+      it('should fetch only superuser users', async () => {
+        const mockUsersData = [
+          {
+            id: 1,
+            username: 'user1',
+            email: 'user1@example.com',
+            first_name: 'User',
+            last_name: 'One',
+            is_superuser: false,
+          },
+          {
+            id: 2,
+            username: 'user2',
+            email: 'user2@example.com',
+            first_name: 'User',
+            last_name: 'Two',
+            is_superuser: true,
+          },
+          {
+            id: 3,
+            username: 'admin',
+            email: 'admin@example.com',
+            first_name: 'Admin',
+            last_name: 'User',
+            is_superuser: true,
+          },
+        ];
+
+        jest
+          .spyOn(client as any, 'executeCatalogRequest')
+          .mockResolvedValueOnce(mockUsersData);
+
+        const result = await client.listSystemUsers();
+
+        expect(result).toHaveLength(2);
+        expect(result[0].username).toBe('user2');
+        expect(result[1].username).toBe('admin');
+        expect(result.every(user => user.is_superuser)).toBe(true);
+      });
+    });
+
+    describe('getTeamsByUserId', () => {
+      it('should fetch teams for a specific user', async () => {
+        const mockUserTeamsData = [
+          {
+            id: 1,
+            name: 'Development Team',
+            organization: 1,
+          },
+          {
+            id: 2,
+            name: 'QA Team',
+            organization: 1,
+          },
+          {
+            id: 3,
+            name: null,
+            organization: 1,
+          },
+        ];
+
+        jest
+          .spyOn(client as any, 'executeCatalogRequest')
+          .mockResolvedValueOnce(mockUserTeamsData);
+
+        const result = await client.getTeamsByUserId(1);
+
+        expect(result).toHaveLength(2);
+        expect(result).toEqual([
+          {
+            name: 'Development Team',
+            groupName: 'development-team',
+            id: 1,
+            orgId: 1,
+          },
+          {
+            name: 'QA Team',
+            groupName: 'qa-team',
+            id: 2,
+            orgId: 1,
+          },
+        ]);
+      });
+
+      it('should format team names correctly', async () => {
+        const mockUserTeamsData = [
+          {
+            id: 1,
+            name: 'Special Team!',
+            organization: 1,
+          },
+        ];
+
+        jest
+          .spyOn(client as any, 'executeCatalogRequest')
+          .mockResolvedValueOnce(mockUserTeamsData);
+
+        const result = await client.getTeamsByUserId(1);
+
+        expect(result[0].groupName).toBe('special-team');
+      });
+    });
+
+    describe('getUserRoleAssignments', () => {
+      it('should fetch and format user role assignments', async () => {
+        const mockRoleAssignmentsData = [
+          {
+            user: 1,
+            object_id: 10,
+            summary_fields: {
+              role_definition: {
+                name: 'Admin',
+              },
+            },
+          },
+          {
+            user: 1,
+            object_id: 20,
+            summary_fields: {
+              role_definition: {
+                name: 'Admin',
+              },
+            },
+          },
+          {
+            user: 1,
+            object_id: 30,
+            summary_fields: {
+              role_definition: {
+                name: 'User',
+              },
+            },
+          },
+          {
+            user: 2,
+            object_id: 40,
+            summary_fields: {
+              role_definition: {
+                name: 'Viewer',
+              },
+            },
+          },
+          {
+            user: 3,
+            object_id: 50,
+            summary_fields: {
+              role_definition: {
+                name: null,
+              },
+            },
+          },
+        ];
+
+        jest
+          .spyOn(client as any, 'executeCatalogRequest')
+          .mockResolvedValueOnce(mockRoleAssignmentsData);
+
+        const result = await client.getUserRoleAssignments();
+
+        expect(result).toEqual({
+          1: {
+            Admin: [10, 20],
+            User: [30],
+          },
+          2: {
+            Viewer: [40],
+          },
+          3: {},
+        });
+      });
+
+      it('should handle role assignments without object_id', async () => {
+        const mockRoleAssignmentsData = [
+          {
+            user: 1,
+            object_id: null,
+            summary_fields: {
+              role_definition: {
+                name: 'Admin',
+              },
+            },
+          },
+        ];
+
+        jest
+          .spyOn(client as any, 'executeCatalogRequest')
+          .mockResolvedValueOnce(mockRoleAssignmentsData);
+
+        const result = await client.getUserRoleAssignments();
+
+        expect(result).toEqual({
+          1: {
+            Admin: [],
+          },
+        });
+      });
+
+      it('should handle empty role assignments', async () => {
+        const mockRoleAssignmentsData: any[] = [];
+
+        jest
+          .spyOn(client as any, 'executeCatalogRequest')
+          .mockResolvedValueOnce(mockRoleAssignmentsData);
+
+        const result = await client.getUserRoleAssignments();
+
+        expect(result).toEqual({});
       });
     });
   });

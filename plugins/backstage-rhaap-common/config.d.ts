@@ -61,7 +61,7 @@ export interface Config {
       baseUrl?: string;
       /**
        * Authentication token for RHAAP
-       * @visibility secret
+       * @visibility backend
        */
       token?: string;
       /**

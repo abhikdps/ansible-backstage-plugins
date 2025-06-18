@@ -55,6 +55,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@ansible/backstage-plugin-catalog-backend-module-rhaap@workspace:plugins/catalog-backend-module-rhaap"
   dependencies:
+    "@ansible/backstage-rhaap-common": "npm:^0.1.0"
     "@backstage/backend-defaults": "npm:^0.10.0"
     "@backstage/backend-dynamic-feature-service": "npm:^0.7.0"
     "@backstage/backend-plugin-api": "npm:^1.3.1"

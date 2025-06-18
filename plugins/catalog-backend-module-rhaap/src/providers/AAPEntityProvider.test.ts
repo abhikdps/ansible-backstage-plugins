@@ -10,6 +10,7 @@ import {
   MOCK_ORG_USERS_RESPONSE,
   MOCK_ORGANIZATION_DETAILS_RESPONSE,
   MOCK_ORG_TEAM_USERS_RESPONSE,
+  mockAnsibleService,
 } from '../mock';
 import { AAPEntityProvider } from './AAPEntityProvider';
 import {
@@ -89,7 +90,7 @@ describe('AAPEntityProvider', () => {
       spec: {
         type: 'organization',
         children: ['team-a', 'team-b'],
-        members: ['user1', 'user2', 'team_user1', 'team_user2'],
+        members: ['user1', 'user2'],
       },
     },
     {
@@ -236,6 +237,100 @@ describe('AAPEntityProvider', () => {
     const logger = mockServices.logger.mock();
     const schedulingConfig: Record<string, any> = {};
 
+    mockAnsibleService.getOrganizationsWithDetails.mockResolvedValue([
+      {
+        organization: {
+          id: 1,
+          name: 'Default',
+          namespace: 'default',
+        },
+        teams: [
+          {
+            id: 1,
+            organization: 1,
+            name: 'Team A',
+            groupName: 'team-a',
+            description: 'Team A description',
+          },
+          {
+            id: 2,
+            organization: 1,
+            name: 'Team B',
+            groupName: 'team-b',
+            description: 'Team B description',
+          },
+        ],
+        users: [
+          {
+            id: 1,
+            url: 'https://rhaap.test/api/v2/users/1/',
+            username: 'user1',
+            email: 'user1@test.com',
+            first_name: 'User1',
+            last_name: 'Last1',
+            is_superuser: false,
+            is_orguser: false,
+          },
+          {
+            id: 2,
+            url: 'https://rhaap.test/api/v2/users/2/',
+            username: 'user2',
+            email: 'user2@test.com',
+            first_name: 'User2',
+            last_name: 'Last2',
+            is_superuser: false,
+          },
+        ],
+      },
+    ]);
+
+    mockAnsibleService.getUserRoleAssignments.mockResolvedValue({
+      1: {
+        'Team Member': [1, 2],
+        'Organization Member': [1],
+      },
+      2: {
+        'Team Member': [2],
+        'Organization Member': [1],
+      },
+    });
+
+    mockAnsibleService.listSystemUsers.mockResolvedValue([
+      {
+        id: 1,
+        url: 'https://rhaap.test/api/v2/users/1/',
+        username: 'team_user1',
+        email: 'teamuser1@test.com',
+        first_name: 'TeamUser1',
+        last_name: 'Last1',
+        is_superuser: false,
+      },
+      {
+        id: 2,
+        url: 'https://rhaap.test/api/v2/users/2/',
+        username: 'team_user2',
+        email: 'teamuser2@test.com',
+        first_name: 'TeamUser2',
+        last_name: 'Last2',
+        is_superuser: false,
+      },
+    ]);
+
+    mockAnsibleService.getTeamsByUserId.mockImplementation((userId: number) => {
+      if (userId === 1) {
+        return Promise.resolve([
+          { name: 'Team A', groupName: 'team-a', id: 1, orgId: 1 },
+          { name: 'Team B', groupName: 'team-b', id: 2, orgId: 1 },
+        ]);
+      }
+      if (userId === 2) {
+        return Promise.resolve([
+          { name: 'Team B', groupName: 'team-b', id: 2, orgId: 1 },
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+
     const schedule = new PersistingTaskRunner();
     const entityProviderConnection: EntityProviderConnection = {
       applyMutation: jest.fn(),
@@ -243,7 +338,7 @@ describe('AAPEntityProvider', () => {
     };
 
     schedulingConfig.schedule = schedule;
-    const provider = AAPEntityProvider.fromConfig(config, {
+    const provider = AAPEntityProvider.fromConfig(config, mockAnsibleService, {
       ...schedulingConfig,
       logger,
     })[0];
