@@ -100,13 +100,19 @@ export class AAPClient implements IAAPService {
     this.logger = logger;
   }
 
+  private getBaseUrl() {
+    // Normalize URL construction to avoid double slashes
+    return this.ansibleConfig.rhaap?.baseUrl?.replace(/\/+$/, '') || '';
+  }
+
   public async executePostRequest(
     endPoint: string,
     token?: string,
     data?: any,
     auth: boolean = false,
   ): Promise<any> {
-    const url = `${this.ansibleConfig.rhaap?.baseUrl}/${endPoint}`;
+    const normalizedEndPoint = endPoint.replace(/^\/+/, '');
+    const url = `${this.getBaseUrl()}/${normalizedEndPoint}`;
     this.logger.info(
       `[${this.pluginLogName}]: Executing post request to ${url}.`,
     );
@@ -190,18 +196,15 @@ export class AAPClient implements IAAPService {
     token: string | null,
     fullUrl?: string,
   ): Promise<any> {
-    const baseUrl = this.ansibleConfig.rhaap?.baseUrl ?? '';
-    const formattedBaseUrl = baseUrl.endsWith('/')
-      ? baseUrl.slice(0, -1)
-      : baseUrl;
-
-    const formattedEndPoint = endPoint.startsWith('/')
-      ? endPoint
-      : `/${endPoint}`;
-
-    const url = fullUrl
-      ? `${formattedBaseUrl}${fullUrl.startsWith('/') ? '' : '/'}${fullUrl}`
-      : `${formattedBaseUrl}${formattedEndPoint}`;
+    const baseUrl = this.getBaseUrl();
+    let url: string;
+    if (fullUrl) {
+      const normalizedFullUrl = fullUrl.replace(/^\/+/, '');
+      url = `${baseUrl}/${normalizedFullUrl}`;
+    } else {
+      const normalizedEndPoint = endPoint.replace(/^\/+/, '');
+      url = `${baseUrl}/${normalizedEndPoint}`;
+    }
 
     this.logger.info(
       `[${this.pluginLogName}]: Executing get request to ${url}.`,
@@ -241,7 +244,8 @@ export class AAPClient implements IAAPService {
     endPoint: string,
     token: string,
   ): Promise<any> {
-    const url = `${this.ansibleConfig.rhaap?.baseUrl}/${endPoint}`;
+    const normalizedEndPoint = endPoint.replace(/^\/+/, '');
+    const url = `${this.getBaseUrl()}/${normalizedEndPoint}`;
     this.logger.info(
       `[${this.pluginLogName}]: Executing delete request ${url}.`,
     );
