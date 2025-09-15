@@ -169,14 +169,17 @@ export const getInstanceGroupsProps = (instanceGroups: string[]) => {
 };
 
 export const getPromptFormDetails = (job: IJobTemplate) => {
+  const promptForm = getPromptForm();
   const properties: JsonObject = {};
 
   if (job.ask_job_type_on_launch) {
     properties.job_type = getJobTypeProps(job.job_type);
+    promptForm.required = [...promptForm.required, 'job_type'];
   }
 
   if (job.ask_inventory_on_launch) {
     properties.inventory = getInventoryProps(job.summary_fields.inventory);
+    promptForm.required = [...promptForm.required, 'inventory'];
   }
 
   if (job.ask_execution_environment_on_launch) {
@@ -226,7 +229,7 @@ export const getPromptFormDetails = (job: IJobTemplate) => {
   for (const e of Object.keys(properties)) {
     inputVars[e] = `\${{ parameters.${e} }}`;
   }
-  const promptForm = getPromptForm();
+
   promptForm.properties = { ...promptForm.properties, ...properties };
 
   return [promptForm, inputVars];

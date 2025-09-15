@@ -526,7 +526,7 @@ describe('dynamicJobTemplate', () => {
       const [promptForm, inputVars] = getPromptFormDetails(jobWithAllFlags);
 
       expect(promptForm.title).toBe('Please enter the following details');
-      expect(promptForm.required).toEqual(['token']);
+      expect(promptForm.required).toEqual(['token', 'job_type', 'inventory']);
       expect((promptForm.properties as any).token).toBeDefined();
       expect((promptForm.properties as any).job_type).toBeDefined();
       expect((promptForm.properties as any).inventory).toBeDefined();
