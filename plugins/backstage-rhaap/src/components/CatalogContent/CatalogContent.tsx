@@ -67,11 +67,12 @@ export const AnsibleComponents = () => {
         filter: [{ kind: 'component', 'metadata.tags': 'ansible' }],
       })
       .then(entities => {
-        setAllEntities(entities.items);
+        const items = Array.isArray(entities)
+          ? entities
+          : entities?.items || [];
+        setAllEntities(items);
         setAnsibleComponents(
-          entities.items.filter(item =>
-            item.metadata.tags?.includes('ansible'),
-          ),
+          items.filter(item => item.metadata.tags?.includes('ansible')),
         );
         setLoading(false);
         setShowError(false);
@@ -80,6 +81,7 @@ export const AnsibleComponents = () => {
         if (error) {
           setErrorMessage(error.message);
           setShowError(true);
+          setLoading(false);
         }
       });
   };
@@ -90,8 +92,8 @@ export const AnsibleComponents = () => {
   });
 
   useEffect(() => {
-    if (filters.user?.value === 'starred')
-      setAnsibleComponents(allEntities.filter(e => isStarredEntity(e)));
+    if (allEntities && filters.user?.value === 'starred')
+      setAnsibleComponents(allEntities?.filter(e => isStarredEntity(e)));
     else if (filters.user?.value === 'all') setAnsibleComponents(allEntities);
   }, [filters.user, allEntities, isStarredEntity]);
 
