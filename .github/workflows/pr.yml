@@ -32,35 +32,6 @@ jobs:
       - name: Build Developer docs
         run: mkdocs build
 
-  build:
-    name: Build with Node.js ${{ matrix.node-version }}
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [20, 22]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Setup local Turbo cache
-        uses: dtinth/setup-github-actions-caching-for-turbo@v1 # v1
-
-      - name: Yarn install (cached)
-        uses: ./.github/actions/yarn-install
-        with:
-            cache-prefix: ${{ github.ref_name }}-${{ runner.os }}-${{ matrix.node-version }}
-
-      - name: Build packages
-        run: yarn run build
-
   test:
     name: Test with Node.js ${{ matrix.node-version }}
     runs-on: ubuntu-latest
@@ -87,8 +58,8 @@ jobs:
       - name: Setup local Turbo cache
         uses: dtinth/setup-github-actions-caching-for-turbo@cc723b4600e40a6b8815b65701d8614b91e2669e # v1
 
-      - name: Yarn install (cached)
-        uses: ./.github/actions/yarn-install
+      - name: Install dependencies
+        uses: backstage/actions/yarn-install@b3c1841fd69e1658ac631afafd0fb140a2309024 # v0.6.17
         with:
             cache-prefix: ${{ github.ref_name }}-${{ runner.os }}-${{ matrix.node-version }}
   
@@ -115,12 +86,23 @@ jobs:
           name: coverage-report-${{ matrix.node-version }}
           path: ./coverage/lcov.info
         
+      - name: 'Extract and export repo owner/name'
+        shell: bash
+        run: |
+          # 1. Read the full slug (owner/repo)
+          REPO_SLUG="${GITHUB_REPOSITORY}"
+          # 2. Split into owner and repo
+          IFS="/" read -r REPO_OWNER REPO_NAME <<< "$REPO_SLUG"
+          # 3. Export to the workflow environment
+          echo "REPO_OWNER=$REPO_OWNER" >> $GITHUB_ENV
+          echo "REPO_NAME=$REPO_NAME"   >> $GITHUB_ENV
+
       # Prepare Sonar arguments
       - name: Prepare Sonar arguments
         id: sonar-args
         run: |
-            echo "SONAR_ARGS=-Dsonar.organization=ansible \
-            -Dsonar.projectKey=ansible_ansible-backstage-plugins \
+            echo "SONAR_ARGS=-Dsonar.organization=${{ env.REPO_OWNER }} \
+            -Dsonar.projectKey=${{ env.REPO_OWNER }}_${{ env.REPO_NAME }} \
             -Dsonar.projectName='ansible-backstage-plugins' \
             -Dsonar.sources=plugins \
             -Dsonar.tests=plugins \
@@ -133,7 +115,7 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: SonarSource/sonarqube-scan-action@v6
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ secrets[format('{0}', vars.SONAR_TOKEN_SECRET_NAME)] }}
         with:
           args: >
             ${{ env.SONAR_ARGS }}
@@ -146,14 +128,14 @@ jobs:
     if: ${{ always() }}
     name: check
     needs:
-      - build
+      - docs
       - test
     runs-on: ubuntu-latest
     steps:
       - run: >-
           python -c "assert 'failure' not in
           set([
-          '${{ needs.build.result }}',
+          '${{ needs.docs.result }}',
           '${{ needs.test.result }}'
           ])"
           

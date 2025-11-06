@@ -84,13 +84,24 @@ jobs:
         with:
           name: coverage-report-${{ matrix.node-version }}
           path: ./coverage/lcov.info
-        
+
+      - name: 'Extract and export repo owner/name'
+        shell: bash
+        run: |
+          # 1. Read the full slug (owner/repo)
+          REPO_SLUG="${GITHUB_REPOSITORY}"
+          # 2. Split into owner and repo
+          IFS="/" read -r REPO_OWNER REPO_NAME <<< "$REPO_SLUG"
+          # 3. Export to the workflow environment
+          echo "REPO_OWNER=$REPO_OWNER" >> $GITHUB_ENV
+          echo "REPO_NAME=$REPO_NAME"   >> $GITHUB_ENV
+
       # Prepare Sonar arguments
       - name: Prepare Sonar arguments
         id: sonar-args
         run: |
-            echo "SONAR_ARGS=-Dsonar.organization=ansible \
-            -Dsonar.projectKey=ansible_ansible-backstage-plugins \
+            echo "SONAR_ARGS=-Dsonar.organization=${{ env.REPO_OWNER }} \
+            -Dsonar.projectKey=${{ env.REPO_OWNER }}_${{ env.REPO_NAME }} \
             -Dsonar.projectName='ansible-backstage-plugins' \
             -Dsonar.sources=plugins \
             -Dsonar.tests=plugins \
@@ -103,6 +114,6 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: SonarSource/sonarqube-scan-action@v6
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ secrets[format('{0}', vars.SONAR_TOKEN_SECRET_NAME)] }}
         with:
           args: ${{ env.SONAR_ARGS }}
