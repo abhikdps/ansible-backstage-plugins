@@ -8,7 +8,7 @@
     "description": "Path where repomix output will be stored"
   },
   "analysis": {
-    "custom_prompt_path": "",
+    "custom_prompt_path": "prompt.txt",
     "description": "Optional: Path to custom prompt template file for AI analysis (leave empty to use default ansible-creator prompt)"
   },
   "gemini": {
