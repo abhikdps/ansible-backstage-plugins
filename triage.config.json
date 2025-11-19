@@ -1,0 +1,18 @@
+{
+  "repository": {
+    "url": "https://github.com/abhikdps/backstage-plugins-ansible",
+    "description": "Target repository for AI issue analysis"
+  },
+  "repomix": {
+    "output_path": "repomix-output.txt",
+    "description": "Path where repomix output will be stored"
+  },
+  "analysis": {
+    "custom_prompt_path": "",
+    "description": "Optional: Path to custom prompt template file for AI analysis (leave empty to use default ansible-creator prompt)"
+  },
+  "gemini": {
+    "model": "gemini-2.0-flash-001",
+    "description": "Optional: Gemini model to use (leave empty or remove to use default)"
+  }
+}
