@@ -1,5 +1,6 @@
 import { AAPResourcePicker } from '../Scaffolder/AAResourcePicker/AAPResourcePicker';
 import { AAPTokenField } from '../Scaffolder/AAPTokenField/AAPTokenFieldExtension';
+import { SCMIntegrationPicker } from '../Scaffolder/SCMIntegrationPicker/SCMIntegrationPicker';
 import {
   EntityNamePicker,
   EntityNamePickerSchema,
@@ -28,6 +29,7 @@ import {
 export const formExtraFields = [
   { name: 'AAPResourcePicker', component: AAPResourcePicker },
   { name: 'AAPTokenField', component: AAPTokenField },
+  { name: 'SCMIntegrationPicker', component: SCMIntegrationPicker },
   {
     component: EntityPicker,
     name: 'EntityPicker',

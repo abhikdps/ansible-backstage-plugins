@@ -1,6 +1,7 @@
 import {
   GithubIntegrationConfig,
   GitLabIntegrationConfig,
+  ScmIntegrations,
 } from '@backstage/integration';
 
 export type Organization = {
@@ -153,6 +154,7 @@ export type AnsibleConfig = {
   rhaap?: RHAAPConfig;
   githubIntegration?: GithubIntegrationConfig;
   gitlabIntegration?: GitLabIntegrationConfig;
+  scmIntegrations?: ScmIntegrations;
   creatorService?: CreatorService;
 };
 

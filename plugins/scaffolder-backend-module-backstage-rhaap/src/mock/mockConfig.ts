@@ -11,6 +11,12 @@ export const MOCK_CONFIG = {
           token: 'mockGitHubPAT',
           apiBaseUrl: 'https://api.github.com',
         },
+        // Example: Enterprise GitHub configuration
+        // {
+        //   host: 'github.enterprise.example.com',
+        //   token: 'mockEnterpriseGitHubPAT',
+        //   apiBaseUrl: 'https://github.enterprise.example.com/api/v3',
+        // },
       ],
       gitlab: [
         {
@@ -18,6 +24,12 @@ export const MOCK_CONFIG = {
           token: 'mockGitlabPAT',
           apiBaseUrl: 'https://gitlab.com/api/v4',
         },
+        // Example: Self-hosted GitLab configuration
+        // {
+        //   host: 'gitlab.internal.example.com',
+        //   token: 'mockSelfHostedGitlabPAT',
+        //   apiBaseUrl: 'https://gitlab.internal.example.com/api/v4',
+        // },
       ],
     },
     ansible: {

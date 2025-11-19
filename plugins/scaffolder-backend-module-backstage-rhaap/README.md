@@ -22,6 +22,84 @@ Note: This has neen tested with node version v18.19.0.
 
 Refer <https://backstage.io/docs/auth/github/provider>
 
+### SCM Integration Configuration
+
+This plugin supports multiple SCM providers including:
+- GitHub.com
+- **Enterprise GitHub** (self-hosted)
+- GitLab.com  
+- **Self-hosted GitLab**
+- Any Git-compatible SCM system
+
+Configure your SCM integration in `app-config.yaml`. **You can configure multiple hosts** for each SCM provider, and the plugin will automatically match repository URLs to the correct integration:
+
+#### GitHub.com (default)
+```yaml
+integrations:
+  github:
+    - host: github.com
+      token: ${GITHUB_TOKEN}
+      apiBaseUrl: https://api.github.com
+```
+
+#### Enterprise GitHub
+```yaml
+integrations:
+  github:
+    - host: github.enterprise.example.com
+      token: ${GITHUB_ENTERPRISE_TOKEN}
+      apiBaseUrl: https://github.enterprise.example.com/api/v3
+```
+
+#### Multiple GitHub Hosts (GitHub.com + Enterprise)
+```yaml
+integrations:
+  github:
+    - host: github.com
+      token: ${GITHUB_TOKEN}
+      apiBaseUrl: https://api.github.com
+    - host: github.enterprise.example.com
+      token: ${GITHUB_ENTERPRISE_TOKEN}
+      apiBaseUrl: https://github.enterprise.example.com/api/v3
+```
+
+#### GitLab.com (default)
+```yaml
+integrations:
+  gitlab:
+    - host: gitlab.com
+      token: ${GITLAB_TOKEN}
+      apiBaseUrl: https://gitlab.com/api/v4
+```
+
+#### Self-hosted GitLab
+```yaml
+integrations:
+  gitlab:
+    - host: gitlab.internal.example.com
+      token: ${GITLAB_INTERNAL_TOKEN}
+      apiBaseUrl: https://gitlab.internal.example.com/api/v4
+```
+
+#### Multiple GitLab Hosts (GitLab.com + Self-hosted)
+```yaml
+integrations:
+  gitlab:
+    - host: gitlab.com
+      token: ${GITLAB_TOKEN}
+      apiBaseUrl: https://gitlab.com/api/v4
+    - host: gitlab.internal.example.com
+      token: ${GITLAB_INTERNAL_TOKEN}
+      apiBaseUrl: https://gitlab.internal.example.com/api/v4
+```
+
+**How It Works**: The plugin uses Backstage's `ScmIntegrations` API to automatically match repository URLs to the correct integration configuration. When you provide a repository URL (e.g., `https://github.enterprise.example.com/myorg/myrepo`), the plugin:
+1. Extracts the host from the URL
+2. Finds the matching integration configuration
+3. Uses the appropriate token and API base URL for that host
+
+This means you can work with repositories across multiple SCM hosts seamlessly without any manual configuration per repository.
+
 ### Add the package
 
 ```bash

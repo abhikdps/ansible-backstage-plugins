@@ -1,0 +1,156 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: example-scm-integration-picker
+  title: Example: SCM Integration Picker
+  description: Demonstrates the use of the SCMIntegrationPicker field extension
+  tags:
+    - example
+    - scm
+    - picker
+spec:
+  owner: platform-team
+  type: service
+
+  parameters:
+    # Example 1: Basic single selection (all SCM types)
+    - title: Choose SCM Integration
+      required:
+        - scmIntegration
+      properties:
+        scmIntegration:
+          title: SCM Integration
+          type: string
+          description: Select the SCM integration to use for this repository
+          ui:field: SCMIntegrationPicker
+
+    # Example 2: Filter by GitHub only
+    - title: GitHub Configuration
+      properties:
+        githubIntegration:
+          title: GitHub Integration
+          type: string
+          description: Select a GitHub integration (shows only GitHub hosts)
+          ui:field: SCMIntegrationPicker
+          ui:options:
+            scmType: github
+
+    # Example 3: Filter by GitLab only
+    - title: GitLab Configuration
+      properties:
+        gitlabIntegration:
+          title: GitLab Integration
+          type: string
+          description: Select a GitLab integration (shows only GitLab hosts)
+          ui:field: SCMIntegrationPicker
+          ui:options:
+            scmType: gitlab
+
+    # Example 4: Multiple selection
+    - title: Multiple SCM Integrations
+      properties:
+        multipleIntegrations:
+          title: Multiple SCM Integrations
+          type: array
+          description: Select one or more SCM integrations
+          ui:field: SCMIntegrationPicker
+
+    # Example 5: Repository details using selected integration
+    - title: Repository Details
+      required:
+        - repoName
+        - owner
+      properties:
+        repoName:
+          title: Repository Name
+          type: string
+          description: Name of the repository to create
+          ui:autofocus: true
+        owner:
+          title: Owner
+          type: string
+          description: Organization or user that will own the repository
+
+  steps:
+    # Step 1: Log the selected integration details
+    - id: log-integration
+      name: Log Selected Integration
+      action: debug:log
+      input:
+        message: |
+          Selected SCM Integration Details:
+          =====================================
+          ID: ${{ parameters.scmIntegration.id }}
+          Type: ${{ parameters.scmIntegration.type }}
+          Host: ${{ parameters.scmIntegration.host }}
+          API Base URL: ${{ parameters.scmIntegration.apiBaseUrl }}
+          
+          This integration can now be used in subsequent steps!
+
+    # Step 2: Demonstrate conditional logic based on SCM type
+    - id: log-github
+      name: GitHub-specific Logic
+      if: ${{ parameters.scmIntegration.type === 'github' }}
+      action: debug:log
+      input:
+        message: You selected a GitHub integration!
+
+    - id: log-gitlab
+      name: GitLab-specific Logic
+      if: ${{ parameters.scmIntegration.type === 'gitlab' }}
+      action: debug:log
+      input:
+        message: You selected a GitLab integration!
+
+    # Step 3: Create repository URL dynamically
+    - id: create-repo-url
+      name: Create Repository URL
+      action: debug:log
+      input:
+        message: |
+          Repository will be created at:
+          https://${{ parameters.scmIntegration.host }}/${{ parameters.owner }}/${{ parameters.repoName }}
+
+    # Step 4: Example of using with publish action
+    # Note: This is just an example - adjust based on your actual use case
+    - id: publish-github
+      name: Publish to GitHub
+      if: ${{ parameters.scmIntegration.type === 'github' }}
+      action: publish:github
+      input:
+        repoUrl: ${{ parameters.scmIntegration.host }}?owner=${{ parameters.owner }}&repo=${{ parameters.repoName }}
+        description: Repository created via Backstage template
+        defaultBranch: main
+
+    - id: publish-gitlab
+      name: Publish to GitLab
+      if: ${{ parameters.scmIntegration.type === 'gitlab' }}
+      action: publish:gitlab
+      input:
+        repoUrl: ${{ parameters.scmIntegration.host }}?owner=${{ parameters.owner }}&repo=${{ parameters.repoName }}
+        description: Repository created via Backstage template
+        defaultBranch: main
+
+    # Step 5: Log multiple integrations if selected
+    - id: log-multiple
+      name: Log Multiple Integrations
+      if: ${{ parameters.multipleIntegrations }}
+      action: debug:log
+      input:
+        message: |
+          Selected Multiple Integrations:
+          ${{ parameters.multipleIntegrations | dump }}
+
+  output:
+    links:
+      - title: Repository
+        url: https://${{ parameters.scmIntegration.host }}/${{ parameters.owner }}/${{ parameters.repoName }}
+      - title: SCM Integration Used
+        url: https://${{ parameters.scmIntegration.host }}
+    text:
+      - title: Integration Details
+        content: |
+          SCM Type: ${{ parameters.scmIntegration.type }}
+          Host: ${{ parameters.scmIntegration.host }}
+          API Base URL: ${{ parameters.scmIntegration.apiBaseUrl }}
+

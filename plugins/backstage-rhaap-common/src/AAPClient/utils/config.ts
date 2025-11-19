@@ -42,6 +42,7 @@ export function getAnsibleConfig(config: Config): AnsibleConfig {
     },
     githubIntegration,
     gitlabIntegration,
+    scmIntegrations: integrations, // Store the full ScmIntegrations object for multi-host support
     creatorService: ansibleConfig.has('creatorService')
       ? {
           baseUrl:

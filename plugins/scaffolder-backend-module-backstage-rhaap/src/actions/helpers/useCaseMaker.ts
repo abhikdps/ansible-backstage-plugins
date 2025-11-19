@@ -94,6 +94,7 @@ export class UseCaseMaker {
       this.ansibleConfig.rhaap?.showCaseLocation?.type === 'file'
         ? (this.ansibleConfig.rhaap?.showCaseLocation?.target ?? '')
         : '';
+    // Keep for backward compatibility, but prefer URL matching
     if (this.scmType === 'Github') {
       this.scmIntegration = this.ansibleConfig.githubIntegration;
     } else if (this.scmType === 'Gitlab') {
@@ -108,16 +109,55 @@ export class UseCaseMaker {
     this.octokit = new Octokit(octokitOptions);
   }
 
+  /**
+   * Helper method to get the correct GitHub integration for a given URL
+   */
+  private getGitHubIntegrationForUrl(url: string): GithubIntegrationConfig | null {
+    if (!this.ansibleConfig.scmIntegrations) {
+      return this.ansibleConfig.githubIntegration || null;
+    }
+    const integration = this.ansibleConfig.scmIntegrations.github.byUrl(url);
+    return integration?.config || this.ansibleConfig.githubIntegration || null;
+  }
+
+  /**
+   * Helper method to get the correct GitLab integration for a given URL
+   */
+  private getGitLabIntegrationForUrl(url: string): GitLabIntegrationConfig | null {
+    if (!this.ansibleConfig.scmIntegrations) {
+      return this.ansibleConfig.gitlabIntegration || null;
+    }
+    const integration = this.ansibleConfig.scmIntegrations.gitlab.byUrl(url);
+    return integration?.config || this.ansibleConfig.gitlabIntegration || null;
+  }
+
   private async fetchGithubData(options: {
     url: string;
+    repositoryUrl: string;
   }): Promise<OctokitResponse<any, number> | null> {
-    const { url } = options;
+    const { url, repositoryUrl } = options;
     let response;
     this.logger.info(
       `[${UseCaseMaker.pluginLogName}] Fetching GitHub data ${url}.`,
     );
+
+    // Get the correct integration for this repository URL
+    const integration = this.getGitHubIntegrationForUrl(repositoryUrl);
+    if (!integration) {
+      this.logger.error(
+        `[${UseCaseMaker.pluginLogName}] No GitHub integration found for URL: ${repositoryUrl}`,
+      );
+      return null;
+    }
+
+    // Create Octokit instance with the correct integration
+    const octokit = new Octokit({
+      auth: integration.token,
+      baseUrl: integration.apiBaseUrl,
+    });
+
     try {
-      response = await this.octokit.request(`GET ${url}`, {
+      response = await octokit.request(`GET ${url}`, {
         headers: {
           'X-GitHub-Api-Version': '2022-11-28',
           accept: 'application/vnd.github+json',
@@ -139,12 +179,23 @@ export class UseCaseMaker {
 
   private async fetchGitLabData(options: {
     url: string;
+    repositoryUrl: string;
   }): Promise<string | null> {
-    const { url } = options;
-    const gitlabApiUrl = this.scmIntegration?.apiBaseUrl;
+    const { url, repositoryUrl } = options;
+    
+    // Get the correct integration for this repository URL
+    const integration = this.getGitLabIntegrationForUrl(repositoryUrl);
+    if (!integration) {
+      this.logger.error(
+        `[${UseCaseMaker.pluginLogName}] No GitLab integration found for URL: ${repositoryUrl}`,
+      );
+      return null;
+    }
+
+    const gitlabApiUrl = integration.apiBaseUrl;
     const headers = new Headers();
-    if (this.scmIntegration?.token) {
-      headers.append('Private-Token', this.scmIntegration.token);
+    if (integration.token) {
+      headers.append('Private-Token', integration.token);
     }
     this.logger.info(
       `[${UseCaseMaker.pluginLogName}] Fetching GitLab data ${url}.`,
@@ -205,12 +256,13 @@ export class UseCaseMaker {
     userName: string;
     repoName: string;
     branch: string;
+    repositoryUrl: string;
   }): Promise<{ path: string; templateName: string }[]> {
-    const { userName, repoName, branch } = options;
+    const { userName, repoName, branch, repositoryUrl } = options;
     const locations: { path: string; templateName: string }[] = [];
 
     const url = `/repos/${userName}/${repoName}/contents/extensions/patterns?ref=${branch}`;
-    const locationsResponse = await this.fetchGithubData({ url });
+    const locationsResponse = await this.fetchGithubData({ url, repositoryUrl });
     if (!locationsResponse || !Array.isArray(locationsResponse?.data)) {
       this.logger.warn('No locations found.');
       return locations;
@@ -221,7 +273,7 @@ export class UseCaseMaker {
       folders.map(async (folder: any) => {
         this.logger.info(`Search for setup files`);
         const filesUrl = `/repos/${userName}/${repoName}/contents/${folder.path}?ref=${branch}`;
-        const filesResponse = await this.fetchGithubData({ url: filesUrl });
+        const filesResponse = await this.fetchGithubData({ url: filesUrl, repositoryUrl });
         if (filesResponse && Array.isArray(filesResponse?.data)) {
           const setupFiles = filesResponse.data.filter(
             (f: any) =>
@@ -232,6 +284,7 @@ export class UseCaseMaker {
             const setupFileUrl = `/repos/${userName}/${repoName}/contents/${setupFiles[0].path}?ref=${branch}`;
             const setupFileResponse = await this.fetchGithubData({
               url: setupFileUrl,
+              repositoryUrl,
             });
             if (setupFileResponse?.data?.content) {
               let jsonContent;
@@ -287,13 +340,23 @@ export class UseCaseMaker {
     userName: string;
     repoName: string;
     branch: string;
+    repositoryUrl: string;
   }): Promise<{ path: string; templateName: string }[]> {
-    const { userName, repoName, branch } = options;
+    const { userName, repoName, branch, repositoryUrl } = options;
     const locations: { path: string; templateName: string }[] = [];
 
-    const gitlabApiUrl = this.scmIntegration?.apiBaseUrl;
-    const headers: HeadersInit = this.scmIntegration?.token
-      ? { 'Private-Token': this.scmIntegration.token }
+    // Get the correct integration for this repository URL
+    const integration = this.getGitLabIntegrationForUrl(repositoryUrl);
+    if (!integration) {
+      this.logger.error(
+        `[${UseCaseMaker.pluginLogName}] No GitLab integration found for URL: ${repositoryUrl}`,
+      );
+      return locations;
+    }
+
+    const gitlabApiUrl = integration.apiBaseUrl;
+    const headers: HeadersInit = integration.token
+      ? { 'Private-Token': integration.token }
       : {};
 
     try {
@@ -459,12 +522,14 @@ export class UseCaseMaker {
         userName,
         repoName,
         branch,
+        repositoryUrl: useCase.url,
       });
     } else if (useCase.url.includes('gitlab')) {
       templatesLocations = await this.getGitLabTemplatesLocation({
         userName,
         repoName,
         branch,
+        repositoryUrl: useCase.url,
       });
     }
     if (!templatesLocations) {
@@ -474,9 +539,9 @@ export class UseCaseMaker {
       templatesLocations.map(async location => {
         let template: any = null;
         if (useCase.url.includes('github')) {
-          template = await this.fetchGithubData({ url: location.path });
+          template = await this.fetchGithubData({ url: location.path, repositoryUrl: useCase.url });
         } else if (useCase.url.includes('gitlab')) {
-          template = await this.fetchGitLabData({ url: location.path });
+          template = await this.fetchGitLabData({ url: location.path, repositoryUrl: useCase.url });
         }
         let jsonTemplate;
         if (useCase.url.includes('github')) {
@@ -753,6 +818,21 @@ export class UseCaseMaker {
     githubConfig: GithubConfig;
   }): Promise<boolean> {
     const { githubConfig } = options;
+    
+    // Get the correct integration for the repository URL
+    const integration = this.getGitHubIntegrationForUrl(githubConfig.url);
+    if (!integration) {
+      throw new Error(
+        `No GitHub integration found for URL: ${githubConfig.url}`
+      );
+    }
+
+    // Create Octokit instance with the correct integration
+    const octokit = new Octokit({
+      auth: integration.token,
+      baseUrl: integration.apiBaseUrl,
+    });
+
     let response;
     let isNew = false;
     try {
@@ -762,7 +842,7 @@ export class UseCaseMaker {
       this.logger.info(
         `Check if github repo ${githubConfig.githubRepo} exists.`,
       );
-      response = await this.octokit.request('GET /repos/{owner}/{repo}', {
+      response = await octokit.request('GET /repos/{owner}/{repo}', {
         owner: githubConfig.githubOrganizationName ?? githubConfig.githubUser,
         repo: githubConfig.githubRepo,
         headers: {
@@ -792,7 +872,7 @@ export class UseCaseMaker {
       let createRepoResponse: OctokitResponse<any>;
       try {
         if (githubConfig.githubOrganizationName) {
-          createRepoResponse = await this.octokit.request(
+          createRepoResponse = await octokit.request(
             'POST /orgs/{org}/repos',
             {
               org: githubConfig.githubOrganizationName,
@@ -803,7 +883,7 @@ export class UseCaseMaker {
             },
           );
         } else {
-          createRepoResponse = await this.octokit.request('POST /user/repos', {
+          createRepoResponse = await octokit.request('POST /user/repos', {
             name: githubConfig.githubRepo,
             headers: {
               'X-GitHub-Api-Version': '2022-11-28',
@@ -838,7 +918,7 @@ export class UseCaseMaker {
         this.logger.info(
           `[${UseCaseMaker.pluginLogName}] Github repo ${githubConfig.githubRepo} exists. Fetching branches`,
         );
-        branchesResponse = await this.octokit.request(
+        branchesResponse = await octokit.request(
           'GET /repos/{owner}/{repo}/branches',
           {
             owner:
@@ -875,15 +955,17 @@ export class UseCaseMaker {
     gitlabConfig: GitLabConfig;
   }): Promise<boolean> {
     const { gitlabConfig } = options;
-    const gitlabApiUrl = this.scmIntegration?.apiBaseUrl;
-    const token = this.scmIntegration?.token;
-
-    if (!gitlabApiUrl || !token) {
-      this.logger.error(
-        `[${UseCaseMaker.pluginLogName}] GitLab API URL or token is missing.`,
+    
+    // Get the correct integration for the repository URL
+    const integration = this.getGitLabIntegrationForUrl(gitlabConfig.url);
+    if (!integration || !integration.apiBaseUrl || !integration.token) {
+      throw new Error(
+        `No GitLab integration found with valid configuration for URL: ${gitlabConfig.url}`
       );
-      throw new Error('GitLab API URL or token is missing.');
     }
+
+    const gitlabApiUrl = integration.apiBaseUrl;
+    const token = integration.token;
 
     const headers = {
       'PRIVATE-TOKEN': token,
@@ -1206,21 +1288,31 @@ export class UseCaseMaker {
     const { parsedTemplates } = options;
     if (
       !this.ansibleConfig?.rhaap?.showCaseLocation?.target ||
-      !this.scmIntegration?.token ||
       !this.ansibleConfig?.rhaap?.showCaseLocation?.gitEmail ||
       !this.ansibleConfig?.rhaap?.showCaseLocation?.gitUser
     ) {
       throw new Error('Missing show case target github configuration');
     }
+
+    // Get the correct integration for the showcase URL
+    const showcaseUrl = this.ansibleConfig.rhaap.showCaseLocation.target;
+    const integration = this.getGitHubIntegrationForUrl(showcaseUrl);
+    if (!integration || !integration.token) {
+      throw new Error(
+        `No GitHub integration found with token for URL: ${showcaseUrl}. ` +
+        'Please configure the appropriate GitHub integration in app-config.yaml'
+      );
+    }
+
     let url;
     try {
-      url = new URL(this.ansibleConfig.rhaap.showCaseLocation.target);
+      url = new URL(showcaseUrl);
     } catch (e) {
       this.logger.error(
-        `[${UseCaseMaker.pluginLogName}] Not valid github url ${this.ansibleConfig.rhaap.showCaseLocation.target}.`,
+        `[${UseCaseMaker.pluginLogName}] Not valid github url ${showcaseUrl}.`,
       );
       throw new Error(
-        `Not valid github url ${this.ansibleConfig.rhaap.showCaseLocation.target}.`,
+        `Not valid github url ${showcaseUrl}.`,
       );
     }
     const githubConfig = {
@@ -1228,10 +1320,10 @@ export class UseCaseMaker {
       githubBranch: this.ansibleConfig.rhaap.showCaseLocation.gitBranch,
       githubEmail: this.ansibleConfig.rhaap.showCaseLocation.gitEmail,
       githubUser: this.ansibleConfig.rhaap.showCaseLocation.gitUser,
-      githubRepo: this.ansibleConfig.rhaap.showCaseLocation.target
+      githubRepo: showcaseUrl
         .split('/')
         .pop(),
-      githubToken: this.scmIntegration?.token,
+      githubToken: integration.token,
       githubOrganizationName: url.pathname.startsWith('/orgs/')
         ? url.pathname.split('/')[2]
         : null,
@@ -1253,21 +1345,31 @@ export class UseCaseMaker {
     const { parsedTemplates } = options;
     if (
       !this.ansibleConfig?.rhaap?.showCaseLocation?.target ||
-      !this.scmIntegration?.token ||
       !this.ansibleConfig?.rhaap?.showCaseLocation?.gitEmail ||
       !this.ansibleConfig?.rhaap?.showCaseLocation?.gitUser
     ) {
       throw new Error('Missing show case target gitlab configuration');
     }
+
+    // Get the correct integration for the showcase URL
+    const showcaseUrl = this.ansibleConfig.rhaap.showCaseLocation.target;
+    const integration = this.getGitLabIntegrationForUrl(showcaseUrl);
+    if (!integration || !integration.token) {
+      throw new Error(
+        `No GitLab integration found with token for URL: ${showcaseUrl}. ` +
+        'Please configure the appropriate GitLab integration in app-config.yaml'
+      );
+    }
+
     let url;
     try {
-      url = new URL(this.ansibleConfig.rhaap.showCaseLocation.target);
+      url = new URL(showcaseUrl);
     } catch (e) {
       this.logger.error(
-        `[${UseCaseMaker.pluginLogName}] Not valid gitlab url ${this.ansibleConfig.rhaap.showCaseLocation.target}.`,
+        `[${UseCaseMaker.pluginLogName}] Not valid gitlab url ${showcaseUrl}.`,
       );
       throw new Error(
-        `Not valid gitlab url ${this.ansibleConfig.rhaap.showCaseLocation.target}.`,
+        `Not valid gitlab url ${showcaseUrl}.`,
       );
     }
     const gitlabConfig = {
@@ -1275,10 +1377,10 @@ export class UseCaseMaker {
       gitlabBranch: this.ansibleConfig.rhaap.showCaseLocation.gitBranch,
       gitlabEmail: this.ansibleConfig.rhaap.showCaseLocation.gitEmail,
       gitlabUser: this.ansibleConfig.rhaap.showCaseLocation.gitUser,
-      gitlabRepo: this.ansibleConfig.rhaap.showCaseLocation.target
+      gitlabRepo: showcaseUrl
         .split('/')
         .pop(),
-      gitlabToken: this.scmIntegration?.token,
+      gitlabToken: integration.token,
       gitlabOrganizationName: url.pathname.startsWith('/orgs/')
         ? url.pathname.split('/')[2]
         : null,
@@ -1297,22 +1399,42 @@ export class UseCaseMaker {
   }
 
   async devfilePushToGithub(options: { value: string; repositoryUrl: string }) {
-    // Extract repository owner and name from the URL
-    const repoUrlPattern = /https:\/\/github\.com\/([^/]+)\/([^/]+)/;
+    // Use ScmIntegrations to find the matching GitHub integration for this URL
+    if (!this.ansibleConfig.scmIntegrations) {
+      throw new Error('Missing SCM integrations configuration');
+    }
+
+    const integration = this.ansibleConfig.scmIntegrations.github.byUrl(options.repositoryUrl);
+    if (!integration) {
+      throw new Error(
+        `No GitHub integration found for URL: ${options.repositoryUrl}. ` +
+        'Please configure the appropriate GitHub integration in app-config.yaml'
+      );
+    }
+
+    const scmIntegration = integration.config;
+
+    // Extract repository owner and name from the URL using the matched host
+    const hostPattern = scmIntegration.host.replace(/\./g, '\\.');
+    const repoUrlPattern = new RegExp(`https?:\\/\\/${hostPattern}\\/([^/]+)\\/([^/]+)(?:\\.git)?(?:\\/)?$`);
     const matches = options.repositoryUrl.match(repoUrlPattern);
     if (!matches) {
-      throw new Error('Invalid repository URL');
+      throw new Error(
+        `Invalid repository URL. Expected format: https://${scmIntegration.host}/owner/repo, got: ${options.repositoryUrl}`
+      );
     }
 
     const owner = matches[1];
     const repo = matches[2];
 
-    if (!this.scmIntegration?.token) {
-      throw new Error('Missing show case target GitHub configuration');
+    if (!scmIntegration.token) {
+      throw new Error(`Missing token for GitHub host: ${scmIntegration.host}`);
     }
 
+    // Use the configured apiBaseUrl for Enterprise GitHub support
     const octokit = new Octokit({
-      auth: this.scmIntegration?.token,
+      auth: scmIntegration.token,
+      baseUrl: scmIntegration.apiBaseUrl,
     });
 
     // Prepare the content for devfile.yaml (i.e., the raw string value)
@@ -1424,27 +1546,46 @@ export class UseCaseMaker {
   }
 
   async devfilePushToGitLab(options: { value: string; repositoryUrl: string }) {
-    const repoUrlPattern = /https:\/\/gitlab\.com\/([^/]+)\/([^/]+)/;
+    // Use ScmIntegrations to find the matching GitLab integration for this URL
+    if (!this.ansibleConfig.scmIntegrations) {
+      throw new Error('Missing SCM integrations configuration');
+    }
+
+    const integration = this.ansibleConfig.scmIntegrations.gitlab.byUrl(options.repositoryUrl);
+    if (!integration) {
+      throw new Error(
+        `No GitLab integration found for URL: ${options.repositoryUrl}. ` +
+        'Please configure the appropriate GitLab integration in app-config.yaml'
+      );
+    }
+
+    const scmIntegration = integration.config;
+
+    // Extract repository owner and name from the URL using the matched host
+    const hostPattern = scmIntegration.host.replace(/\./g, '\\.');
+    const repoUrlPattern = new RegExp(`https?:\\/\\/${hostPattern}\\/([^/]+)\\/([^/]+)(?:\\.git)?(?:\\/)?$`);
     const matches = RegExp(repoUrlPattern).exec(options.repositoryUrl);
     if (!matches) {
-      throw new Error('Invalid repository URL');
+      throw new Error(
+        `Invalid repository URL. Expected format: https://${scmIntegration.host}/owner/repo, got: ${options.repositoryUrl}`
+      );
     }
 
     const owner = matches[1];
     const repo = matches[2];
 
-    if (!this.scmIntegration?.token || !this.scmIntegration?.apiBaseUrl) {
-      throw new Error('Missing GitLab configuration');
+    if (!scmIntegration.token || !scmIntegration.apiBaseUrl) {
+      throw new Error(`Missing token or apiBaseUrl for GitLab host: ${scmIntegration.host}`);
     }
 
     const headers = {
-      'PRIVATE-TOKEN': this.scmIntegration.token,
+      'PRIVATE-TOKEN': scmIntegration.token,
       'Content-Type': 'application/json',
     };
 
     try {
       const repoResponse = await fetch(
-        `${this.scmIntegration.apiBaseUrl}/projects/${encodeURIComponent(
+        `${scmIntegration.apiBaseUrl}/projects/${encodeURIComponent(
           `${owner}/${repo}`,
         )}`,
         { headers },
@@ -1459,7 +1600,7 @@ export class UseCaseMaker {
 
       const branchName = `create-devfile-${randomBytes(2).toString('hex')}`;
       const branchResponse = await fetch(
-        `${this.scmIntegration.apiBaseUrl}/projects/${repoData.id}/repository/branches`,
+        `${scmIntegration.apiBaseUrl}/projects/${repoData.id}/repository/branches`,
         {
           method: 'POST',
           headers,
@@ -1479,7 +1620,7 @@ export class UseCaseMaker {
       const devfileContent = Buffer.from(options.value).toString('base64');
 
       // Check if the file exists
-      const fileUrl = `${this.scmIntegration.apiBaseUrl}/projects/${repoData.id}/repository/files/devfile.yaml?ref=${branchName}`;
+      const fileUrl = `${scmIntegration.apiBaseUrl}/projects/${repoData.id}/repository/files/devfile.yaml?ref=${branchName}`;
       const checkResponse = await fetch(fileUrl, { method: 'GET', headers });
 
       // Use PUT if exists, else POST
@@ -1503,7 +1644,7 @@ export class UseCaseMaker {
       }
 
       const prResponse = await fetch(
-        `${this.scmIntegration.apiBaseUrl}/projects/${repoData.id}/merge_requests`,
+        `${scmIntegration.apiBaseUrl}/projects/${repoData.id}/merge_requests`,
         {
           method: 'POST',
           headers,
