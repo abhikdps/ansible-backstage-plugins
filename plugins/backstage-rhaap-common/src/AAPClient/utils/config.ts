@@ -9,9 +9,6 @@ export function getAnsibleConfig(config: Config): AnsibleConfig {
   const githubIntegration = integrations.github.list()[0]?.config;
   const gitlabIntegration = integrations.gitlab.list()[0]?.config;
   const ansibleConfigVales: AnsibleConfig = {
-    analytics: {
-      enabled: ansibleConfig.getOptionalBoolean('analytics.enabled') ?? false,
-    },
     devSpaces: {
       baseUrl: ansibleConfig.getOptionalString('devSpaces.baseUrl'),
     },
@@ -51,6 +48,9 @@ export function getAnsibleConfig(config: Config): AnsibleConfig {
             ansibleConfig.getOptionalString('creatorService.port') ?? '8000',
         }
       : undefined,
+    feedback: {
+      enabled: ansibleConfig.getOptionalBoolean('feedback.enabled') ?? false,
+    },
   };
   return ansibleConfigVales;
 }
@@ -63,6 +63,7 @@ export function getCatalogConfig(rootConfig: Config): CatalogConfig {
     organizations: [],
     surveyEnabled: undefined,
     jobTemplateLabels: [],
+    jobTemplateExcludeLabels: [],
   };
   if (catalogRhaapConfig && typeof catalogRhaapConfig.keys === 'function') {
     catalogRhaapConfig.keys().forEach(key => {
@@ -82,6 +83,8 @@ export function getCatalogConfig(rootConfig: Config): CatalogConfig {
       );
       catalogConfig.jobTemplateLabels =
         config.getOptionalStringArray(`sync.jobTemplates.labels`) ?? [];
+      catalogConfig.jobTemplateExcludeLabels =
+        config.getOptionalStringArray(`sync.jobTemplates.excludeLabels`) ?? [];
     });
   }
   return catalogConfig;

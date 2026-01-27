@@ -19,6 +19,7 @@ import request from 'supertest';
 import { createRouter } from './router';
 import { AAPEntityProvider } from './providers/AAPEntityProvider';
 import { AAPJobTemplateProvider } from './providers/AAPJobTemplateProvider';
+import { EEEntityProvider } from './providers/EEEntityProvider';
 import { LoggerService } from '@backstage/backend-plugin-api';
 
 describe('createRouter', () => {
@@ -26,6 +27,7 @@ describe('createRouter', () => {
   let mockLogger: jest.Mocked<LoggerService>;
   let mockAAPEntityProvider: jest.Mocked<AAPEntityProvider>;
   let mockJobTemplateProvider: jest.Mocked<AAPJobTemplateProvider>;
+  let mockEEEntityProvider: jest.Mocked<EEEntityProvider>;
 
   beforeEach(async () => {
     mockLogger = {
@@ -40,18 +42,27 @@ describe('createRouter', () => {
       run: jest.fn(),
       getProviderName: jest.fn().mockReturnValue('AapEntityProvider:test'),
       connect: jest.fn(),
+      getLastSyncTime: jest.fn(),
     } as unknown as jest.Mocked<AAPEntityProvider>;
 
     mockJobTemplateProvider = {
       run: jest.fn(),
       getProviderName: jest.fn().mockReturnValue('AAPJobTemplateProvider:test'),
       connect: jest.fn(),
+      getLastSyncTime: jest.fn(),
     } as unknown as jest.Mocked<AAPJobTemplateProvider>;
+
+    mockEEEntityProvider = {
+      registerExecutionEnvironment: jest.fn(),
+      getProviderName: jest.fn().mockReturnValue('EEEntityProvider:test'),
+      connect: jest.fn(),
+    } as unknown as jest.Mocked<EEEntityProvider>;
 
     const router = await createRouter({
       logger: mockLogger,
       aapEntityProvider: mockAAPEntityProvider,
       jobTemplateProvider: mockJobTemplateProvider,
+      eeEntityProvider: mockEEEntityProvider,
     });
 
     app = express().use(router);
@@ -182,6 +193,7 @@ describe('createRouter', () => {
           logger: mockLogger,
           aapEntityProvider: mockProvider as any,
           jobTemplateProvider: {} as any,
+          eeEntityProvider: mockEEEntityProvider,
         }),
       );
 
@@ -211,6 +223,7 @@ describe('createRouter', () => {
           logger: mockLogger,
           aapEntityProvider: mockProvider as any,
           jobTemplateProvider: {} as any,
+          eeEntityProvider: mockEEEntityProvider,
         }),
       );
 
@@ -238,6 +251,7 @@ describe('createRouter', () => {
           logger: mockLogger,
           aapEntityProvider: mockProvider as any,
           jobTemplateProvider: {} as any,
+          eeEntityProvider: mockEEEntityProvider,
         }),
       );
 
@@ -265,6 +279,7 @@ describe('createRouter', () => {
           logger: mockLogger,
           aapEntityProvider: mockProvider as any,
           jobTemplateProvider: {} as any,
+          eeEntityProvider: mockEEEntityProvider,
         }),
       );
 
@@ -295,6 +310,7 @@ describe('createRouter', () => {
           logger: mockLogger,
           aapEntityProvider: mockProvider as any,
           jobTemplateProvider: {} as any,
+          eeEntityProvider: mockEEEntityProvider,
         }),
       );
 
@@ -326,6 +342,7 @@ describe('createRouter', () => {
           logger: mockLogger,
           aapEntityProvider: mockProvider as any,
           jobTemplateProvider: {} as any,
+          eeEntityProvider: mockEEEntityProvider,
         }),
       );
 
@@ -357,6 +374,7 @@ describe('createRouter', () => {
           logger: mockLogger,
           aapEntityProvider: mockProvider as any,
           jobTemplateProvider: {} as any,
+          eeEntityProvider: mockEEEntityProvider,
         }),
       );
 
@@ -384,6 +402,7 @@ describe('createRouter', () => {
           logger: mockLogger,
           aapEntityProvider: mockProvider as any,
           jobTemplateProvider: {} as any,
+          eeEntityProvider: mockEEEntityProvider,
         }),
       );
 
@@ -413,6 +432,7 @@ describe('createRouter', () => {
           logger: mockLogger,
           aapEntityProvider: mockProvider as any,
           jobTemplateProvider: {} as any,
+          eeEntityProvider: mockEEEntityProvider,
         }),
       );
 
@@ -425,6 +445,258 @@ describe('createRouter', () => {
         error: 'Missing username and user id in request body.',
       });
       expect(mockProvider.createSingleUser).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('POST /register_ee', () => {
+    it('should successfully register an execution environment', async () => {
+      const mockProvider = {};
+
+      const testApp = express();
+      testApp.use(express.json());
+      testApp.use(
+        '/',
+        await createRouter({
+          logger: mockLogger,
+          aapEntityProvider: mockProvider as any,
+          jobTemplateProvider: {} as any,
+          eeEntityProvider: mockEEEntityProvider,
+        }),
+      );
+
+      const mockEntity = {
+        apiVersion: 'backstage.io/v1alpha1',
+        kind: 'Component',
+        metadata: {
+          name: 'test-ee',
+          title: 'test-ee',
+          description: 'test-ee',
+          tags: ['test-ee'],
+          annotations: {
+            'backstage.io/managed-by-location': `url:127.0.0.1`,
+            'backstage.io/managed-by-origin-location': `url:127.0.0.1`,
+            'ansible.io/download-experience': 'true',
+          },
+        },
+        spec: {
+          type: 'execution-environment',
+          lifecycle: 'production',
+          owner: 'team-a',
+          definition: 'sample \ntest-ee \ndefinition',
+          readme: 'sample \ntest-ee \nreadme',
+        },
+      };
+
+      const response = await request(testApp)
+        .post('/register_ee')
+        .send({ entity: mockEntity })
+        .expect(200);
+
+      expect(response.body).toEqual({
+        success: true,
+      });
+      expect(
+        mockEEEntityProvider.registerExecutionEnvironment,
+      ).toHaveBeenCalledWith(mockEntity);
+    });
+
+    it('should return 400 when entity is missing', async () => {
+      const mockProvider = {
+        registerExecutionEnvironment: jest.fn(),
+      };
+
+      const testApp = express();
+      testApp.use(express.json());
+      testApp.use(
+        '/',
+        await createRouter({
+          logger: mockLogger,
+          aapEntityProvider: mockProvider as any,
+          jobTemplateProvider: {} as any,
+          eeEntityProvider: mockEEEntityProvider,
+        }),
+      );
+
+      const response = await request(testApp)
+        .post('/register_ee')
+        .send({})
+        .expect(400);
+
+      expect(response.body).toEqual({
+        error: 'Missing entity in request body.',
+      });
+      expect(mockProvider.registerExecutionEnvironment).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when entity is null', async () => {
+      const mockProvider = {
+        registerExecutionEnvironment: jest.fn(),
+      };
+
+      const testApp = express();
+      testApp.use(express.json());
+      testApp.use(
+        '/',
+        await createRouter({
+          logger: mockLogger,
+          aapEntityProvider: mockProvider as any,
+          jobTemplateProvider: {} as any,
+          eeEntityProvider: mockEEEntityProvider,
+        }),
+      );
+
+      const response = await request(testApp)
+        .post('/register_ee')
+        .send({ entity: null })
+        .expect(400);
+
+      expect(response.body).toEqual({
+        error: 'Missing entity in request body.',
+      });
+      expect(mockProvider.registerExecutionEnvironment).not.toHaveBeenCalled();
+    });
+
+    it('should handle registerExecutionEnvironment failure with proper error response', async () => {
+      const mockProvider = {};
+
+      mockEEEntityProvider.registerExecutionEnvironment = jest
+        .fn()
+        .mockRejectedValue(
+          new Error(
+            'Type [spec.type] must be "execution-environment" for Execution Environment registration',
+          ),
+        );
+
+      const testApp = express();
+      testApp.use(express.json());
+      testApp.use(
+        '/',
+        await createRouter({
+          logger: mockLogger,
+          aapEntityProvider: mockProvider as any,
+          jobTemplateProvider: {} as any,
+          eeEntityProvider: mockEEEntityProvider,
+        }),
+      );
+
+      const mockEntity = {
+        apiVersion: 'backstage.io/v1alpha1',
+        kind: 'Component',
+        metadata: { name: 'test-ee' },
+      };
+
+      const response = await request(testApp)
+        .post('/register_ee')
+        .send({ entity: mockEntity })
+        .expect(500);
+
+      expect(response.body).toEqual({
+        error:
+          'Failed to register Execution Environment: Type [spec.type] must be "execution-environment" for Execution Environment registration',
+      });
+      expect(
+        mockEEEntityProvider.registerExecutionEnvironment,
+      ).toHaveBeenCalledWith(mockEntity);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to register Execution Environment: Type [spec.type] must be "execution-environment" for Execution Environment registration',
+      );
+    });
+
+    it('should handle non-Error exceptions gracefully', async () => {
+      const mockProvider = {};
+
+      mockEEEntityProvider.registerExecutionEnvironment = jest
+        .fn()
+        .mockRejectedValue(new Error('String error'));
+
+      const testApp = express();
+      testApp.use(express.json());
+      testApp.use(
+        '/',
+        await createRouter({
+          logger: mockLogger,
+          aapEntityProvider: mockProvider as any,
+          jobTemplateProvider: {} as any,
+          eeEntityProvider: mockEEEntityProvider,
+        }),
+      );
+
+      const mockEntity = {
+        apiVersion: 'backstage.io/v1alpha1',
+        kind: 'Component',
+        metadata: { name: 'test-ee' },
+      };
+
+      const response = await request(testApp)
+        .post('/register_ee')
+        .send({ entity: mockEntity })
+        .expect(500);
+
+      expect(response.body).toEqual({
+        error: 'Failed to register Execution Environment: String error',
+      });
+      expect(
+        mockEEEntityProvider.registerExecutionEnvironment,
+      ).toHaveBeenCalledWith(mockEntity);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to register Execution Environment: String error',
+      );
+    });
+  });
+
+  describe('GET /aap/sync_status', () => {
+    it('should return sync status successfully', async () => {
+      mockAAPEntityProvider.getLastSyncTime.mockReturnValue(
+        '2024-01-15T10:00:00Z',
+      );
+      mockJobTemplateProvider.getLastSyncTime.mockReturnValue(
+        '2024-01-15T11:00:00Z',
+      );
+
+      const response = await request(app).get('/aap/sync_status');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        orgsUsersTeams: { lastSync: '2024-01-15T10:00:00Z' },
+        jobTemplates: { lastSync: '2024-01-15T11:00:00Z' },
+      });
+      expect(mockLogger.info).toHaveBeenCalledWith('Getting sync status');
+    });
+
+    it('should handle errors when getLastSyncTime throws', async () => {
+      const mockError = new Error('Failed to get sync time');
+      mockAAPEntityProvider.getLastSyncTime.mockImplementation(() => {
+        throw mockError;
+      });
+      mockJobTemplateProvider.getLastSyncTime.mockReturnValue(null);
+
+      const response = await request(app).get('/aap/sync_status');
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({
+        error: 'Failed to get sync status: Failed to get sync time',
+        orgsUsersTeams: { lastSync: null },
+        jobTemplates: { lastSync: null },
+      });
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to get sync status: Failed to get sync time',
+      );
+    });
+
+    it('should handle non-Error exceptions', async () => {
+      mockAAPEntityProvider.getLastSyncTime.mockImplementation(() => {
+        throw new Error('String error');
+      });
+      mockJobTemplateProvider.getLastSyncTime.mockReturnValue(null);
+
+      const response = await request(app).get('/aap/sync_status');
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({
+        error: 'Failed to get sync status: String error',
+        orgsUsersTeams: { lastSync: null },
+        jobTemplates: { lastSync: null },
+      });
     });
   });
 
@@ -451,6 +723,7 @@ describe('createRouter', () => {
         logger: undefined as any,
         aapEntityProvider: mockAAPEntityProvider,
         jobTemplateProvider: mockJobTemplateProvider,
+        eeEntityProvider: mockEEEntityProvider,
       });
 
       const testApp = express().use(routerWithInvalidLogger);
@@ -465,6 +738,7 @@ describe('createRouter', () => {
         logger: mockLogger,
         aapEntityProvider: undefined as any,
         jobTemplateProvider: mockJobTemplateProvider,
+        eeEntityProvider: mockEEEntityProvider,
       });
 
       const testApp = express().use(routerWithInvalidProvider);
@@ -479,6 +753,7 @@ describe('createRouter', () => {
         logger: mockLogger,
         aapEntityProvider: mockAAPEntityProvider,
         jobTemplateProvider: undefined as any,
+        eeEntityProvider: mockEEEntityProvider,
       });
 
       const testApp = express().use(routerWithInvalidProvider);

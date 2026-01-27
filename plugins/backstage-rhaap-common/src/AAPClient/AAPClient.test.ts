@@ -48,9 +48,6 @@ describe('AAPClient', () => {
     jest.useFakeTimers();
 
     const mockAnsibleConfig: AnsibleConfig = {
-      analytics: {
-        enabled: false,
-      },
       devSpaces: {
         baseUrl: 'https://devspaces.example.com',
       },
@@ -158,7 +155,6 @@ describe('AAPClient', () => {
             }),
             getOptionalBoolean: jest.fn().mockImplementation((path: string) => {
               const paths: Record<string, boolean> = {
-                'analytics.enabled': false,
                 'rhaap.checkSSL': true,
               };
               return paths[path];
@@ -316,7 +312,6 @@ describe('AAPClient', () => {
           'rhaap.baseUrl',
           'rhaap.token',
           'rhaap.checkSSL',
-          'analytics.enabled',
           'catalog.providers.rhaap.development.sync.orgsUsersTeams.schedule',
           'catalog.providers.rhaap.development.sync.jobTemplates.schedule',
           'catalog.providers.rhaap.development.orgs',
@@ -786,12 +781,19 @@ describe('AAPClient', () => {
             next: null,
           }),
         };
+        const mockStdoutResponse = {
+          ok: true,
+          text: jest
+            .fn()
+            .mockResolvedValue('{"msg": "Task completed successfully"}'),
+        };
 
         mockFetch
           .mockResolvedValueOnce(mockTemplateResponse)
           .mockResolvedValueOnce(mockLaunchResponse)
           .mockResolvedValueOnce(mockStatusResponse)
-          .mockResolvedValueOnce(mockEventsResponse);
+          .mockResolvedValueOnce(mockEventsResponse)
+          .mockResolvedValueOnce(mockStdoutResponse);
 
         const result = await client.launchJobTemplate(
           {
@@ -978,6 +980,10 @@ describe('AAPClient', () => {
           .mockResolvedValueOnce({
             ok: true,
             json: jest.fn().mockResolvedValue({ results: [] }),
+          })
+          .mockResolvedValueOnce({
+            ok: true,
+            text: jest.fn().mockResolvedValue(''),
           });
 
         const result = await client.launchJobTemplate(
@@ -989,6 +995,58 @@ describe('AAPClient', () => {
         );
 
         expect(result.status).toBe('successful');
+      });
+
+      it('should log stdout messages including array format', async () => {
+        const infoSpy = jest.spyOn(mockLogger, 'info');
+        const mockTemplateResponse = {
+          ok: true,
+          json: jest.fn().mockResolvedValue({
+            results: [{ id: 456, name: 'test-template' }],
+          }),
+        };
+        const mockLaunchResponse = {
+          ok: true,
+          json: jest.fn().mockResolvedValue({ job: 123 }),
+        };
+        const mockStatusResponse = {
+          ok: true,
+          json: jest.fn().mockResolvedValue({ status: 'successful' }),
+        };
+        const mockEventsResponse = {
+          ok: true,
+          json: jest.fn().mockResolvedValue({
+            results: [{ event_data: { test: 'data' } }],
+            next: null,
+          }),
+        };
+        const mockStdoutResponse = {
+          ok: true,
+          text: jest
+            .fn()
+            .mockResolvedValue(
+              '{"msg": "Single message"}\n{"msg": ["Message item 1", "Message item 2"]}',
+            ),
+        };
+
+        mockFetch
+          .mockResolvedValueOnce(mockTemplateResponse)
+          .mockResolvedValueOnce(mockLaunchResponse)
+          .mockResolvedValueOnce(mockStatusResponse)
+          .mockResolvedValueOnce(mockEventsResponse)
+          .mockResolvedValueOnce(mockStdoutResponse);
+
+        const result = await client.launchJobTemplate(
+          {
+            template: 'test-template',
+          },
+          'test-token',
+        );
+
+        expect(result.status).toBe('successful');
+        expect(infoSpy).toHaveBeenCalledWith('Single message');
+        expect(infoSpy).toHaveBeenCalledWith('Message item 1');
+        expect(infoSpy).toHaveBeenCalledWith('Message item 2');
       });
 
       describe('Parameter Setting Tests', () => {
@@ -1014,6 +1072,10 @@ describe('AAPClient', () => {
             .mockResolvedValueOnce({
               ok: true,
               json: jest.fn().mockResolvedValue({ results: [] }),
+            })
+            .mockResolvedValueOnce({
+              ok: true,
+              text: jest.fn().mockResolvedValue(''),
             });
 
           // Spy on executePostRequest to capture the data being sent
@@ -2078,6 +2140,68 @@ describe('AAPClient', () => {
           expect.any(Object),
         );
       });
+
+      it('should handle job_templates resource with exclude labels', async () => {
+        const mockExcludeLabelCatalogConfig = {
+          keys: jest.fn().mockReturnValue(['development']),
+          getConfig: jest.fn().mockImplementation((key: string) => {
+            if (key === 'development') {
+              return {
+                getString: jest.fn().mockImplementation((path: string) => {
+                  if (path === 'orgs') {
+                    return 'TestOrg';
+                  }
+                  throw new Error(`No value for ${path}`);
+                }),
+                getStringArray: jest.fn().mockImplementation((path: string) => {
+                  if (path === 'orgs') {
+                    return ['TestOrg'];
+                  }
+                  throw new Error(`No value for ${path}`);
+                }),
+                getOptionalBoolean: jest.fn().mockReturnValue(false),
+                getOptionalStringArray: jest
+                  .fn()
+                  .mockImplementation((labelKey: string) => {
+                    if (labelKey === 'sync.jobTemplates.excludeLabels') {
+                      return ['exclude1', 'Exclude2'];
+                    }
+                    return [];
+                  }),
+              };
+            }
+            throw new Error(`No config for key ${key}`);
+          }),
+        };
+
+        const mockExcludeLabelConfig = {
+          ...mockConfig,
+          getOptionalConfig: jest.fn().mockImplementation((path: string) => {
+            if (path === 'catalog.providers.rhaap') {
+              return mockExcludeLabelCatalogConfig;
+            }
+            return mockConfig.getOptionalConfig(path);
+          }),
+        };
+
+        const excludeLabelClient = new AAPClient({
+          rootConfig: mockExcludeLabelConfig,
+          logger: mockLogger,
+        });
+
+        const mockResponse = {
+          ok: true,
+          json: jest.fn().mockResolvedValue({ results: [{ id: 1 }] }),
+        };
+        mockFetch.mockResolvedValue(mockResponse);
+
+        await excludeLabelClient.getResourceData('job_templates', 'test-token');
+
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining('not__labels__name__in=exclude1,Exclude2'),
+          expect.any(Object),
+        );
+      });
     });
 
     describe('getJobTemplatesByName', () => {
@@ -2772,6 +2896,29 @@ describe('AAPClient', () => {
           'label1',
           'Label2',
         ]);
+        expect(result).toEqual([
+          {
+            job: mockJobTemplateResponse[0],
+            survey: { results: [] },
+            instanceGroup: [],
+          },
+        ]);
+      });
+
+      it('should fetch job templates with exclude labels from AAP', async () => {
+        jest
+          .spyOn(client as any, 'executeCatalogRequest')
+          .mockResolvedValueOnce(mockJobTemplateResponse);
+        jest.spyOn(client as any, 'executeGetRequest').mockResolvedValueOnce({
+          ok: true,
+          json: jest.fn().mockResolvedValue({ results: [] }),
+        });
+
+        const result = await client.syncJobTemplates(
+          false,
+          [],
+          ['exclude1', 'Exclude2'],
+        );
         expect(result).toEqual([
           {
             job: mockJobTemplateResponse[0],

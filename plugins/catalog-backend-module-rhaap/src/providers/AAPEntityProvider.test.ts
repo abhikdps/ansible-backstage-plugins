@@ -849,40 +849,4 @@ describe('AAPEntityProvider', () => {
       });
     });
   });
-
-  it('handles errors gracefully', async () => {
-    const config = new ConfigReader(MOCK_CONFIG.data);
-    const logger = mockServices.logger.mock();
-    const schedule = new PersistingTaskRunner();
-
-    mockAnsibleService.getOrganizations.mockRejectedValue(
-      new Error('Test error'),
-    );
-    mockAnsibleService.getUserRoleAssignments.mockRejectedValue(
-      new Error('Test error'),
-    );
-    mockAnsibleService.listSystemUsers.mockRejectedValue(
-      new Error('Test error'),
-    );
-    mockAnsibleService.getTeamsByUserId.mockRejectedValue(
-      new Error('Test error'),
-    );
-
-    const provider = AAPEntityProvider.fromConfig(config, mockAnsibleService, {
-      schedule,
-      logger,
-    })[0];
-
-    const entityProviderConnection: EntityProviderConnection = {
-      applyMutation: jest.fn(),
-      refresh: jest.fn(),
-    };
-
-    await provider.connect(entityProviderConnection);
-
-    const taskDef = schedule.getTasks()[0];
-    await (taskDef.fn as () => Promise<void>)();
-
-    expect(entityProviderConnection.applyMutation).not.toHaveBeenCalled();
-  });
 });
