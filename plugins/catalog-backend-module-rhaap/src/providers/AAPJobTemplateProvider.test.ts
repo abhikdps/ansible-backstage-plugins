@@ -230,6 +230,14 @@ const MOCK_JOB_TEMPLATE: IJobTemplate = {
       description: 'Test webhook credential',
       kind: 'github_token',
       cloud: false,
+      credential_type: 1,
+      summary_fields: {
+        credential_type: {
+          id: 1,
+          name: 'example',
+        },
+      },
+      type: 'credential',
     },
   },
   created: '2023-01-01T00:00:00.000000Z',
@@ -446,6 +454,7 @@ describe('AAPJobTemplateProvider', () => {
       expect(mockAnsibleService.syncJobTemplates).toHaveBeenCalledWith(
         true, // surveyEnabled
         ['test-label', 'production'], // jobTemplateLabels
+        [], // jobTemplateExcludeLabels
       );
 
       expect(entityProviderConnection.applyMutation).toHaveBeenCalledWith({
@@ -682,6 +691,7 @@ describe('AAPJobTemplateProvider', () => {
       expect(mockAnsibleService.syncJobTemplates).toHaveBeenCalledWith(
         false, // surveyEnabled = false
         [], // empty jobTemplateLabels
+        [], // jobTemplateExcludeLabels
       );
     });
 
@@ -806,6 +816,7 @@ describe('AAPJobTemplateProvider', () => {
       expect(mockAnsibleService.syncJobTemplates).toHaveBeenCalledWith(
         true, // surveyEnabled
         ['test-label', 'production'], // jobTemplateLabels
+        [], // jobTemplateExcludeLabels
       );
 
       expect(entityProviderConnection.applyMutation).toHaveBeenCalledWith({
@@ -822,6 +833,188 @@ describe('AAPJobTemplateProvider', () => {
           },
         ],
       });
+    });
+  });
+
+  describe('excludeLabels functionality', () => {
+    const MOCK_CONFIG_WITH_EXCLUDE_LABELS = {
+      catalog: {
+        providers: {
+          rhaap: {
+            development: {
+              orgs: 'Default',
+              sync: {
+                jobTemplates: {
+                  enabled: true,
+                  surveyEnabled: true,
+                  labels: ['test-label', 'production'],
+                  excludeLabels: ['deprecated', 'experimental'],
+                  schedule: {
+                    frequency: { minutes: 30 },
+                    timeout: { minutes: 3 },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      ansible: {
+        rhaap: {
+          baseUrl: 'https://rhaap.test',
+          token: 'testtoken',
+          checkSSL: false,
+        },
+      },
+    };
+
+    it('should pass excludeLabels to syncJobTemplates', async () => {
+      const config = new ConfigReader(MOCK_CONFIG_WITH_EXCLUDE_LABELS);
+      const logger = mockServices.logger.mock();
+      const schedule = new PersistingTaskRunner();
+
+      const provider = AAPJobTemplateProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule,
+        },
+      )[0];
+
+      const entityProviderConnection: EntityProviderConnection = {
+        applyMutation: jest.fn(),
+        refresh: jest.fn(),
+      };
+
+      await provider.connect(entityProviderConnection);
+
+      const taskDef = schedule.getTasks()[0];
+      await (taskDef.fn as () => Promise<void>)();
+
+      expect(mockAnsibleService.syncJobTemplates).toHaveBeenCalledWith(
+        true, // surveyEnabled
+        ['test-label', 'production'], // jobTemplateLabels
+        ['deprecated', 'experimental'], // jobTemplateExcludeLabels
+      );
+    });
+
+    it('should handle empty excludeLabels', async () => {
+      const configWithEmptyExcludeLabels = {
+        ...MOCK_CONFIG_WITH_EXCLUDE_LABELS,
+        catalog: {
+          providers: {
+            rhaap: {
+              development: {
+                orgs: 'Default',
+                sync: {
+                  jobTemplates: {
+                    enabled: true,
+                    surveyEnabled: true,
+                    labels: ['test-label', 'production'],
+                    excludeLabels: [],
+                    schedule: {
+                      frequency: { minutes: 30 },
+                      timeout: { minutes: 3 },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+
+      const config = new ConfigReader(configWithEmptyExcludeLabels);
+      const logger = mockServices.logger.mock();
+      const schedule = new PersistingTaskRunner();
+
+      const provider = AAPJobTemplateProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule,
+        },
+      )[0];
+
+      const entityProviderConnection: EntityProviderConnection = {
+        applyMutation: jest.fn(),
+        refresh: jest.fn(),
+      };
+
+      await provider.connect(entityProviderConnection);
+
+      const taskDef = schedule.getTasks()[0];
+      await (taskDef.fn as () => Promise<void>)();
+
+      expect(mockAnsibleService.syncJobTemplates).toHaveBeenCalledWith(
+        true, // surveyEnabled
+        ['test-label', 'production'], // jobTemplateLabels
+        [], // empty jobTemplateExcludeLabels
+      );
+    });
+
+    it('should handle missing excludeLabels configuration', async () => {
+      const configWithoutExcludeLabels = {
+        catalog: {
+          providers: {
+            rhaap: {
+              development: {
+                orgs: 'Default',
+                sync: {
+                  jobTemplates: {
+                    enabled: true,
+                    surveyEnabled: true,
+                    labels: ['test-label', 'production'],
+                    // excludeLabels not specified
+                    schedule: {
+                      frequency: { minutes: 30 },
+                      timeout: { minutes: 3 },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        ansible: {
+          rhaap: {
+            baseUrl: 'https://rhaap.test',
+            token: 'testtoken',
+            checkSSL: false,
+          },
+        },
+      };
+
+      const config = new ConfigReader(configWithoutExcludeLabels);
+      const logger = mockServices.logger.mock();
+      const schedule = new PersistingTaskRunner();
+
+      const provider = AAPJobTemplateProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule,
+        },
+      )[0];
+
+      const entityProviderConnection: EntityProviderConnection = {
+        applyMutation: jest.fn(),
+        refresh: jest.fn(),
+      };
+
+      await provider.connect(entityProviderConnection);
+
+      const taskDef = schedule.getTasks()[0];
+      await (taskDef.fn as () => Promise<void>)();
+
+      expect(mockAnsibleService.syncJobTemplates).toHaveBeenCalledWith(
+        true, // surveyEnabled
+        ['test-label', 'production'], // jobTemplateLabels
+        [], // default empty jobTemplateExcludeLabels
+      );
     });
   });
 });

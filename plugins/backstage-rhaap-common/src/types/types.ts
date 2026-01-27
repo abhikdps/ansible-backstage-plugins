@@ -109,10 +109,6 @@ export type AAPTemplate = {
   name: string;
 };
 
-export type Analytics = {
-  enabled?: boolean;
-};
-
 export type DevSpaces = {
   baseUrl?: string;
 };
@@ -134,6 +130,10 @@ export type CreatorService = {
   port: string;
 };
 
+export type FeedbackConfig = {
+  enabled?: boolean;
+};
+
 export type RHAAPConfig = {
   baseUrl?: string;
   token?: string;
@@ -145,10 +145,10 @@ export type CatalogConfig = {
   organizations: string[];
   surveyEnabled: boolean | undefined;
   jobTemplateLabels: string[];
+  jobTemplateExcludeLabels: string[];
 };
 
 export type AnsibleConfig = {
-  analytics?: Analytics;
   devSpaces?: DevSpaces;
   automationHub?: AutomationHub;
   rhaap?: RHAAPConfig;
@@ -156,6 +156,7 @@ export type AnsibleConfig = {
   gitlabIntegration?: GitLabIntegrationConfig;
   scmIntegrations?: ScmIntegrations;
   creatorService?: CreatorService;
+  feedback?: FeedbackConfig;
 };
 
 export type CreatedTemplate = {

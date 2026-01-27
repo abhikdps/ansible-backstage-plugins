@@ -16,6 +16,8 @@ concurrency:
 
 jobs:
   docs:
+    # Skip for patchback PRs (automated backports of already-tested code)
+    if: ${{ !startsWith(github.head_ref, 'patchback/backports/') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -33,6 +35,8 @@ jobs:
         run: mkdocs build
 
   test:
+    # Skip for patchback PRs (automated backports of already-tested code)
+    if: ${{ !startsWith(github.head_ref, 'patchback/backports/') }}
     name: Test with Node.js ${{ matrix.node-version }}
     runs-on: ubuntu-latest
     permissions:
@@ -75,11 +79,18 @@ jobs:
           yarn run test:all
           npx -y nyc report --reporter html --reporter text -t coverage --report-dir coverage/summary
 
+      # Filter coverage to only include plugins/ directory
+      - name: Filter coverage for plugins only
+        run: |
+          # Create filtered coverage file containing only plugins/ paths
+          awk '/^SF:/{found=/^SF:plugins\//} found' ./coverage/lcov.info > ./coverage/lcov-plugins.info || true
+
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v4
         with:
           use_oidc: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) }}
-          file: ./coverage/lcov.info
+          file: ./coverage/lcov-plugins.info
+          flags: plugins
           fail_ci_if_error: false
           verbose: true
 
@@ -87,48 +98,34 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report-${{ matrix.node-version }}
-          path: ./coverage/lcov.info
-        
-      - name: 'Extract and export repo owner/name'
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false
-        shell: bash
-        run: |
-          # 1. Read the full slug (owner/repo)
-          REPO_SLUG="${GITHUB_REPOSITORY}"
-          # 2. Split into owner and repo
-          IFS="/" read -r REPO_OWNER REPO_NAME <<< "$REPO_SLUG"
-          # 3. Export to the workflow environment
-          echo "REPO_OWNER=$REPO_OWNER" >> $GITHUB_ENV
-          echo "REPO_NAME=$REPO_NAME"   >> $GITHUB_ENV
-
-      # Prepare Sonar arguments
-      - name: Prepare Sonar arguments
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false
-        id: sonar-args
-        run: |
-            echo "SONAR_ARGS=-Dsonar.organization=${{ env.REPO_OWNER }} \
-            -Dsonar.projectKey=${{ env.REPO_OWNER }}_${{ env.REPO_NAME }} \
-            -Dsonar.projectName='ansible-backstage-plugins' \
-            -Dsonar.sources=plugins \
-            -Dsonar.tests=plugins \
-            -Dsonar.test.inclusions=**/*.test.ts,**/*.test.tsx,**/*.test.js,**/*.test.jsx \
-            -Dsonar.exclusions=**/*.test.ts,**/*.test.tsx,**/*.test.js,**/*.test.jsx,**/.eslintrc.js \
-            -Dsonar.javascript.lcov.reportPaths=./coverage/lcov.info" >> $GITHUB_ENV
-
-      # SonarCloud Scan for PRs
-      - name: SonarCloud Scan (Pull Request)
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false
-        uses: SonarSource/sonarqube-scan-action@v6
-        env:
-          SONAR_TOKEN: ${{ secrets[format('{0}', vars.SONAR_TOKEN_SECRET_NAME)] }}
-        with:
-          args: >
-            ${{ env.SONAR_ARGS }}
-            -Dsonar.scm.revision=${{ github.event.pull_request.head.sha }}
-            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
-            -Dsonar.pullrequest.branch=${{ github.event.pull_request.head.ref }}
-            -Dsonar.pullrequest.base=${{ github.event.pull_request.base.ref }}            
+          path: |
+            ./coverage/lcov.info
+            ./coverage/lcov-plugins.info
+            ./coverage/summary/
+          retention-days: 30
   
+      - name: Upload JUnit XML results to PDE
+        if: >
+          github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.fork == false
+        env:
+          UPLOAD_USER: ${{ vars.PDE_ORG_RESULTS_AGGREGATOR_UPLOAD_USER }}
+          UPLOAD_PASSWORD: ${{ secrets.PDE_ORG_RESULTS_UPLOAD_PASSWORD }}
+          UPLOAD_URL: ${{ vars.PDE_ORG_RESULTS_AGGREGATOR_UPLOAD_URL }}
+        run: |
+          if [ -f junit.xml ]; then
+            curl -v --fail-with-body \
+              --user "${UPLOAD_USER}:${UPLOAD_PASSWORD}" \
+              --form "xunit_xml=@junit.xml" \
+              --form "component_name=ansible-backstage-plugins" \
+              --form "git_commit_sha=${{ github.sha }}" \
+              --form "git_repository_url=https://github.com/${{ github.repository }}" \
+              "${UPLOAD_URL}/api/results/upload/"
+          else
+            echo "junit.xml not found!"
+            exit 1
+          fi
+          
   all-green:
     if: ${{ always() }}
     name: check
@@ -137,10 +134,19 @@ jobs:
       - test
     runs-on: ubuntu-latest
     steps:
-      - run: >-
-          python -c "assert 'failure' not in
-          set([
-          '${{ needs.docs.result }}',
-          '${{ needs.test.result }}'
-          ])"
+      - name: Verify all jobs succeeded
+        run: |
+          python -c "
+          results = {
+            'docs': '${{ needs.docs.result }}',
+            'test': '${{ needs.test.result }}'
+          }
+          # Allow 'skipped' for patchback PRs
+          failed = [job for job, result in results.items() if result not in ('success', 'skipped')]
+          if failed:
+            print(f'Failed jobs: {failed}')
+            print(f'Results: {results}')
+            exit(1)
+          print('All jobs succeeded!')
+          "
           

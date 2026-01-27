@@ -134,12 +134,12 @@ catalog:
               timeout: { minutes: 15 }
           jobTemplates:
             enabled: true
+            # labels?: []
+            # excludeLabels?: []
             schedule:
               frequency: { minutes: 60 }
               timeout: { minutes: 15 }
 ansible:
-  analytics:
-    enabled: true
   devSpaces:
     baseUrl: https://devspaces.apps.ansible-rhdh.testing.ansible.com/
   automationHub:
@@ -152,6 +152,8 @@ ansible:
   creatorService:
     baseUrl: localhost
     port: '8000'
+  feedback:
+    enabled: false
 kubernetes: null
 
 permission:

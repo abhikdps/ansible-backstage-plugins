@@ -31,39 +31,38 @@ import { IJobTemplate, ISurvey, InstanceGroup } from '../interfaces';
 
 import { getAnsibleConfig, getCatalogConfig } from './utils/config';
 
-export interface IAAPService
-  extends Pick<
-    AAPClient,
-    | 'executePostRequest'
-    | 'executeGetRequest'
-    | 'executeDeleteRequest'
-    | 'getProject'
-    | 'deleteProject'
-    | 'deleteProjectIfExists'
-    | 'createProject'
-    | 'deleteExecutionEnvironmentExists'
-    | 'createExecutionEnvironment'
-    | 'deleteExecutionEnvironment'
-    | 'deleteJobTemplate'
-    | 'deleteJobTemplateIfExists'
-    | 'createJobTemplate'
-    | 'fetchEvents'
-    | 'fetchResult'
-    | 'launchJobTemplate'
-    | 'cleanUp'
-    | 'getResourceData'
-    | 'getJobTemplatesByName'
-    | 'setLogger'
-    | 'rhAAPAuthenticate'
-    | 'fetchProfile'
-    | 'getOrganizations'
-    | 'listSystemUsers'
-    | 'getTeamsByUserId'
-    | 'getUserRoleAssignments'
-    | 'syncJobTemplates'
-    | 'getOrgsByUserId'
-    | 'getUserInfoById'
-  > {}
+export interface IAAPService extends Pick<
+  AAPClient,
+  | 'executePostRequest'
+  | 'executeGetRequest'
+  | 'executeDeleteRequest'
+  | 'getProject'
+  | 'deleteProject'
+  | 'deleteProjectIfExists'
+  | 'createProject'
+  | 'deleteExecutionEnvironmentExists'
+  | 'createExecutionEnvironment'
+  | 'deleteExecutionEnvironment'
+  | 'deleteJobTemplate'
+  | 'deleteJobTemplateIfExists'
+  | 'createJobTemplate'
+  | 'fetchEvents'
+  | 'fetchResult'
+  | 'launchJobTemplate'
+  | 'cleanUp'
+  | 'getResourceData'
+  | 'getJobTemplatesByName'
+  | 'setLogger'
+  | 'rhAAPAuthenticate'
+  | 'fetchProfile'
+  | 'getOrganizations'
+  | 'listSystemUsers'
+  | 'getTeamsByUserId'
+  | 'getUserRoleAssignments'
+  | 'syncJobTemplates'
+  | 'getOrgsByUserId'
+  | 'getUserInfoById'
+> {}
 
 export class AAPClient implements IAAPService {
   static readonly pluginLogName = 'backstage-rhaap-common';
@@ -652,20 +651,32 @@ export class AAPClient implements IAAPService {
       const seen = new Set();
       const duplicates = [] as string[];
       payload.credentials.some(currentObject => {
+        if (!currentObject.credential_type) {
+          return false;
+        }
         if (seen.size === seen.add(currentObject.credential_type).size) {
-          duplicates.push(currentObject.summary_fields.credential_type.name);
+          const credentialTypeName =
+            currentObject.summary_fields?.credential_type?.name ||
+            currentObject.name ||
+            'Unknown';
+          duplicates.push(credentialTypeName);
           return true;
         }
         return false;
       });
       if (duplicates.length) {
+        this.logger.error(
+          `Cannot assign multiple credentials of the same type. Duplicated credential types are: ${duplicates.join(', ')}`,
+        );
         throw new Error(
           `Cannot assign multiple credentials of the same type. Duplicated credential types are: ${duplicates.join(
             ', ',
           )}`,
         );
       }
-      data.credentials = payload.credentials.map(c => c.id);
+      data.credentials = payload.credentials
+        .filter(c => c.id !== undefined && c.id !== null)
+        .map(c => c.id);
     }
 
     let templateID;
@@ -705,15 +716,23 @@ export class AAPClient implements IAAPService {
     let result;
     try {
       result = await this.fetchResult(jobID, token);
+      const stdoutEndPoint = `api/controller/v2/jobs/${jobID}/stdout/?format=txt`;
+      const stdoutResponse = await this.executeGetRequest(
+        stdoutEndPoint,
+        token,
+      );
+      const stdoutRespText = await stdoutResponse.text();
+      const messageRegex = /"msg":\s*"([^"]+)"|"msg":\s*\[(.*?)\]/gs;
+      const matchRegex = [...stdoutRespText.matchAll(messageRegex)];
+      matchRegex.forEach(macthingMsg => {
+        if (macthingMsg[1]) {
+          this.logger.info(macthingMsg[1]);
+        } else if (macthingMsg[2]) {
+          const arrayItems = [...macthingMsg[2].matchAll(/"([^"]+)"/g)];
+          arrayItems.forEach(arrayItem => this.logger.info(arrayItem[1]));
+        }
+      });
       if (result.jobData.status !== 'successful') {
-        const stdoutEndPoint = `api/controller/v2/jobs/${jobID}/stdout/?format=txt`;
-        const stdoutResponse = await this.executeGetRequest(
-          stdoutEndPoint,
-          token,
-        );
-        const stdoutRespText = await stdoutResponse.text();
-        const errorRegex = /"msg":\s*"([^"]+)"/g;
-        const matchRegex = [...stdoutRespText.matchAll(errorRegex)];
         lastEvent = matchRegex[matchRegex.length - 1][1];
         this.logger.error(`Job failed: ${lastEvent}`);
         throw new Error(`Job execution failed due to ${lastEvent}`);
@@ -731,24 +750,6 @@ export class AAPClient implements IAAPService {
       this.logger.error(`Error while executing job template.`);
       this.logger.error(`Job failed: ${lastEvent}`);
       throw new Error(`Job execution failed due to ${lastEvent}`);
-    }
-
-    if (
-      result.jobEvents &&
-      Array.isArray(result.jobEvents) &&
-      result.jobEvents.length > 0
-    ) {
-      this.logger.info(`Job Events Summary:`);
-      result.jobEvents
-        .filter(
-          (event: any) =>
-            event.event_display && !event.event_display.includes('Verbose'),
-        )
-        .forEach((event: any) => {
-          this.logger.info(`${event.event_display}`);
-        });
-    } else {
-      this.logger.info(`No job events found.`);
     }
 
     return {
@@ -816,6 +817,13 @@ export class AAPClient implements IAAPService {
         urlSearchParams.set(
           'labels__name__in',
           this.catalogConfig.jobTemplateLabels.join(','),
+        );
+      }
+
+      if (this.catalogConfig.jobTemplateExcludeLabels.length > 0) {
+        urlSearchParams.set(
+          'not__labels__name__in',
+          this.catalogConfig.jobTemplateExcludeLabels.join(','),
         );
       }
     }
@@ -1234,6 +1242,7 @@ export class AAPClient implements IAAPService {
   async syncJobTemplates(
     surveyEnabled: boolean | undefined,
     jobTemplateLabels: string[],
+    jobTemplateExcludeLabels: string[] = [],
   ): Promise<
     {
       job: IJobTemplate;
@@ -1264,6 +1273,14 @@ export class AAPClient implements IAAPService {
     if (jobTemplateLabels.length > 0) {
       urlSearchParams.set('labels__name__in', jobTemplateLabels.join(','));
     }
+
+    if (jobTemplateExcludeLabels.length > 0) {
+      urlSearchParams.set(
+        'not__labels__name__in',
+        jobTemplateExcludeLabels.join(','),
+      );
+    }
+
     this.logger.info(`Fetching job templates from RH AAP.`);
     try {
       const token = this.ansibleConfig.rhaap?.token ?? null;
