@@ -11,7 +11,7 @@ export class GithubCrawler extends BaseScmCrawler {
     const repos = await this.getRepositories();
 
     this.logger.info(
-      `Starting galaxy.yml discovery in ${repos.length} repositories`,
+      `[GithubCrawler] Starting galaxy.yml discovery in ${repos.length} repositories`,
     );
 
     return this.discoverGalaxyFilesInRepos(repos, options);
@@ -53,22 +53,22 @@ export class GithubCrawler extends BaseScmCrawler {
           reason: `error: ${errorMsg}`,
         });
         this.logger.warn(
-          `Error discovering collections in ${repo.fullPath}: ${error}`,
+          `[GithubCrawler] Error discovering collections in ${repo.fullPath}: ${error}`,
         );
       }
     }
 
     if (skippedRepos.length > 0) {
       this.logger.info(
-        `Skipped ${skippedRepos.length} repositories with no collections:`,
+        `[GithubCrawler] Skipped ${skippedRepos.length} repositories with no collections:`,
       );
       for (const { repo, reason } of skippedRepos) {
-        this.logger.info(`  - ${repo}: ${reason}`);
+        this.logger.info(`[GithubCrawler]   - ${repo}: ${reason}`);
       }
     }
 
     this.logger.info(
-      `Discovered ${discovered.length} galaxy.yml files in ${repos.length} repositories`,
+      `[GithubCrawler] Discovered ${discovered.length} galaxy.yml files in ${repos.length} repositories`,
     );
     return discovered;
   }
@@ -137,7 +137,7 @@ export class GithubCrawler extends BaseScmCrawler {
     const discovered: DiscoveredGalaxyFile[] = [];
 
     this.logger.debug(
-      `Searching ${repo.fullPath} on ${refType} '${ref}' (default branch: ${repo.defaultBranch})`,
+      `[GithubCrawler] Searching ${repo.fullPath} on ${refType} '${ref}' (default branch: ${repo.defaultBranch})`,
     );
 
     if (options.galaxyFilePaths && options.galaxyFilePaths.length > 0) {
@@ -170,7 +170,7 @@ export class GithubCrawler extends BaseScmCrawler {
 
       if (files.length === 0) {
         this.logger.debug(
-          `No galaxy.yml files found in ${repo.fullPath}@${ref} after crawling`,
+          `[GithubCrawler] No galaxy.yml files found in ${repo.fullPath}@${ref} after crawling`,
         );
       }
 
@@ -207,14 +207,14 @@ export class GithubCrawler extends BaseScmCrawler {
 
       if (path === '' && contents.length === 0) {
         this.logger.warn(
-          `Empty contents returned for ${repo.fullPath}@${ref} root directory`,
+          `[GithubCrawler] Empty contents returned for ${repo.fullPath}@${ref} root directory`,
         );
       }
 
       for (const entry of contents) {
         if (entry.type === 'file' && this.isGalaxyFile(entry.name)) {
           this.logger.debug(
-            `Found galaxy file: ${repo.fullPath}/${entry.path}@${ref}`,
+            `[GithubCrawler] Found galaxy file: ${repo.fullPath}/${entry.path}@${ref}`,
           );
           galaxyFiles.push(entry.path);
         } else if (entry.type === 'dir') {
@@ -234,11 +234,11 @@ export class GithubCrawler extends BaseScmCrawler {
       const errorMsg = error instanceof Error ? error.message : String(error);
       if (path === '') {
         this.logger.warn(
-          `Failed to fetch contents for ${repo.fullPath}@${ref}: ${errorMsg}`,
+          `[GithubCrawler] Failed to fetch contents for ${repo.fullPath}@${ref}: ${errorMsg}`,
         );
       } else {
         this.logger.debug(
-          `Error crawling ${repo.fullPath}/${path}@${ref}: ${errorMsg}`,
+          `[GithubCrawler] Error crawling ${repo.fullPath}/${path}@${ref}: ${errorMsg}`,
         );
       }
     }
@@ -280,7 +280,7 @@ export class GithubCrawler extends BaseScmCrawler {
         parsed = yaml.parse(content);
       } catch (parseError) {
         this.logger.warn(
-          `Invalid YAML in ${repo.fullPath}/${path}@${ref}: ${parseError}`,
+          `[GithubCrawler] Invalid YAML in ${repo.fullPath}/${path}@${ref}: ${parseError}`,
         );
         return null;
       }
@@ -288,7 +288,7 @@ export class GithubCrawler extends BaseScmCrawler {
       const validation = validateGalaxyContent(parsed);
       if (!validation.success) {
         this.logger.debug(
-          `Invalid galaxy.yml in ${repo.fullPath}/${path}@${ref}: ${validation.errors?.join(', ')}`,
+          `[GithubCrawler] Invalid galaxy.yml in ${repo.fullPath}/${path}@${ref}: ${validation.errors?.join(', ')}`,
         );
         return null;
       }
@@ -303,7 +303,7 @@ export class GithubCrawler extends BaseScmCrawler {
       };
     } catch (error) {
       this.logger.warn(
-        `Error processing ${repo.fullPath}/${path}@${ref}: ${error}`,
+        `[GithubCrawler] Error processing ${repo.fullPath}/${path}@${ref}: ${error}`,
       );
       return null;
     }
