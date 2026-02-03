@@ -20,21 +20,21 @@ import { AAPJobTemplateProvider } from './providers/AAPJobTemplateProvider';
 import { AAPEntityProvider } from './providers/AAPEntityProvider';
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { EEEntityProvider } from './providers/EEEntityProvider';
-import { AnsibleCollectionProvider } from './providers/ansible-collections';
+import { AnsibleGitContentsProvider } from './providers/ansible-collections';
 
 export async function createRouter(options: {
   logger: LoggerService;
   aapEntityProvider: AAPEntityProvider;
   jobTemplateProvider: AAPJobTemplateProvider;
   eeEntityProvider: EEEntityProvider;
-  ansibleCollectionProviders?: AnsibleCollectionProvider[];
+  ansibleGitContentsProviders?: AnsibleGitContentsProvider[];
 }): Promise<express.Router> {
   const {
     logger,
     aapEntityProvider,
     jobTemplateProvider,
     eeEntityProvider,
-    ansibleCollectionProviders = [],
+    ansibleGitContentsProviders = [],
   } = options;
   const router = Router();
 
@@ -127,9 +127,9 @@ export async function createRouter(options: {
   });
 
   router.get('/ansible-collections/sync_status', async (_, response) => {
-    logger.info('Getting Ansible collections sync status');
+    logger.info('Getting Ansible Git Contents sync status');
     try {
-      const status = ansibleCollectionProviders.map(provider =>
+      const status = ansibleGitContentsProviders.map(provider =>
         provider.getSyncStatus(),
       );
       response.status(200).json({ sources: status });
@@ -137,7 +137,7 @@ export async function createRouter(options: {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       logger.error(
-        `Failed to get Ansible collections sync status: ${errorMessage}`,
+        `Failed to get Ansible Git Contents sync status: ${errorMessage}`,
       );
       response.status(500).json({
         error: `Failed to get sync status: ${errorMessage}`,
@@ -146,14 +146,13 @@ export async function createRouter(options: {
     }
   });
 
-  // TO-DO: refactor this sync till orgs level deep
   router.post(
     '/ansible-collections/sync',
     express.json(),
     async (request, response) => {
       const { sourceId } = request.body;
       logger.info(
-        `Starting Ansible collections sync${sourceId ? ` for source: ${sourceId}` : ' for all sources'}`,
+        `Triggering Ansible Git Contents sync${sourceId ? ` for source: ${sourceId}` : ' for all sources'}`,
       );
 
       try {
@@ -164,13 +163,15 @@ export async function createRouter(options: {
         }> = [];
 
         const providersToSync = sourceId
-          ? ansibleCollectionProviders.filter(p => p.getSourceId() === sourceId)
-          : ansibleCollectionProviders;
+          ? ansibleGitContentsProviders.filter(
+              p => p.getSourceId() === sourceId,
+            )
+          : ansibleGitContentsProviders;
 
         if (sourceId && providersToSync.length === 0) {
           response.status(404).json({
             error: `Source not found: ${sourceId}`,
-            availableSources: ansibleCollectionProviders.map(p =>
+            availableSources: ansibleGitContentsProviders.map(p =>
               p.getSourceId(),
             ),
           });
@@ -201,9 +202,9 @@ export async function createRouter(options: {
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
-        logger.error(`Failed to sync Ansible collections: ${errorMessage}`);
+        logger.error(`Failed to sync Ansible Git Contents: ${errorMessage}`);
         response.status(500).json({
-          error: `Failed to sync Ansible collections: ${errorMessage}`,
+          error: `Failed to sync Ansible Git Contents: ${errorMessage}`,
         });
       }
     },

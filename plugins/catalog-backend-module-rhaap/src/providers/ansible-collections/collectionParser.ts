@@ -1,19 +1,20 @@
 import { Entity } from '@backstage/catalog-model';
 import type {
   DiscoveredGalaxyFile,
-  AnsibleCollectionSourceConfig,
+  AnsibleGitContentsSourceConfig,
   CollectionIdentifier,
+  RepositoryInfo,
 } from './types';
 
 export interface CollectionParserOptions {
   galaxyFile: DiscoveredGalaxyFile;
-  sourceConfig: AnsibleCollectionSourceConfig;
+  sourceConfig: AnsibleGitContentsSourceConfig;
   sourceLocation: string;
 }
 
 export function createCollectionIdentifier(
   galaxyFile: DiscoveredGalaxyFile,
-  sourceConfig: AnsibleCollectionSourceConfig,
+  sourceConfig: AnsibleGitContentsSourceConfig,
 ): CollectionIdentifier {
   return {
     scmProvider: sourceConfig.scmProvider,
@@ -34,7 +35,7 @@ function getDefaultHost(scmProvider: 'github' | 'gitlab'): string {
 }
 
 export function generateSourceId(
-  sourceConfig: AnsibleCollectionSourceConfig,
+  sourceConfig: AnsibleGitContentsSourceConfig,
 ): string {
   const host = sourceConfig.host || getDefaultHost(sourceConfig.scmProvider);
   return `${sourceConfig.scmProvider}-${host}-${sourceConfig.organization}`
@@ -197,10 +198,22 @@ export function parseCollectionToEntity(
       lifecycle: refType === 'tag' ? 'production' : 'development',
       owner: metadata.namespace,
       system: `${metadata.namespace}-collections`,
+      subcomponentOf: `component:default/${generateRepositoryEntityName(repository, sourceConfig)}`,
     },
   };
 
   return entity;
+}
+
+export function generateCollectionEntityName(
+  galaxyFile: DiscoveredGalaxyFile,
+  sourceConfig: AnsibleGitContentsSourceConfig,
+): string {
+  const { metadata } = galaxyFile;
+  const host = sourceConfig.host || getDefaultHost(sourceConfig.scmProvider);
+  return sanitizeEntityName(
+    `${metadata.namespace}-${metadata.name}-${metadata.version}-${sourceConfig.scmProvider}-${host}`,
+  );
 }
 
 export function parseDependencies(
@@ -231,4 +244,108 @@ export function createDependencyRelations(
     const entityName = fullName.toLowerCase().replace(/\./g, '-');
     return `component:default/${entityName}`;
   });
+}
+
+export interface RepositoryParserOptions {
+  repository: RepositoryInfo;
+  sourceConfig: AnsibleGitContentsSourceConfig;
+  collectionCount: number;
+  collectionEntityNames?: string[];
+}
+
+export function generateRepositoryEntityName(
+  repository: RepositoryInfo,
+  sourceConfig: AnsibleGitContentsSourceConfig,
+): string {
+  const host = sourceConfig.host || getDefaultHost(sourceConfig.scmProvider);
+  return sanitizeEntityName(
+    `${repository.fullPath}-${sourceConfig.scmProvider}-${host}`,
+  );
+}
+
+export function createRepositoryKey(
+  repository: RepositoryInfo,
+  sourceConfig: AnsibleGitContentsSourceConfig,
+): string {
+  const host = sourceConfig.host || getDefaultHost(sourceConfig.scmProvider);
+  return `${sourceConfig.scmProvider}:${host}:${repository.fullPath}`;
+}
+
+export function parseRepositoryToEntity(
+  options: RepositoryParserOptions,
+): Entity {
+  const { repository, sourceConfig, collectionCount, collectionEntityNames } =
+    options;
+
+  const host = sourceConfig.host || getDefaultHost(sourceConfig.scmProvider);
+
+  const entityName = sanitizeEntityName(
+    `${repository.fullPath}-${sourceConfig.scmProvider}-${host}`,
+  );
+
+  const sourceId = generateSourceId(sourceConfig);
+
+  const tags: string[] = [
+    'git-repository',
+    sourceConfig.scmProvider,
+    'ansible-collections-source',
+  ];
+
+  const repoUrl = repository.url || `https://${host}/${repository.fullPath}`;
+
+  const links: Array<{ url: string; title: string; icon?: string }> = [
+    {
+      url: repoUrl,
+      title: 'Repository',
+      icon: sourceConfig.scmProvider === 'github' ? 'github' : 'gitlab',
+    },
+  ];
+
+  const hasPart = collectionEntityNames?.map(
+    name => `component:default/${name}`,
+  );
+
+  const entity: Entity = {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'Component',
+    metadata: {
+      name: entityName,
+      namespace: 'default',
+      title: repository.fullPath,
+      description:
+        repository.description ||
+        `Git repository containing Ansible collections: ${repository.fullPath}`,
+      annotations: {
+        'backstage.io/source-location': `url:${repoUrl}`,
+        'backstage.io/view-url': repoUrl,
+        'backstage.io/managed-by-location': `url:${repoUrl}`,
+        'backstage.io/managed-by-origin-location': `url:${repoUrl}`,
+        'ansible.io/scm-provider': sourceConfig.scmProvider,
+        'ansible.io/scm-host': host,
+        'ansible.io/scm-organization': sourceConfig.organization,
+        'ansible.io/scm-repository': repository.fullPath,
+        'ansible.io/repository-name': repository.name,
+        'ansible.io/repository-default-branch': repository.defaultBranch,
+        'ansible.io/repository-collection-count': String(collectionCount),
+        ...(collectionEntityNames &&
+          collectionEntityNames.length > 0 && {
+            'ansible.io/repository-collections': JSON.stringify(
+              collectionEntityNames,
+            ),
+          }),
+        'ansible.io/discovery-source-id': sourceId,
+      },
+      tags,
+      links,
+    },
+    spec: {
+      type: 'git-repository',
+      lifecycle: 'production',
+      owner: sourceConfig.organization,
+      system: `${sourceConfig.organization}-repositories`,
+      ...(hasPart && hasPart.length > 0 && { dependsOn: hasPart }),
+    },
+  };
+
+  return entity;
 }

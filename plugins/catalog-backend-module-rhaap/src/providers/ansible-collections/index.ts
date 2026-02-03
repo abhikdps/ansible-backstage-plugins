@@ -1,5 +1,5 @@
-export { AnsibleCollectionProvider } from './AnsibleCollectionProvider';
-export { readAnsibleCollectionConfigs } from './config';
+export { AnsibleGitContentsProvider } from './AnsibleGitContentsProvider';
+export { readAnsibleGitContentsConfigs } from './config';
 export {
   validateGalaxyContent,
   galaxySchema,
@@ -12,8 +12,8 @@ export {
   generateSourceId,
 } from './collectionParser';
 export type {
-  AnsibleCollectionSourceConfig,
-  AnsibleCollectionsConfig,
+  AnsibleGitContentsSourceConfig,
+  AnsibleGitContentsConfig,
   GalaxyMetadata,
   DiscoveredGalaxyFile,
   RepositoryInfo,

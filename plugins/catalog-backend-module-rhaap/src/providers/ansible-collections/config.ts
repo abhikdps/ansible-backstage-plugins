@@ -1,51 +1,71 @@
 import { readSchedulerServiceTaskScheduleDefinitionFromConfig } from '@backstage/backend-plugin-api';
 import type { Config } from '@backstage/config';
-import type { AnsibleCollectionSourceConfig, ScmProvider } from './types';
+import type { AnsibleGitContentsSourceConfig, ScmProvider } from './types';
 
-export function readAnsibleCollectionConfigs(
+export function readAnsibleGitContentsConfigs(
   config: Config,
-): AnsibleCollectionSourceConfig[] {
+): AnsibleGitContentsSourceConfig[] {
   const providerConfigs = config.getOptionalConfig('catalog.providers.rhaap');
 
   if (!providerConfigs) {
     console.log(
-      '[AnsibleCollectionConfig] No catalog.providers.rhaap config found',
+      '[AnsibleGitContentsConfig] No catalog.providers.rhaap config found',
     );
     return [];
   }
 
-  const allSources: AnsibleCollectionSourceConfig[] = [];
+  const allSources: AnsibleGitContentsSourceConfig[] = [];
   const envKeys = providerConfigs.keys();
   console.log(
-    `[AnsibleCollectionConfig] Found environments: ${envKeys.join(', ')}`,
+    `[AnsibleGitContentsConfig] Found environments: ${envKeys.join(', ')}`,
   );
 
   for (const envKey of envKeys) {
     const envConfig = providerConfigs.getConfig(envKey);
 
-    const hasAnsibleCollections = envConfig.has(
-      'sync.ansibleCollections.sources',
-    );
+    const hasAnsibleGitContents = envConfig.has('sync.ansibleGitContents');
     console.log(
-      `[AnsibleCollectionConfig] Environment '${envKey}' has ansibleCollections.sources: ${hasAnsibleCollections}`,
+      `[AnsibleGitContentsConfig] Environment '${envKey}' has ansibleGitContents: ${hasAnsibleGitContents}`,
     );
 
-    if (!hasAnsibleCollections) {
+    if (!hasAnsibleGitContents) {
       continue;
     }
 
-    const sourcesConfig = envConfig.getConfigArray(
-      'sync.ansibleCollections.sources',
-    );
+    const gitContentsConfig = envConfig.getConfig('sync.ansibleGitContents');
+
+    const providerEnabled =
+      gitContentsConfig.getOptionalBoolean('enabled') ?? true;
     console.log(
-      `[AnsibleCollectionConfig] Found ${sourcesConfig.length} sources in '${envKey}'`,
+      `[AnsibleGitContentsConfig] Environment '${envKey}' ansibleGitContents enabled: ${providerEnabled}`,
+    );
+
+    if (!providerEnabled) {
+      console.log(
+        `[AnsibleGitContentsConfig] ansibleGitContents provider is disabled in '${envKey}', skipping`,
+      );
+      continue;
+    }
+
+    const hasSources = gitContentsConfig.has('sources');
+    console.log(
+      `[AnsibleGitContentsConfig] Environment '${envKey}' has ansibleGitContents.sources: ${hasSources}`,
+    );
+
+    if (!hasSources) {
+      continue;
+    }
+
+    const sourcesConfig = gitContentsConfig.getConfigArray('sources');
+    console.log(
+      `[AnsibleGitContentsConfig] Found ${sourcesConfig.length} sources in '${envKey}'`,
     );
 
     for (const sourceConfig of sourcesConfig) {
       const source = readSourceConfig(sourceConfig);
       if (source) {
         console.log(
-          `[AnsibleCollectionConfig] Parsed source: ${source.scmProvider}/${source.organization}`,
+          `[AnsibleGitContentsConfig] Parsed source: ${source.scmProvider}/${source.organization}`,
         );
         allSources.push(source);
       }
@@ -57,7 +77,7 @@ export function readAnsibleCollectionConfigs(
 
 function readSourceConfig(
   config: Config,
-): AnsibleCollectionSourceConfig | null {
+): AnsibleGitContentsSourceConfig | null {
   try {
     const scmProvider = config.getString('scmProvider') as ScmProvider;
     const organization = config.getString('organization');
@@ -76,14 +96,14 @@ function readSourceConfig(
     const crawlDepth = config.getOptionalNumber('crawlDepth') ?? 5;
 
     if (!config.has('schedule')) {
-      throw new Error('Schedule is required for Ansible collection source');
+      throw new Error('Schedule is required for Ansible Git Contents source');
     }
     const schedule = readSchedulerServiceTaskScheduleDefinitionFromConfig(
       config.getConfig('schedule'),
     );
 
     console.log(
-      `[AnsibleCollectionConfig] Source config: scmProvider=${scmProvider}, org=${organization}, branches=${JSON.stringify(branches)}, tags=${JSON.stringify(tags)}, crawlDepth=${crawlDepth}`,
+      `[AnsibleGitContentsConfig] Source config: scmProvider=${scmProvider}, org=${organization}, branches=${JSON.stringify(branches)}, tags=${JSON.stringify(tags)}, crawlDepth=${crawlDepth}`,
     );
 
     return {
@@ -99,7 +119,7 @@ function readSourceConfig(
     };
   } catch (error) {
     console.error(
-      `[AnsibleCollectionProvider] Error reading source config: ${error}`,
+      `[AnsibleGitContentsConfig] Error reading source config: ${error}`,
     );
     return null;
   }

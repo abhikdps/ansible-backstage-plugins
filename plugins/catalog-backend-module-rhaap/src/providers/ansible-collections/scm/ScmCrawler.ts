@@ -6,7 +6,7 @@ import {
 } from '@ansible/backstage-rhaap-common';
 import type {
   DiscoveredGalaxyFile,
-  AnsibleCollectionSourceConfig,
+  AnsibleGitContentsSourceConfig,
 } from '../types';
 
 export type {
@@ -46,13 +46,13 @@ export interface ScmCrawler {
 }
 
 export interface ScmCrawlerConfig {
-  sourceConfig: AnsibleCollectionSourceConfig;
+  sourceConfig: AnsibleGitContentsSourceConfig;
   logger: LoggerService;
   scmClient: ScmClient;
 }
 
 export abstract class BaseScmCrawler implements ScmCrawler {
-  protected readonly config: AnsibleCollectionSourceConfig;
+  protected readonly config: AnsibleGitContentsSourceConfig;
   protected readonly logger: LoggerService;
   protected readonly client: ScmClient;
 

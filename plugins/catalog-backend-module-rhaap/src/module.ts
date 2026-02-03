@@ -13,7 +13,7 @@ import { AAPJobTemplateProvider } from './providers/AAPJobTemplateProvider';
 import { AAPEntityProvider } from './providers/AAPEntityProvider';
 import { makeValidator } from '@backstage/catalog-model';
 import { EEEntityProvider } from './providers/EEEntityProvider';
-import { AnsibleCollectionProvider } from './providers/ansible-collections';
+import { AnsibleGitContentsProvider } from './providers/ansible-collections';
 
 export const catalogModuleRhaap = createBackendModule({
   pluginId: 'catalog',
@@ -69,21 +69,21 @@ export const catalogModuleRhaap = createBackendModule({
             scheduler,
           },
         );
-        const ansibleCollectionProviders =
-          await AnsibleCollectionProvider.fromConfig(config, {
+        const ansibleGitContentsProviders =
+          await AnsibleGitContentsProvider.fromConfig(config, {
             logger,
             scheduler,
           });
         // log providers since there can be multiple providers for collections
         logger.info(
-          `[catalog-module-rhaap]: Created ${ansibleCollectionProviders.length} Ansible Collection provider(s)`,
+          `[catalog-module-rhaap]: Created ${ansibleGitContentsProviders.length} Ansible Git Contents provider(s)`,
         );
 
         catalogProcessing.addEntityProvider(
           aapEntityProvider,
           jobTemplateProvider,
           eeEntityProvider,
-          ansibleCollectionProviders,
+          ansibleGitContentsProviders,
         );
 
         httpRouter.use(
@@ -92,7 +92,7 @@ export const catalogModuleRhaap = createBackendModule({
             aapEntityProvider: aapEntityProvider[0],
             jobTemplateProvider: jobTemplateProvider[0],
             eeEntityProvider: eeEntityProvider,
-            ansibleCollectionProviders,
+            ansibleGitContentsProviders,
           })) as any,
         );
       },

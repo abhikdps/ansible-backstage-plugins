@@ -18,7 +18,9 @@ export interface Config {
               surveyEnabled?: boolean;
               schedule?: SchedulerServiceTaskScheduleDefinitionConfig;
             };
-            ansibleCollections?: {
+            ansibleGitContents?: {
+              /** @default true */
+              enabled?: boolean;
               sources: Array<{
                 /** @default true */
                 enabled?: boolean;

@@ -9,7 +9,7 @@ export type ScmProvider = CommonScmProvider;
 export type RepositoryInfo = CommonRepositoryInfo;
 export type DirectoryEntry = CommonDirectoryEntry;
 
-export interface AnsibleCollectionSourceConfig {
+export interface AnsibleGitContentsSourceConfig {
   enabled: boolean;
   scmProvider: ScmProvider;
   host?: string;
@@ -21,8 +21,8 @@ export interface AnsibleCollectionSourceConfig {
   schedule: SchedulerServiceTaskScheduleDefinition;
 }
 
-export interface AnsibleCollectionsConfig {
-  sources: AnsibleCollectionSourceConfig[];
+export interface AnsibleGitContentsConfig {
+  sources: AnsibleGitContentsSourceConfig[];
 }
 
 export interface GalaxyMetadata {

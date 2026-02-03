@@ -139,8 +139,9 @@ catalog:
             schedule:
               frequency: { minutes: 60 }
               timeout: { minutes: 15 }
-          # Ansible collections discovery from SCM orgs by searching for VALID galaxy.yml files in repos
-          # ansibleCollections:
+          # Ansible content discovery from SCM orgs
+          # ansibleGitContents:
+            # enabled: true # optional, defaults to true - enables/disables the whole provider
             # sources:
               # - scmProvider: github
                 # host: github.com  # optional, defaults to github.com
