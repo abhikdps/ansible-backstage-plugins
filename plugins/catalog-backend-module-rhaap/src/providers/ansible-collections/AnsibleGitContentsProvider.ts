@@ -40,6 +40,8 @@ export class AnsibleGitContentsProvider implements EntityProvider {
   private connection?: EntityProviderConnection;
   private lastSyncTime: string | null = null;
   private lastSyncCollections: number = 0;
+  private lastSyncNewCollections: number = 0;
+  private lastSyncRepositories: number = 0;
   private lastSyncError?: string;
   static pluginLogName = 'plugin-catalog-rhaap-git-contents';
 
@@ -66,7 +68,7 @@ export class AnsibleGitContentsProvider implements EntityProvider {
     if (sourceConfigs.length === 0) {
       logger.info(
         `[${this.pluginLogName}]: No Ansible Git Contents sources configured. ` +
-          `Add sources under catalog.providers.rhaap.<env>.sync.ansibleGitContents.sources`,
+          `Add providers under catalog.providers.rhaap.<env>.sync.ansibleGitContents.providers`,
       );
       return [];
     }
@@ -193,6 +195,8 @@ export class AnsibleGitContentsProvider implements EntityProvider {
       enabled: this.sourceConfig.enabled,
       lastSync: this.lastSyncTime,
       collectionsFound: this.lastSyncCollections,
+      newCollections: this.lastSyncNewCollections,
+      repositoriesFound: this.lastSyncRepositories,
       lastError: this.lastSyncError,
     };
   }
@@ -341,13 +345,27 @@ export class AnsibleGitContentsProvider implements EntityProvider {
         })),
       });
 
+      const currentCollectionCount =
+        allEntities.length - repositoryEntities.length;
+      const previousCollectionCount = this.lastSyncCollections;
+
+      this.lastSyncNewCollections =
+        previousCollectionCount === 0
+          ? currentCollectionCount
+          : currentCollectionCount - previousCollectionCount;
+
       this.lastSyncTime = new Date().toISOString();
-      this.lastSyncCollections = allEntities.length - repositoryEntities.length;
+      this.lastSyncCollections = currentCollectionCount;
+      this.lastSyncRepositories = repositoryEntities.length;
       this.lastSyncError = undefined;
 
       const duration = Date.now() - startTime;
+      const deltaStr =
+        this.lastSyncNewCollections >= 0
+          ? `+${this.lastSyncNewCollections}`
+          : `${this.lastSyncNewCollections}`;
       this.logger.info(
-        `[${AnsibleGitContentsProvider.pluginLogName}]: Successfully synced ${this.lastSyncCollections} collections and ${repositoryEntities.length} repositories from ${this.sourceId} in ${duration}ms`,
+        `[${AnsibleGitContentsProvider.pluginLogName}]: Successfully synced ${this.lastSyncCollections} collections (${deltaStr} new) and ${repositoryEntities.length} repositories from ${this.sourceId} in ${duration}ms`,
       );
     } catch (e: unknown) {
       success = false;

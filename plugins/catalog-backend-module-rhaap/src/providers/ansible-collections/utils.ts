@@ -18,12 +18,21 @@ export interface RepositoryParserOptions {
   collectionEntityNames?: string[];
 }
 
+export function sanitizeHostName(hostName: string): string {
+  return hostName
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9-]/g, '-')
+    .replaceAll(/-+/g, '-')
+    .replaceAll(/(^-)|(-$)/g, '');
+}
+
 export function createCollectionIdentifier(
   galaxyFile: DiscoveredGalaxyFile,
   sourceConfig: AnsibleGitContentsSourceConfig,
 ): CollectionIdentifier {
   return {
     scmProvider: sourceConfig.scmProvider,
+    hostName: sanitizeHostName(sourceConfig.hostName),
     host: sourceConfig.host || getDefaultHost(sourceConfig.scmProvider),
     organization: sourceConfig.organization,
     namespace: galaxyFile.metadata.namespace,
@@ -33,7 +42,7 @@ export function createCollectionIdentifier(
 }
 
 export function createCollectionKey(identifier: CollectionIdentifier): string {
-  return `${identifier.scmProvider}:${identifier.host}:${identifier.organization}:${identifier.namespace}.${identifier.name}@${identifier.version}`;
+  return `${identifier.scmProvider}:${identifier.hostName}:${identifier.organization}:${identifier.namespace}.${identifier.name}@${identifier.version}`;
 }
 
 export function getDefaultHost(scmProvider: 'github' | 'gitlab'): string {
@@ -43,10 +52,10 @@ export function getDefaultHost(scmProvider: 'github' | 'gitlab'): string {
 export function generateSourceId(
   sourceConfig: AnsibleGitContentsSourceConfig,
 ): string {
-  const host = sourceConfig.host || getDefaultHost(sourceConfig.scmProvider);
-  return `${sourceConfig.scmProvider}-${host}-${sourceConfig.organization}`
-    .toLowerCase()
-    .replaceAll(/[^a-z0-9-]/g, '-');
+  const sanitize = (s: string) =>
+    s.toLowerCase().replaceAll(/[^a-z0-9-]/g, '-');
+
+  return `${sanitize(sourceConfig.env)}:${sanitize(sourceConfig.scmProvider)}:${sanitize(sourceConfig.hostName)}:${sanitize(sourceConfig.organization)}`;
 }
 
 export function sanitizeEntityName(value: string): string {
@@ -63,9 +72,9 @@ export function generateCollectionEntityName(
   sourceConfig: AnsibleGitContentsSourceConfig,
 ): string {
   const { metadata } = galaxyFile;
-  const host = sourceConfig.host || getDefaultHost(sourceConfig.scmProvider);
+  const hostName = sanitizeHostName(sourceConfig.hostName);
   return sanitizeEntityName(
-    `${metadata.namespace}-${metadata.name}-${metadata.version}-${sourceConfig.scmProvider}-${host}`,
+    `${metadata.namespace}-${metadata.name}-${metadata.version}-${sourceConfig.scmProvider}-${hostName}`,
   );
 }
 
@@ -73,9 +82,9 @@ export function generateRepositoryEntityName(
   repository: RepositoryInfo,
   sourceConfig: AnsibleGitContentsSourceConfig,
 ): string {
-  const host = sourceConfig.host || getDefaultHost(sourceConfig.scmProvider);
+  const hostName = sanitizeHostName(sourceConfig.hostName);
   return sanitizeEntityName(
-    `${repository.fullPath}-${sourceConfig.scmProvider}-${host}`,
+    `${repository.fullPath}-${sourceConfig.scmProvider}-${hostName}`,
   );
 }
 
@@ -83,8 +92,8 @@ export function createRepositoryKey(
   repository: RepositoryInfo,
   sourceConfig: AnsibleGitContentsSourceConfig,
 ): string {
-  const host = sourceConfig.host || getDefaultHost(sourceConfig.scmProvider);
-  return `${sourceConfig.scmProvider}:${host}:${repository.fullPath}`;
+  const hostName = sanitizeHostName(sourceConfig.hostName);
+  return `${sourceConfig.scmProvider}:${hostName}:${repository.fullPath}`;
 }
 
 export function parseDependencies(

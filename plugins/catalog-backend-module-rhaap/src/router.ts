@@ -147,8 +147,9 @@ export async function createRouter(options: {
         const providerInfo = parseSourceId(provider.getSourceId());
         return {
           ...syncStatus,
+          env: providerInfo.env,
           scmProvider: providerInfo.scmProvider,
-          host: providerInfo.host,
+          hostName: providerInfo.hostName,
           organization: providerInfo.organization,
         };
       });
@@ -174,18 +175,18 @@ export async function createRouter(options: {
   });
 
   // sync endpoint using POST with hierarchical filtering
-  // filter hierarchy: scmProvider → host → organization
+  // filter hierarchy: scmProvider -> hostName -> organization
   //  - scmProvider can come alone (syncs all hosts and orgs for that provider)
-  //  - host requires scmProvider
-  //  - organization requires both scmProvider and host
+  //  - hostName requires scmProvider
+  //  - organization requires both scmProvider and hostName
   //
   // request body examples:
   //  {} or { "filters": [] } -> sync all sources
   //  { "filters": [{ "scmProvider": "github" }] } -> all github sources
-  //  { "filters": [{ "scmProvider": "github", "host": "github.com" }] } -> all orgs on github.com
-  //  { "filters": [{ "scmProvider": "gitlab", "host": "gitlab.cee.redhat.com", "organization": "ansible-team" }] } -> particular org sync
+  //  { "filters": [{ "scmProvider": "github", "hostName": "my-source-1" }] } -> all orgs in my-source-1
+  //  { "filters": [{ "scmProvider": "gitlab", "hostName": "my-source-2", "organization": "ansible-team" }] } -> particular org sync
   //  { "filters": [
-  //      { "scmProvider": "github", "host": "github.com", "organization": "ansible-collections" },
+  //      { "scmProvider": "github", "hostName": "my-source-1", "organization": "ansible-collections" },
   //      { "scmProvider": "gitlab" }
   //    ]
   //  } -> multiple selections
@@ -202,7 +203,7 @@ export async function createRouter(options: {
             success: false,
             error: `Invalid filter: ${validationError}`,
             invalidFilter: filter,
-            hint: 'Filter hierarchy: scmProvider → host → organization. Host requires scmProvider, organization requires both.',
+            hint: 'Filter hierarchy: scmProvider -> hostName -> organization. hostName requires scmProvider, organization requires both.',
           });
           return;
         }
@@ -273,8 +274,9 @@ export async function createRouter(options: {
       const providerInfo = parseSourceId(provider.getSourceId());
       const baseResult = {
         sourceId: provider.getSourceId(),
+        env: providerInfo.env,
         scmProvider: providerInfo.scmProvider,
-        host: providerInfo.host,
+        hostName: providerInfo.hostName,
         organization: providerInfo.organization,
       };
 

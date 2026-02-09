@@ -21,25 +21,54 @@ export interface Config {
             ansibleGitContents?: {
               /** @default true */
               enabled?: boolean;
-              sources: Array<{
-                /** @default true */
-                enabled?: boolean;
-                /** @visibility frontend */
-                scmProvider: 'github' | 'gitlab';
-                /**
-                 * @default 'github.com' for github, 'gitlab.com' for gitlab
-                 * @visibility frontend
-                 */
-                host?: string;
-                /** @visibility frontend */
-                organization: string;
-                branches?: Array<string>;
-                tags?: Array<string>;
-                galaxyFilePaths?: Array<string>;
-                /** @default 5 */
-                crawlDepth?: number;
-                schedule: SchedulerServiceTaskScheduleDefinitionConfig;
-              }>;
+              providers?: {
+                github?: Array<{
+                  /**
+                   * Canonical name for easy identification of this source host
+                   * @visibility frontend
+                   */
+                  name: string;
+                  /**
+                   * The host URL for the SCM provider
+                   * @default 'github.com'
+                   * @visibility frontend
+                   */
+                  host?: string;
+                  orgs: Array<{
+                    /** @visibility frontend */
+                    name: string;
+                    branches?: Array<string>;
+                    tags?: Array<string>;
+                    galaxyFilePaths?: Array<string>;
+                    /** @default 5 */
+                    crawlDepth?: number;
+                    schedule: SchedulerServiceTaskScheduleDefinitionConfig;
+                  }>;
+                }>;
+                gitlab?: Array<{
+                  /**
+                   * Canonical name for easy identification of this source host
+                   * @visibility frontend
+                   */
+                  name: string;
+                  /**
+                   * The host URL for the SCM provider
+                   * @default 'gitlab.com'
+                   * @visibility frontend
+                   */
+                  host?: string;
+                  orgs: Array<{
+                    /** @visibility frontend */
+                    name: string;
+                    branches?: Array<string>;
+                    tags?: Array<string>;
+                    galaxyFilePaths?: Array<string>;
+                    /** @default 5 */
+                    crawlDepth?: number;
+                    schedule: SchedulerServiceTaskScheduleDefinitionConfig;
+                  }>;
+                }>;
+              };
             };
           };
         };

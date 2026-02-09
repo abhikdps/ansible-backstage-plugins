@@ -28,25 +28,25 @@ export function getDirectoryFromPath(filePath: string): string {
 
 export interface SyncFilter {
   scmProvider?: 'github' | 'gitlab';
-  host?: string;
+  hostName?: string;
   organization?: string;
 }
 
 export function validateSyncFilter(filter: SyncFilter): string | null {
-  if (!filter.scmProvider && !filter.host && !filter.organization) {
+  if (!filter.scmProvider && !filter.hostName && !filter.organization) {
     return null;
   }
 
-  if (filter.host && !filter.scmProvider) {
-    return 'host requires scmProvider to be specified';
+  if (filter.hostName && !filter.scmProvider) {
+    return 'hostName requires scmProvider to be specified';
   }
 
   if (filter.organization) {
     if (!filter.scmProvider) {
       return 'organization requires scmProvider to be specified';
     }
-    if (!filter.host) {
-      return 'organization requires host to be specified';
+    if (!filter.hostName) {
+      return 'organization requires hostName to be specified';
     }
   }
 
@@ -54,60 +54,32 @@ export function validateSyncFilter(filter: SyncFilter): string | null {
 }
 
 export interface ParsedSourceInfo {
+  env: string;
   scmProvider: string;
-  host: string;
+  hostName: string;
   organization: string;
 }
 
 export function parseSourceId(sourceId: string): ParsedSourceInfo {
-  const parts = sourceId.split('-');
-  const scmProvider = parts[0];
-  let hostParts: string[] = [];
-  let orgParts: string[] = [];
+  const parts = sourceId.split(':');
 
-  // common TLDs to detect the end of host portion
-  const knownTLDs = new Set([
-    'com',
-    'net',
-    'org',
-    'io',
-    'dev',
-    'co',
-    'edu',
-    'gov',
-    'uk',
-    'de',
-    'fr',
-    'jp',
-    'cn',
-    'au',
-    'ca',
-    'in',
-    'br',
-    'local',
-    'internal',
-    'corp',
-    'lan',
-  ]);
-
-  for (let i = 1; i < parts.length; i++) {
-    const part = parts[i];
-    if (knownTLDs.has(part)) {
-      hostParts = parts.slice(1, i + 1);
-      orgParts = parts.slice(i + 1);
-      break;
-    }
-  }
-
-  if (hostParts.length === 0) {
-    hostParts = parts.slice(1, 3);
-    orgParts = parts.slice(3);
+  if (parts.length !== 4) {
+    console.warn(
+      `[parseSourceId] Invalid sourceId format: ${sourceId}, expected 4 parts separated by ':'`,
+    );
+    return {
+      env: parts[0] || 'unknown',
+      scmProvider: parts[1] || 'unknown',
+      hostName: parts[2] || 'unknown',
+      organization: parts.slice(3).join(':') || 'unknown',
+    };
   }
 
   return {
-    scmProvider,
-    host: hostParts.join('.'),
-    organization: orgParts.join('-'),
+    env: parts[0],
+    scmProvider: parts[1],
+    hostName: parts[2],
+    organization: parts[3],
   };
 }
 
@@ -122,10 +94,10 @@ export function buildSourcesTree(
     if (!tree[info.scmProvider]) {
       tree[info.scmProvider] = {};
     }
-    if (!tree[info.scmProvider][info.host]) {
-      tree[info.scmProvider][info.host] = [];
+    if (!tree[info.scmProvider][info.hostName]) {
+      tree[info.scmProvider][info.hostName] = [];
     }
-    tree[info.scmProvider][info.host].push(info.organization);
+    tree[info.scmProvider][info.hostName].push(info.organization);
   }
 
   return tree;
@@ -138,7 +110,7 @@ export function providerMatchesFilter(
   if (filter.scmProvider && providerInfo.scmProvider !== filter.scmProvider) {
     return false;
   }
-  if (filter.host && providerInfo.host !== filter.host) {
+  if (filter.hostName && providerInfo.hostName !== filter.hostName) {
     return false;
   }
   if (
@@ -178,7 +150,7 @@ export function buildFilterDescription(filters: SyncFilter[]): string {
   const filterDescriptions = filters.map(f => {
     const parts: string[] = [];
     if (f.scmProvider) parts.push(`scmProvider=${f.scmProvider}`);
-    if (f.host) parts.push(`host=${f.host}`);
+    if (f.hostName) parts.push(`hostName=${f.hostName}`);
     if (f.organization) parts.push(`org=${f.organization}`);
     return parts.length > 0 ? `{${parts.join(', ')}}` : 'all';
   });

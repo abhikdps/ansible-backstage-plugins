@@ -9,9 +9,33 @@ export type ScmProvider = CommonScmProvider;
 export type RepositoryInfo = CommonRepositoryInfo;
 export type DirectoryEntry = CommonDirectoryEntry;
 
+export interface OrgConfig {
+  name: string;
+  branches?: string[];
+  tags?: string[];
+  galaxyFilePaths?: string[];
+  crawlDepth?: number;
+  schedule: SchedulerServiceTaskScheduleDefinition;
+}
+
+export interface HostConfig {
+  name: string;
+  host?: string;
+  orgs: OrgConfig[];
+}
+
+export interface AnsibleGitContentsProvidersConfig {
+  enabled?: boolean;
+  providers?: {
+    github?: HostConfig[];
+    gitlab?: HostConfig[];
+  };
+}
+
 export interface AnsibleGitContentsSourceConfig {
   enabled: boolean;
   scmProvider: ScmProvider;
+  hostName: string;
   host?: string;
   organization: string;
   branches?: string[];
@@ -19,6 +43,7 @@ export interface AnsibleGitContentsSourceConfig {
   galaxyFilePaths?: string[];
   crawlDepth?: number;
   schedule: SchedulerServiceTaskScheduleDefinition;
+  env: string;
 }
 
 export interface AnsibleGitContentsConfig {
@@ -54,6 +79,7 @@ export interface DiscoveredGalaxyFile {
 
 export interface CollectionIdentifier {
   scmProvider: ScmProvider;
+  hostName: string;
   host: string;
   organization: string;
   namespace: string;
@@ -66,5 +92,7 @@ export interface SourceSyncStatus {
   enabled: boolean;
   lastSync: string | null;
   collectionsFound: number;
+  newCollections: number;
+  repositoriesFound: number;
   lastError?: string;
 }

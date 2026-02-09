@@ -47,80 +47,140 @@ export function readAnsibleGitContentsConfigs(
       continue;
     }
 
-    const hasSources = gitContentsConfig.has('sources');
+    const hasProviders = gitContentsConfig.has('providers');
     console.log(
-      `[AnsibleGitContentsConfig] Environment '${envKey}' has ansibleGitContents.sources: ${hasSources}`,
+      `[AnsibleGitContentsConfig] Environment '${envKey}' has ansibleGitContents.providers: ${hasProviders}`,
     );
 
-    if (!hasSources) {
+    if (!hasProviders) {
       continue;
     }
 
-    const sourcesConfig = gitContentsConfig.getConfigArray('sources');
-    console.log(
-      `[AnsibleGitContentsConfig] Found ${sourcesConfig.length} sources in '${envKey}'`,
-    );
+    const providersConfig = gitContentsConfig.getConfig('providers');
+    const sources = processScmProviders(providersConfig, 'github', envKey);
+    allSources.push(...sources);
 
-    for (const sourceConfig of sourcesConfig) {
-      const source = readSourceConfig(sourceConfig);
-      if (source) {
-        console.log(
-          `[AnsibleGitContentsConfig] Parsed source: ${source.scmProvider}/${source.organization}`,
-        );
-        allSources.push(source);
-      }
-    }
+    const gitlabSources = processScmProviders(
+      providersConfig,
+      'gitlab',
+      envKey,
+    );
+    allSources.push(...gitlabSources);
   }
 
+  console.log(
+    `[AnsibleGitContentsConfig] Total sources configured: ${allSources.length}`,
+  );
   return allSources;
 }
 
-function readSourceConfig(
-  config: Config,
-): AnsibleGitContentsSourceConfig | null {
-  try {
-    const scmProvider = config.getString('scmProvider') as ScmProvider;
-    const organization = config.getString('organization');
+function processScmProviders(
+  providersConfig: Config,
+  scmProvider: ScmProvider,
+  env: string,
+): AnsibleGitContentsSourceConfig[] {
+  const sources: AnsibleGitContentsSourceConfig[] = [];
 
-    if (!['github', 'gitlab'].includes(scmProvider)) {
-      throw new Error(
-        `Invalid scmProvider: ${scmProvider}. Must be 'github' or 'gitlab'.`,
+  if (!providersConfig.has(scmProvider)) {
+    return sources;
+  }
+
+  const hostConfigs = providersConfig.getConfigArray(scmProvider);
+  console.log(
+    `[AnsibleGitContentsConfig] Found ${hostConfigs.length} ${scmProvider} host(s) in '${env}'`,
+  );
+
+  for (const hostConfig of hostConfigs) {
+    try {
+      const hostName = hostConfig.getString('name');
+      const host = hostConfig.getOptionalString('host');
+
+      if (!hostConfig.has('orgs')) {
+        console.log(
+          `[AnsibleGitContentsConfig] Host '${hostName}' has no orgs configured, skipping`,
+        );
+        continue;
+      }
+
+      const orgConfigs = hostConfig.getConfigArray('orgs');
+      console.log(
+        `[AnsibleGitContentsConfig] Host '${hostName}' has ${orgConfigs.length} org(s)`,
+      );
+
+      for (const orgConfig of orgConfigs) {
+        const source = readOrgConfig(orgConfig, {
+          scmProvider,
+          hostName,
+          host,
+          env,
+        });
+        if (source) {
+          console.log(
+            `[AnsibleGitContentsConfig] Parsed source: ${scmProvider}/${hostName}/${source.organization}`,
+          );
+          sources.push(source);
+        }
+      }
+    } catch (error) {
+      console.error(
+        `[AnsibleGitContentsConfig] Error reading ${scmProvider} host config: ${error}`,
       );
     }
+  }
 
-    const enabled = config.getOptionalBoolean('enabled') ?? true;
-    const host = config.getOptionalString('host');
+  return sources;
+}
+
+function readOrgConfig(
+  config: Config,
+  context: {
+    scmProvider: ScmProvider;
+    hostName: string;
+    host?: string;
+    env: string;
+  },
+): AnsibleGitContentsSourceConfig | null {
+  try {
+    const orgName = config.getString('name');
     const branches = config.getOptionalStringArray('branches');
     const tags = config.getOptionalStringArray('tags');
     const galaxyFilePaths = config.getOptionalStringArray('galaxyFilePaths');
     const crawlDepth = config.getOptionalNumber('crawlDepth') ?? 5;
 
     if (!config.has('schedule')) {
-      throw new Error('Schedule is required for Ansible Git Contents source');
+      throw new Error(
+        `Schedule is required for org '${orgName}' in host '${context.hostName}'`,
+      );
     }
     const schedule = readSchedulerServiceTaskScheduleDefinitionFromConfig(
       config.getConfig('schedule'),
     );
 
     console.log(
-      `[AnsibleGitContentsConfig] Source config: scmProvider=${scmProvider}, org=${organization}, branches=${JSON.stringify(branches)}, tags=${JSON.stringify(tags)}, crawlDepth=${crawlDepth}`,
+      `[AnsibleGitContentsConfig] Org config: ${context.scmProvider}/${context.hostName}/${orgName}, branches=${JSON.stringify(branches)}, tags=${JSON.stringify(tags)}, crawlDepth=${crawlDepth}`,
     );
 
     return {
-      enabled,
-      scmProvider,
-      host,
-      organization,
+      enabled: true,
+      scmProvider: context.scmProvider,
+      hostName: context.hostName,
+      host: context.host,
+      organization: orgName,
       branches,
       tags,
       galaxyFilePaths,
       crawlDepth,
       schedule,
+      env: context.env,
     };
   } catch (error) {
     console.error(
-      `[AnsibleGitContentsConfig] Error reading source config: ${error}`,
+      `[AnsibleGitContentsConfig] Error reading org config in host '${context.hostName}': ${error}`,
     );
     return null;
   }
+}
+
+export function getDefaultHost(scmProvider: ScmProvider): string {
+  return scmProvider === 'github' ? 'github.com' : 'gitlab.com';
 }

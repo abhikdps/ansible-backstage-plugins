@@ -23,6 +23,7 @@ import {
   generateRepositoryEntityName,
   getDefaultHost,
   sanitizeEntityName,
+  sanitizeHostName,
 } from './ansible-collections/utils';
 import type {
   CollectionParserOptions,
@@ -164,9 +165,10 @@ export function collectionParser(options: CollectionParserOptions): Entity {
   const { galaxyFile, sourceConfig, sourceLocation } = options;
   const { metadata, repository, ref, refType, path } = galaxyFile;
   const host = sourceConfig.host || getDefaultHost(sourceConfig.scmProvider);
+  const hostName = sanitizeHostName(sourceConfig.hostName);
 
   const entityName = sanitizeEntityName(
-    `${metadata.namespace}-${metadata.name}-${metadata.version}-${sourceConfig.scmProvider}-${host}`,
+    `${metadata.namespace}-${metadata.name}-${metadata.version}-${sourceConfig.scmProvider}-${hostName}`,
   );
 
   const sourceId = generateSourceId(sourceConfig);
@@ -279,6 +281,7 @@ export function collectionParser(options: CollectionParserOptions): Entity {
       collection_name: metadata.name,
       collection_version: metadata.version,
       collection_full_name: `${metadata.namespace}.${metadata.name}`,
+      collection_host_name: hostName,
       ...(metadata.dependencies &&
         Object.keys(metadata.dependencies).length > 0 && {
           collection_dependencies: metadata.dependencies,
@@ -304,9 +307,10 @@ export function repositoryParser(options: RepositoryParserOptions): Entity {
     options;
 
   const host = sourceConfig.host || getDefaultHost(sourceConfig.scmProvider);
+  const hostName = sanitizeHostName(sourceConfig.hostName);
 
   const entityName = sanitizeEntityName(
-    `${repository.fullPath}-${sourceConfig.scmProvider}-${host}`,
+    `${repository.fullPath}-${sourceConfig.scmProvider}-${hostName}`,
   );
 
   const sourceId = generateSourceId(sourceConfig);
@@ -364,6 +368,7 @@ export function repositoryParser(options: RepositoryParserOptions): Entity {
       repository_name: repository.name,
       repository_default_branch: repository.defaultBranch,
       repository_collection_count: collectionCount,
+      repository_host_name: hostName,
       ...(collectionEntityNames &&
         collectionEntityNames.length > 0 && {
           repository_collections: collectionEntityNames,
