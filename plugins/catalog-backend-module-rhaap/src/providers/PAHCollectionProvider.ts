@@ -42,46 +42,51 @@ export class PAHCollectionProvider implements EntityProvider {
     const { logger } = options;
     const providerConfigs = readAapApiEntityConfigs(config, this.syncEntity);
 
-    // loop over all parsed AapConfig objects (with unique authEnv/configId)
-    // for each AapConfig object, loop over all pahRepositories
-    // create a new PAHCollectionProvider object for each pahRepository
-    return providerConfigs.flatMap(providerConfig => {
+    // Only use the first providerConfig (with unique authEnv/configId)
+    // PAH collections are shared across environments, so we only need one provider per repository
+    const providerConfig = providerConfigs[0];
+    if (!providerConfig) {
       logger.info(
-        `[${PAHCollectionProvider.pluginLogName}]: Init PAH Collection providers from config with configId: ${providerConfig.id}`,
+        `[${PAHCollectionProvider.pluginLogName}]: No PAH Collection provider configs found.`,
       );
-      const pahRepositories = providerConfig.pahRepositories ?? [];
-      return pahRepositories.map(pahRepository => {
-        let taskRunner;
-        if ('scheduler' in options && pahRepository.schedule) {
-          taskRunner = options.scheduler!.createScheduledTaskRunner(
-            pahRepository.schedule,
-          );
-        } else if ('schedule' in options) {
-          taskRunner = options.schedule;
-        } else {
-          logger.info(
-            `[${PAHCollectionProvider.pluginLogName}]: No schedule provided via config for PAH Collection Provider: ${pahRepository.name}.`,
-          );
-          throw new InputError(
-            `No schedule provided via config for PAH Collection Provider: ${pahRepository.name}.`,
-          );
-        }
-        if (!taskRunner) {
-          logger.info(
-            `[${PAHCollectionProvider.pluginLogName}]: No schedule provided via config for PAH Collection Provider: ${pahRepository.name}.`,
-          );
-          throw new InputError(
-            `No schedule provided via config for PAH Collection Provider: ${pahRepository.name}.`,
-          );
-        }
-        return new PAHCollectionProvider(
-          providerConfig,
-          pahRepository,
-          logger,
-          taskRunner,
-          ansibleServiceRef,
+      return [];
+    }
+
+    logger.info(
+      `[${PAHCollectionProvider.pluginLogName}]: Init PAH Collection providers from config with configId: ${providerConfig.id}`,
+    );
+    const pahRepositories = providerConfig.pahRepositories ?? [];
+    return pahRepositories.map(pahRepository => {
+      let taskRunner;
+      if ('scheduler' in options && pahRepository.schedule) {
+        taskRunner = options.scheduler!.createScheduledTaskRunner(
+          pahRepository.schedule,
         );
-      });
+      } else if ('schedule' in options) {
+        taskRunner = options.schedule;
+      } else {
+        logger.info(
+          `[${PAHCollectionProvider.pluginLogName}]: No schedule provided via config for PAH Collection Provider: ${pahRepository.name}.`,
+        );
+        throw new InputError(
+          `No schedule provided via config for PAH Collection Provider: ${pahRepository.name}.`,
+        );
+      }
+      if (!taskRunner) {
+        logger.info(
+          `[${PAHCollectionProvider.pluginLogName}]: No schedule provided via config for PAH Collection Provider: ${pahRepository.name}.`,
+        );
+        throw new InputError(
+          `No schedule provided via config for PAH Collection Provider: ${pahRepository.name}.`,
+        );
+      }
+      return new PAHCollectionProvider(
+        providerConfig,
+        pahRepository,
+        logger,
+        taskRunner,
+        ansibleServiceRef,
+      );
     });
   }
 
@@ -123,7 +128,11 @@ export class PAHCollectionProvider implements EntityProvider {
     return async () => {
       const taskId = `${this.getProviderName()}:run`;
       this.logger.info(
-        `[${PAHCollectionProvider.pluginLogName}]: Creating schedule function for ${this.getProviderName()} with baseURL ${this.baseUrl}`,
+        `[${
+          PAHCollectionProvider.pluginLogName
+        }]: Creating schedule function for ${this.getProviderName()} with baseURL ${
+          this.baseUrl
+        }`,
       );
       return taskRunner.run({
         id: taskId,
@@ -156,7 +165,9 @@ export class PAHCollectionProvider implements EntityProvider {
     }
 
     this.logger.info(
-      `[${this.getProviderName()}]: Starting PAH collections sync for repository: ${this.pahRepositoryName}`,
+      `[${this.getProviderName()}]: Starting PAH collections sync for repository: ${
+        this.pahRepositoryName
+      }`,
     );
 
     let collectionsCount = 0;
@@ -168,11 +179,15 @@ export class PAHCollectionProvider implements EntityProvider {
         this.pahRepositoryName,
       ]);
       this.logger.info(
-        `[${this.getProviderName()}]: Fetched ${collections.length} collections from repository: ${this.pahRepositoryName}`,
+        `[${this.getProviderName()}]: Fetched ${
+          collections.length
+        } collections from repository: ${this.pahRepositoryName}`,
       );
     } catch (e: any) {
       this.logger.error(
-        `[${this.getProviderName()}]: Error while fetching collections from repository: ${this.pahRepositoryName}. ${e?.message ?? ''}`,
+        `[${this.getProviderName()}]: Error while fetching collections from repository: ${
+          this.pahRepositoryName
+        }. ${e?.message ?? ''}`,
       );
       error = true;
     }
