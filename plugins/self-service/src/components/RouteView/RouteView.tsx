@@ -72,6 +72,7 @@ export const RouteView = () => {
           path="collections/:collectionName"
           element={<CollectionDetailsPage />}
         />
+        {/* Default redirects */}
         <Route
           path="/catalog/*"
           element={<Navigate to="/self-service/catalog" />}
