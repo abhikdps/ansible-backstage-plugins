@@ -884,6 +884,7 @@ describe('createRouter', () => {
         success: true,
         collectionsCount: 10,
       });
+      mockPAHCollectionProvider.getIsSyncing.mockReturnValue(false);
 
       const response = await request(app)
         .post('/collections/sync/from-pah')
@@ -893,6 +894,7 @@ describe('createRouter', () => {
       expect(response.body).toEqual({
         success: true,
         providersRun: 1,
+        skippedCount: 0,
         results: [
           {
             repositoryName: 'validated',
@@ -927,6 +929,7 @@ describe('createRouter', () => {
         success: true,
         collectionsCount: 15,
       });
+      mockPAHCollectionProvider.getIsSyncing.mockReturnValue(false);
 
       const response = await request(app)
         .post('/collections/sync/from-pah')
@@ -936,6 +939,7 @@ describe('createRouter', () => {
       expect(response.body).toEqual({
         success: true,
         providersRun: 1,
+        skippedCount: 0,
         results: [
           {
             repositoryName: 'validated',
@@ -984,6 +988,7 @@ describe('createRouter', () => {
         success: true,
         collectionsCount: 8,
       });
+      mockPAHCollectionProvider.getIsSyncing.mockReturnValue(false);
 
       const response = await request(app)
         .post('/collections/sync/from-pah')
@@ -997,6 +1002,33 @@ describe('createRouter', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
+    });
+
+    it('should skip sync when already in progress', async () => {
+      mockPAHCollectionProvider.getIsSyncing.mockReturnValue(true);
+
+      const response = await request(app)
+        .post('/collections/sync/from-pah')
+        .send({ filters: [{ repository_name: 'validated' }] });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        success: true,
+        providersRun: 0,
+        skippedCount: 1,
+        results: [
+          {
+            repositoryName: 'validated',
+            providerName: 'PAHCollectionProvider:test',
+            skipped: true,
+            reason: 'Sync already in progress',
+          },
+        ],
+      });
+      expect(mockPAHCollectionProvider.run).not.toHaveBeenCalled();
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'Skipping sync for validated: sync already in progress',
+      );
     });
   });
 });

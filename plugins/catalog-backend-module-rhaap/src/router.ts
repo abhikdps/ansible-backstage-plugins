@@ -223,23 +223,45 @@ export async function createRouter(options: {
       );
       const results = await Promise.all(
         providersToRun.map(async provider => {
+          const repositoryName = provider.getPahRepositoryName();
+          const providerName = provider.getProviderName();
+
+          // Skip if sync is already in progress for this repository
+          if (provider.getIsSyncing()) {
+            logger.info(
+              `Skipping sync for ${repositoryName}: sync already in progress`,
+            );
+            return {
+              repositoryName,
+              providerName,
+              skipped: true,
+              reason: 'Sync already in progress',
+            };
+          }
+
           const { success, collectionsCount } = await provider.run();
           return {
-            repositoryName: provider.getPahRepositoryName(),
-            providerName: provider.getProviderName(),
+            repositoryName,
+            providerName,
             success,
             collectionsCount,
           };
         }),
       );
 
-      const allSucceeded = results.every(r => r.success);
-      const failedProviders = results.filter(r => !r.success);
+      // Separate results by type
+      const skippedResults = results.filter(r => 'skipped' in r && r.skipped);
+      const executedResults = results.filter(r => !('skipped' in r));
+      const failedProviders = executedResults.filter(r => !r.success);
 
-      if (allSucceeded) {
+      const allExecutedSucceeded =
+        executedResults.length === 0 || executedResults.every(r => r.success);
+
+      if (allExecutedSucceeded) {
         response.status(200).json({
           success: true,
-          providersRun: providersToRun.length,
+          providersRun: executedResults.length,
+          skippedCount: skippedResults.length,
           results,
         });
       } else {
@@ -248,7 +270,8 @@ export async function createRouter(options: {
         );
         response.status(207).json({
           success: false,
-          providersRun: providersToRun.length,
+          providersRun: executedResults.length,
+          skippedCount: skippedResults.length,
           results,
           failedRepositories: failedProviders.map(r => r.repositoryName),
         });
