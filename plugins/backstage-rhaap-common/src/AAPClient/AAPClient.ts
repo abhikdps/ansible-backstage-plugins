@@ -35,6 +35,15 @@ import {
 } from '../interfaces';
 
 import { getAnsibleConfig, getCatalogConfig } from './utils/config';
+import {
+  PAHHelperContext,
+  validateRepositoriesInput,
+  sanitizePAHLimit,
+  validateAndFilterRepositories,
+  processCollectionItem,
+  fetchCollectionsPage,
+  extractNextUrl,
+} from './pahHelpers';
 
 export interface IAAPService extends Pick<
   AAPClient,
@@ -1353,209 +1362,56 @@ export class AAPClient implements IAAPService {
     const collections: ICollection[] = [];
     const token = this.ansibleConfig.rhaap?.token ?? null;
 
-    // Validate input parameters
-    if (!repositories || !Array.isArray(repositories)) {
-      this.logger.warn(
-        `[${this.pluginLogName}]: Invalid repositories parameter. Expected an array, received: ${typeof repositories}`,
-      );
+    const context: PAHHelperContext = {
+      logger: this.logger,
+      pluginLogName: this.pluginLogName,
+      executeGetRequest: this.executeGetRequest.bind(this),
+      isValidPAHRepository: this.isValidPAHRepository.bind(this),
+    };
+
+    if (!validateRepositoriesInput(repositories, context)) {
       return collections;
     }
 
-    if (repositories.length === 0) {
-      this.logger.info(
-        `[${this.pluginLogName}]: No repositories provided. Returning empty collection list.`,
-      );
-      return collections;
-    }
-
-    // Validate and sanitize limit parameter - should not be floating point, negative or greater than 100.
-    // PAH has max_limit set to 100.
-    const maxLimit = 100;
-    let sanitizedLimit = Math.max(1, Math.floor(Number(limit) || 1));
-    if (sanitizedLimit > maxLimit) {
-      this.logger.warn(
-        `[${this.pluginLogName}]: Limit value for PAH API endpoint '${limit}' exceeds maximum allowed. Limit cannot be more than ${maxLimit}.`,
-      );
-      sanitizedLimit = maxLimit;
-    } else if (sanitizedLimit !== limit) {
-      this.logger.warn(
-        `[${this.pluginLogName}]: Invalid limit value for PAH API endpoint '${limit}'. Using sanitized value: ${sanitizedLimit}`,
-      );
-    }
-
-    const urlSearchParams = new URLSearchParams();
-    urlSearchParams.set('limit', sanitizedLimit.toString());
-
-    // Validate repositories and build query parameters
-    const validRepositories: string[] = [];
-    for (const repo of repositories) {
-      try {
-        const isValid = await this.isValidPAHRepository(repo);
-        if (!isValid) {
-          this.logger.warn(
-            `[${this.pluginLogName}]: Repository '${repo}' is not a valid Private Automation Hub repository. Skipping.`,
-          );
-          continue;
-        }
-        validRepositories.push(repo);
-        urlSearchParams.append('repository_name', repo);
-      } catch (error) {
-        // could not validate repository, will not continue with fetching collections from this repository
-        // will continue with next repository
-        this.logger.error(
-          `[${this.pluginLogName}]: Error validating PAH repository '${repo}': ${String(error)}`,
-        );
-        continue;
-      }
-    }
-
-    if (validRepositories.length === 0) {
-      this.logger.warn(
-        `[${this.pluginLogName}]: No valid repositories found after validation. Returning empty collection list.`,
-      );
-      return collections;
-    }
-
-    this.logger.info(
-      `[${this.pluginLogName}]: Fetching collections from ${validRepositories.length} valid repositories: ${validRepositories.join(', ')}`,
+    const sanitizedLimit = sanitizePAHLimit(limit, context);
+    const validationResult = await validateAndFilterRepositories(
+      repositories,
+      context,
     );
+
+    if (!validationResult) {
+      return collections;
+    }
+
+    const { validRepos, urlSearchParams } = validationResult;
+    urlSearchParams.set('limit', sanitizedLimit.toString());
 
     let nextUrl: string | null =
       `/api/galaxy/v3/plugin/ansible/search/collection-versions/?${urlSearchParams.toString()}`;
 
     while (nextUrl) {
-      let collectionsData: any;
-      try {
-        const response = await this.executeGetRequest(nextUrl, token);
-        collectionsData = await response.json();
-      } catch (error) {
-        this.logger.error(
-          `[${this.pluginLogName}]: Failed to fetch collections from ${nextUrl}: ${error}.`,
-        );
+      const pageResult = await fetchCollectionsPage(nextUrl, token, context);
+
+      if (!pageResult) {
         break;
       }
 
-      if (!collectionsData) {
-        // received a not null next link, but did not have any collections data
-        this.logger.warn(
-          `[${this.pluginLogName}]: Received empty response data from ${nextUrl}`,
-        );
-        break;
-      }
+      const { collectionsData } = pageResult;
 
-      if (
-        collectionsData.data &&
-        Array.isArray(collectionsData.data) &&
-        collectionsData.data.length > 0
-      ) {
+      if (collectionsData.data && Array.isArray(collectionsData.data)) {
         for (const item of collectionsData.data) {
-          try {
-            const cv = item.collection_version;
-            if (!cv) {
-              // collection_version missing, will not continue with fetching collection details since pulp_href is not available
-              this.logger.warn(
-                `[${this.pluginLogName}]: Missing or invalid collection_version in item. Skipping.`,
-              );
-              continue;
-            }
-
-            // Extract required fields with validation
-            const namespace = cv.namespace ?? null;
-            const name = cv.name ?? null;
-
-            if (!namespace || !name) {
-              // namespace or name missing, will not continue with fetching collection details since these are required fields
-              this.logger.warn(
-                `[${this.pluginLogName}]: Collection missing required fields (namespace: '${namespace}', name: '${name}').`,
-              );
-              continue;
-            }
-
-            // Safely extract repository name
-            const repositoryName = item.repository?.name;
-            if (!repositoryName || typeof repositoryName !== 'string') {
-              this.logger.warn(
-                `[${this.pluginLogName}]: Missing repository name for collection. Skipping.`,
-              );
-              continue;
-            }
-
-            let docsBlob: string | null = null;
-            let authors: string[] | null = null;
-
-            if (cv.pulp_href && typeof cv.pulp_href === 'string') {
-              try {
-                const detailResponse = await this.executeGetRequest(
-                  cv.pulp_href,
-                  token,
-                );
-                if (detailResponse) {
-                  const detailData = await detailResponse.json();
-
-                  if (detailData) {
-                    docsBlob =
-                      detailData?.docs_blob?.collection_readme?.html ?? null;
-                    authors = Array.isArray(detailData?.authors)
-                      ? detailData.authors
-                      : null;
-                  }
-                }
-              } catch (error) {
-                this.logger.warn(
-                  `[${this.pluginLogName}]: Failed to fetch collection details from ${cv.pulp_href}: ${String(error)}`,
-                );
-              }
-            } else {
-              // pulp_href missing, collection will have missing details
-              this.logger.warn(
-                `[${this.pluginLogName}]: Missing pulp_href for collection '${namespace}.${name}' in repository '${repositoryName}'.`,
-              );
-            }
-
-            const dependencies: Record<string, string> | null =
-              cv.dependencies && typeof cv.dependencies === 'object'
-                ? cv.dependencies
-                : null;
-            const tags: string[] | null = Array.isArray(cv.tags)
-              ? cv.tags
-              : null;
-
-            const entry: ICollection = {
-              namespace,
-              name,
-              version: cv.version ?? null,
-              dependencies,
-              description: cv.description ?? null,
-              tags,
-              repository_name: repositoryName,
-              collection_readme_html: docsBlob,
-              authors,
-            };
+          const entry = await processCollectionItem(item, token, context);
+          if (entry) {
             collections.push(entry);
-          } catch (itemError) {
-            this.logger.error(
-              `[${this.pluginLogName}]: Error processing collection item: ${String(itemError)}`,
-            );
-            continue;
           }
         }
       }
 
-      // Safely extract next URL with validation
-      const rawNextUrl = collectionsData?.links?.next;
-      if (
-        rawNextUrl &&
-        typeof rawNextUrl === 'string' &&
-        rawNextUrl.length > 0
-      ) {
-        nextUrl = rawNextUrl;
-      } else {
-        nextUrl = null;
-      }
+      nextUrl = extractNextUrl(collectionsData);
     }
 
     this.logger.info(
-      `[${this.pluginLogName}]: Successfully retrieved ${collections.length} collections from ${validRepositories.length} repositories.`,
+      `[${this.pluginLogName}]: Successfully retrieved ${collections.length} collections from ${validRepos.length} repositories.`,
     );
 
     return collections;
