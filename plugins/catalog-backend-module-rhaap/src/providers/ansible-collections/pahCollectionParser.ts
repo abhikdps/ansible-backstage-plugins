@@ -11,6 +11,38 @@ export const pahCollectionParser = (options: {
     `${options.collection.namespace}/` +
     `${options.collection.name}`;
 
+  // Build links array from galaxy.yml metadata (same style as SCM collections in PR #156)
+  const links: Array<{ url: string; title: string; icon?: string }> = [];
+
+  if (options.collection.links?.repository) {
+    links.push({
+      url: options.collection.links.repository,
+      title: 'Repository',
+      icon: 'github',
+    });
+  }
+  if (options.collection.links?.documentation) {
+    links.push({
+      url: options.collection.links.documentation,
+      title: 'Documentation',
+      icon: 'docs',
+    });
+  }
+  if (options.collection.links?.homepage) {
+    links.push({
+      url: options.collection.links.homepage,
+      title: 'Homepage',
+      icon: 'web',
+    });
+  }
+  if (options.collection.links?.issues) {
+    links.push({
+      url: options.collection.links.issues,
+      title: 'Issues',
+      icon: 'bug',
+    });
+  }
+
   return {
     apiVersion: 'backstage.io/v1alpha1',
     kind: 'Component',
@@ -31,6 +63,9 @@ export const pahCollectionParser = (options: {
 
       // Tags displayed in the Backstage UI tags column
       tags: options.collection.tags || [],
+
+      // Links from galaxy.yml metadata
+      links: links.length > 0 ? links : undefined,
 
       annotations: {
         'backstage.io/source-url': `${collectionBaseUrl}/details?version=${options.collection.version}`,

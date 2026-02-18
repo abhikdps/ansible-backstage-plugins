@@ -315,4 +315,112 @@ describe('pahCollectionParser', () => {
       );
     });
   });
+
+  describe('metadata.links', () => {
+    it('should include all links when all are provided', () => {
+      const collection = createMockCollection({
+        links: {
+          repository: 'https://github.com/ansible-collections/ansible.posix',
+          documentation: 'https://docs.ansible.com/ansible/latest/collections/ansible/posix/',
+          homepage: 'https://ansible.com',
+          issues: 'https://github.com/ansible-collections/ansible.posix/issues',
+        },
+      });
+      const entity = pahCollectionParser({ collection, baseUrl });
+
+      expect(entity.metadata.links).toHaveLength(4);
+      expect(entity.metadata.links).toContainEqual({
+        url: 'https://github.com/ansible-collections/ansible.posix',
+        title: 'Repository',
+        icon: 'github',
+      });
+      expect(entity.metadata.links).toContainEqual({
+        url: 'https://docs.ansible.com/ansible/latest/collections/ansible/posix/',
+        title: 'Documentation',
+        icon: 'docs',
+      });
+      expect(entity.metadata.links).toContainEqual({
+        url: 'https://ansible.com',
+        title: 'Homepage',
+        icon: 'web',
+      });
+      expect(entity.metadata.links).toContainEqual({
+        url: 'https://github.com/ansible-collections/ansible.posix/issues',
+        title: 'Issues',
+        icon: 'bug',
+      });
+    });
+
+    it('should include only repository link when only repository is provided', () => {
+      const collection = createMockCollection({
+        links: {
+          repository: 'https://github.com/ansible-collections/ansible.posix',
+        },
+      });
+      const entity = pahCollectionParser({ collection, baseUrl });
+
+      expect(entity.metadata.links).toHaveLength(1);
+      expect(entity.metadata.links).toContainEqual({
+        url: 'https://github.com/ansible-collections/ansible.posix',
+        title: 'Repository',
+        icon: 'github',
+      });
+    });
+
+    it('should include only documentation link when only documentation is provided', () => {
+      const collection = createMockCollection({
+        links: {
+          documentation: 'https://docs.ansible.com/ansible/latest/collections/ansible/posix/',
+        },
+      });
+      const entity = pahCollectionParser({ collection, baseUrl });
+
+      expect(entity.metadata.links).toHaveLength(1);
+      expect(entity.metadata.links).toContainEqual({
+        url: 'https://docs.ansible.com/ansible/latest/collections/ansible/posix/',
+        title: 'Documentation',
+        icon: 'docs',
+      });
+    });
+
+    it('should not include links when links is null', () => {
+      const collection = createMockCollection({ links: null });
+      const entity = pahCollectionParser({ collection, baseUrl });
+
+      expect(entity.metadata.links).toBeUndefined();
+    });
+
+    it('should not include links when links is undefined', () => {
+      const collection = createMockCollection();
+      const entity = pahCollectionParser({ collection, baseUrl });
+
+      expect(entity.metadata.links).toBeUndefined();
+    });
+
+    it('should not include links when links object is empty', () => {
+      const collection = createMockCollection({ links: {} });
+      const entity = pahCollectionParser({ collection, baseUrl });
+
+      expect(entity.metadata.links).toBeUndefined();
+    });
+
+    it('should skip null link values', () => {
+      const collection = createMockCollection({
+        links: {
+          repository: 'https://github.com/ansible-collections/ansible.posix',
+          documentation: null,
+          homepage: null,
+          issues: null,
+        },
+      });
+      const entity = pahCollectionParser({ collection, baseUrl });
+
+      expect(entity.metadata.links).toHaveLength(1);
+      expect(entity.metadata.links).toContainEqual({
+        url: 'https://github.com/ansible-collections/ansible.posix',
+        title: 'Repository',
+        icon: 'github',
+      });
+    });
+  });
 });
