@@ -369,7 +369,10 @@ export class AAPClient implements IAAPService {
         }
       }
     }
-    if (projectStatus && ['failed', 'error', 'canceled'].includes(projectStatus)) {
+    if (
+      projectStatus &&
+      ['failed', 'error', 'canceled'].includes(projectStatus)
+    ) {
       this.logger.error(
         `[${this.pluginLogName}] Error creating project: ${projectStatus}`,
       );
@@ -1513,8 +1516,9 @@ export class AAPClient implements IAAPService {
               cv.dependencies && typeof cv.dependencies === 'object'
                 ? cv.dependencies
                 : null;
-            const tags: string[] | null =
-              Array.isArray(cv.tags) ? cv.tags : null;
+            const tags: string[] | null = Array.isArray(cv.tags)
+              ? cv.tags
+              : null;
 
             const entry: ICollection = {
               namespace,
