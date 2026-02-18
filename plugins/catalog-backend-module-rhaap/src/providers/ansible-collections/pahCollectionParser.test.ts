@@ -321,7 +321,8 @@ describe('pahCollectionParser', () => {
       const collection = createMockCollection({
         links: {
           repository: 'https://github.com/ansible-collections/ansible.posix',
-          documentation: 'https://docs.ansible.com/ansible/latest/collections/ansible/posix/',
+          documentation:
+            'https://docs.ansible.com/ansible/latest/collections/ansible/posix/',
           homepage: 'https://ansible.com',
           issues: 'https://github.com/ansible-collections/ansible.posix/issues',
         },
@@ -370,7 +371,8 @@ describe('pahCollectionParser', () => {
     it('should include only documentation link when only documentation is provided', () => {
       const collection = createMockCollection({
         links: {
-          documentation: 'https://docs.ansible.com/ansible/latest/collections/ansible/posix/',
+          documentation:
+            'https://docs.ansible.com/ansible/latest/collections/ansible/posix/',
         },
       });
       const entity = pahCollectionParser({ collection, baseUrl });

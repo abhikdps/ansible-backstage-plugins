@@ -65,7 +65,8 @@ describe('createRouter', () => {
       getProviderName: jest.fn().mockReturnValue('PAHCollectionProvider:test'),
       getPahRepositoryName: jest.fn().mockReturnValue('validated'),
       connect: jest.fn(),
-      getLastSyncTime: jest.fn(),
+      getLastSyncTime: jest.fn().mockReturnValue(null),
+      getIsSyncing: jest.fn().mockReturnValue(false),
     } as unknown as jest.Mocked<PAHCollectionProvider>;
 
     const router = await createRouter({
@@ -670,7 +671,35 @@ describe('createRouter', () => {
   });
 
   describe('GET /aap/sync_status', () => {
-    it('should return sync status successfully', async () => {
+    it('should return both aap and content status when no query params', async () => {
+      mockAAPEntityProvider.getLastSyncTime.mockReturnValue(
+        '2024-01-15T10:00:00Z',
+      );
+      mockJobTemplateProvider.getLastSyncTime.mockReturnValue(
+        '2024-01-15T11:00:00Z',
+      );
+      mockPAHCollectionProvider.getLastSyncTime.mockReturnValue(
+        '2024-01-15T12:00:00Z',
+      );
+      mockPAHCollectionProvider.getIsSyncing.mockReturnValue(false);
+
+      const response = await request(app).get('/aap/sync_status');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        aap: {
+          orgsUsersTeams: { lastSync: '2024-01-15T10:00:00Z' },
+          jobTemplates: { lastSync: '2024-01-15T11:00:00Z' },
+        },
+        content: {
+          lastSync: '2024-01-15T12:00:00Z',
+          syncInProgress: false,
+        },
+      });
+      expect(mockLogger.info).toHaveBeenCalledWith('Getting sync status');
+    });
+
+    it('should return only aap status when aap_entities=true', async () => {
       mockAAPEntityProvider.getLastSyncTime.mockReturnValue(
         '2024-01-15T10:00:00Z',
       );
@@ -689,7 +718,54 @@ describe('createRouter', () => {
           jobTemplates: { lastSync: '2024-01-15T11:00:00Z' },
         },
       });
-      expect(mockLogger.info).toHaveBeenCalledWith('Getting sync status');
+    });
+
+    it('should return only content status when ansible_contents=true', async () => {
+      mockPAHCollectionProvider.getLastSyncTime.mockReturnValue(
+        '2024-01-15T12:00:00Z',
+      );
+      mockPAHCollectionProvider.getIsSyncing.mockReturnValue(true);
+
+      const response = await request(app).get(
+        '/aap/sync_status?ansible_contents=true',
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        content: {
+          lastSync: '2024-01-15T12:00:00Z',
+          syncInProgress: true,
+        },
+      });
+    });
+
+    it('should return both when both query params are true', async () => {
+      mockAAPEntityProvider.getLastSyncTime.mockReturnValue(
+        '2024-01-15T10:00:00Z',
+      );
+      mockJobTemplateProvider.getLastSyncTime.mockReturnValue(
+        '2024-01-15T11:00:00Z',
+      );
+      mockPAHCollectionProvider.getLastSyncTime.mockReturnValue(
+        '2024-01-15T12:00:00Z',
+      );
+      mockPAHCollectionProvider.getIsSyncing.mockReturnValue(false);
+
+      const response = await request(app).get(
+        '/aap/sync_status?aap_entities=true&ansible_contents=true',
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        aap: {
+          orgsUsersTeams: { lastSync: '2024-01-15T10:00:00Z' },
+          jobTemplates: { lastSync: '2024-01-15T11:00:00Z' },
+        },
+        content: {
+          lastSync: '2024-01-15T12:00:00Z',
+          syncInProgress: false,
+        },
+      });
     });
 
     it('should handle errors when getLastSyncTime throws', async () => {
@@ -699,9 +775,7 @@ describe('createRouter', () => {
       });
       mockJobTemplateProvider.getLastSyncTime.mockReturnValue(null);
 
-      const response = await request(app).get(
-        '/aap/sync_status?aap_entities=true',
-      );
+      const response = await request(app).get('/aap/sync_status');
 
       expect(response.status).toBe(500);
       expect(response.body).toEqual({
@@ -710,6 +784,7 @@ describe('createRouter', () => {
           orgsUsersTeams: null,
           jobTemplates: null,
         },
+        content: null,
       });
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Failed to get sync status: Failed to get sync time',
@@ -722,9 +797,7 @@ describe('createRouter', () => {
       });
       mockJobTemplateProvider.getLastSyncTime.mockReturnValue(null);
 
-      const response = await request(app).get(
-        '/aap/sync_status?aap_entities=true',
-      );
+      const response = await request(app).get('/aap/sync_status');
 
       expect(response.status).toBe(500);
       expect(response.body).toEqual({
@@ -733,6 +806,7 @@ describe('createRouter', () => {
           orgsUsersTeams: null,
           jobTemplates: null,
         },
+        content: null,
       });
     });
   });

@@ -64,19 +64,55 @@ export async function createRouter(options: {
   router.get('/aap/sync_status', async (request, response) => {
     logger.info('Getting sync status');
     const aapEntities = request.query.aap_entities === 'true';
+    const ansibleContents = request.query.ansible_contents === 'true';
+    const noQueryParams =
+      request.query.aap_entities === undefined &&
+      request.query.ansible_contents === undefined;
 
     try {
-      const orgsUsersTeamsLastSync = aapEntityProvider.getLastSyncTime();
-      const jobTemplatesLastSync = jobTemplateProvider.getLastSyncTime();
+      const result: {
+        aap?: {
+          orgsUsersTeams: { lastSync: string | null };
+          jobTemplates: { lastSync: string | null };
+        };
+        content?: {
+          lastSync: string | null;
+          syncInProgress: boolean;
+        };
+      } = {};
 
-      if (aapEntities) {
-        response.status(200).json({
-          aap: {
-            orgsUsersTeams: { lastSync: orgsUsersTeamsLastSync },
-            jobTemplates: { lastSync: jobTemplatesLastSync },
+      // Include aap block if aap_entities=true or no query params
+      if (aapEntities || noQueryParams) {
+        result.aap = {
+          orgsUsersTeams: {
+            lastSync: aapEntityProvider.getLastSyncTime(),
           },
-        });
+          jobTemplates: {
+            lastSync: jobTemplateProvider.getLastSyncTime(),
+          },
+        };
       }
+
+      // Include content block if ansible_contents=true or no query params
+      if (ansibleContents || noQueryParams) {
+        // Content is syncing if any PAH provider is syncing
+        const contentSyncInProgress = pahCollectionProviders.some(provider =>
+          provider.getIsSyncing(),
+        );
+        // Get the most recent lastSync time among all PAH providers
+        const lastSyncTimes = pahCollectionProviders
+          .map(provider => provider.getLastSyncTime())
+          .filter((time): time is string => time !== null);
+        const contentLastSync =
+          lastSyncTimes.length > 0 ? lastSyncTimes.sort().reverse()[0] : null;
+
+        result.content = {
+          lastSync: contentLastSync,
+          syncInProgress: contentSyncInProgress,
+        };
+      }
+
+      response.status(200).json(result);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -88,6 +124,7 @@ export async function createRouter(options: {
           orgsUsersTeams: null,
           jobTemplates: null,
         },
+        content: null,
       });
     }
   });

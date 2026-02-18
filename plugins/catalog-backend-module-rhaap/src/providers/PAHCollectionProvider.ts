@@ -26,6 +26,7 @@ export class PAHCollectionProvider implements EntityProvider {
   private readonly scheduleFn: () => Promise<void>;
   private connection?: EntityProviderConnection;
   private lastSyncTime: string | null = null;
+  private isSyncing: boolean = false;
 
   static pluginLogName = 'plugin-catalog-rh-aap';
   static syncEntity = 'pahCollections';
@@ -122,6 +123,10 @@ export class PAHCollectionProvider implements EntityProvider {
     return this.lastSyncTime;
   }
 
+  getIsSyncing(): boolean {
+    return this.isSyncing;
+  }
+
   createScheduleFn(
     taskRunner: SchedulerServiceTaskRunner,
   ): () => Promise<void> {
@@ -164,57 +169,63 @@ export class PAHCollectionProvider implements EntityProvider {
       throw new Error('PAHCollectionProvider not connected');
     }
 
-    this.logger.info(
-      `[${this.getProviderName()}]: Starting PAH collections sync for repository: ${
-        this.pahRepositoryName
-      }`,
-    );
-
-    let collectionsCount = 0;
-    let collections: ICollection[] = [];
-    let error: boolean = false;
-    const entities: Entity[] = [];
+    this.isSyncing = true;
     try {
-      collections = await this.ansibleServiceRef.syncCollectionsByRepositories([
-        this.pahRepositoryName,
-      ]);
       this.logger.info(
-        `[${this.getProviderName()}]: Fetched ${
-          collections.length
-        } collections from repository: ${this.pahRepositoryName}`,
-      );
-    } catch (e: any) {
-      this.logger.error(
-        `[${this.getProviderName()}]: Error while fetching collections from repository: ${
+        `[${this.getProviderName()}]: Starting PAH collections sync for repository: ${
           this.pahRepositoryName
-        }. ${e?.message ?? ''}`,
+        }`,
       );
-      error = true;
-    }
 
-    if (!error) {
-      for (const collection of collections) {
-        entities.push(
-          pahCollectionParser({ baseUrl: this.baseUrl, collection }),
+      let collectionsCount = 0;
+      let collections: ICollection[] = [];
+      let error: boolean = false;
+      const entities: Entity[] = [];
+      try {
+        collections =
+          await this.ansibleServiceRef.syncCollectionsByRepositories([
+            this.pahRepositoryName,
+          ]);
+        this.logger.info(
+          `[${this.getProviderName()}]: Fetched ${
+            collections.length
+          } collections from repository: ${this.pahRepositoryName}`,
         );
-        collectionsCount++;
+      } catch (e: any) {
+        this.logger.error(
+          `[${this.getProviderName()}]: Error while fetching collections from repository: ${
+            this.pahRepositoryName
+          }. ${e?.message ?? ''}`,
+        );
+        error = true;
       }
 
-      await this.connection.applyMutation({
-        type: 'full',
-        entities: entities.map(entity => ({
-          entity,
-          locationKey: this.getProviderName(),
-        })),
-      });
+      if (!error) {
+        for (const collection of collections) {
+          entities.push(
+            pahCollectionParser({ baseUrl: this.baseUrl, collection }),
+          );
+          collectionsCount++;
+        }
 
-      this.logger.info(
-        `[${this.getProviderName()}]: Refreshed ${this.getProviderName()}: ${collectionsCount} collections added.`,
-      );
+        await this.connection.applyMutation({
+          type: 'full',
+          entities: entities.map(entity => ({
+            entity,
+            locationKey: this.getProviderName(),
+          })),
+        });
 
-      this.lastSyncTime = new Date().toISOString();
+        this.logger.info(
+          `[${this.getProviderName()}]: Refreshed ${this.getProviderName()}: ${collectionsCount} collections added.`,
+        );
+
+        this.lastSyncTime = new Date().toISOString();
+      }
+      return { success: !error, collectionsCount };
+    } finally {
+      this.isSyncing = false;
     }
-    return { success: !error, collectionsCount };
   }
 
   async connect(connection: EntityProviderConnection): Promise<void> {
