@@ -356,20 +356,20 @@ export class AAPClient implements IAAPService {
     let projectData = (await response.json()) as Project;
     const waitStatuses = ['new', 'pending', 'waiting', 'running'];
 
-    let projectStatus = projectData.status as string;
+    let projectStatus = projectData.status;
     this.logger.info(`Waiting for the project to be ready.`);
-    if (waitStatuses.includes(projectStatus)) {
+    if (projectStatus && waitStatuses.includes(projectStatus)) {
       let shouldWait = true;
-      while (shouldWait) {
+      while (shouldWait && projectData.id !== undefined) {
         await this.sleep(2000);
-        projectData = await this.getProject(projectData.id as number, token);
-        projectStatus = projectData.status as string;
-        if (!waitStatuses.includes(projectStatus)) {
+        projectData = await this.getProject(projectData.id, token);
+        projectStatus = projectData.status;
+        if (!projectStatus || !waitStatuses.includes(projectStatus)) {
           shouldWait = false;
         }
       }
     }
-    if (['failed', 'error', 'canceled'].includes(projectStatus)) {
+    if (projectStatus && ['failed', 'error', 'canceled'].includes(projectStatus)) {
       this.logger.error(
         `[${this.pluginLogName}] Error creating project: ${projectStatus}`,
       );
@@ -656,7 +656,7 @@ export class AAPClient implements IAAPService {
 
     if (payload?.credentials?.length) {
       const seen = new Set();
-      const duplicates = [] as string[];
+      const duplicates: string[] = [];
       payload.credentials.some(currentObject => {
         if (!currentObject.credential_type) {
           return false;
@@ -1400,7 +1400,7 @@ export class AAPClient implements IAAPService {
         // could not validate repository, will not continue with fetching collections from this repository
         // will continue with next repository
         this.logger.error(
-          `[${this.pluginLogName}]: Error validating PAH repository '${repo}'.`,
+          `[${this.pluginLogName}]: Error validating PAH repository '${repo}': ${String(error)}`,
         );
         continue;
       }
@@ -1469,8 +1469,13 @@ export class AAPClient implements IAAPService {
             }
 
             // Safely extract repository name
-            // since we have reached this point, a repository name must be available
-            const repositoryName = item.repository.name as string;
+            const repositoryName = item.repository?.name;
+            if (!repositoryName || typeof repositoryName !== 'string') {
+              this.logger.warn(
+                `[${this.pluginLogName}]: Missing repository name for collection. Skipping.`,
+              );
+              continue;
+            }
 
             let docsBlob: string | null = null;
             let authors: string[] | null = null;
@@ -1504,16 +1509,20 @@ export class AAPClient implements IAAPService {
               );
             }
 
+            const dependencies: Record<string, string> | null =
+              cv.dependencies && typeof cv.dependencies === 'object'
+                ? cv.dependencies
+                : null;
+            const tags: string[] | null =
+              Array.isArray(cv.tags) ? cv.tags : null;
+
             const entry: ICollection = {
               namespace,
               name,
               version: cv.version ?? null,
-              dependencies: (cv.dependencies ?? null) as Record<
-                string,
-                string
-              > | null,
+              dependencies,
               description: cv.description ?? null,
-              tags: (cv.tags ?? null) as string[] | null,
+              tags,
               repository_name: repositoryName,
               collection_readme_html: docsBlob,
               authors,
