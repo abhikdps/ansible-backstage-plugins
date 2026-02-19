@@ -29,7 +29,7 @@ import {
 } from '../types';
 import {
   IJobTemplate,
-  ICollection,
+  Collection,
   ISurvey,
   InstanceGroup,
 } from '../interfaces';
@@ -1358,8 +1358,8 @@ export class AAPClient implements IAAPService {
   public async syncCollectionsByRepositories(
     repositories: string[],
     limit: number = 100,
-  ): Promise<ICollection[]> {
-    const collections: ICollection[] = [];
+  ): Promise<Collection[]> {
+    const collections: Collection[] = [];
     const token = this.ansibleConfig.rhaap?.token ?? null;
 
     const context: PAHHelperContext = {

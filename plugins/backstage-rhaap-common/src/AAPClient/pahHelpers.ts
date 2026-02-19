@@ -1,5 +1,5 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { ICollection } from '../interfaces';
+import { Collection } from '../interfaces';
 
 export interface PAHHelperContext {
   logger: LoggerService;
@@ -118,7 +118,7 @@ export async function processCollectionItem(
   item: any,
   token: string | null,
   context: PAHHelperContext,
-): Promise<ICollection | null> {
+): Promise<Collection | null> {
   const cv = item.collection_version;
   if (!cv) {
     context.logger.warn(

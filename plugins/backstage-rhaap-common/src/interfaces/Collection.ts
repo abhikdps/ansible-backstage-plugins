@@ -2,7 +2,7 @@
  * Represents a collection version returned by the Private Automation Hub (PAH)
  * collection-versions search API, as normalized by getCollectionsByRepositories.
  */
-export interface ICollection {
+export interface Collection {
   /** Collection namespace (e.g. "ansible"). */
   namespace: string;
   /** Collection name (e.g. "posix"). */
