@@ -322,7 +322,14 @@ export async function createRouter(options: {
   router.get('/git_readme_content', async (request, response) => {
     const { scmProvider, host, owner, repo, filePath, ref } = request.query;
 
-    const required = ['scmProvider', 'host', 'owner', 'repo', 'filePath', 'ref'];
+    const required = [
+      'scmProvider',
+      'host',
+      'owner',
+      'repo',
+      'filePath',
+      'ref',
+    ];
     const missing = required.filter(p => !request.query[p]);
     if (missing.length > 0) {
       response.status(400).json({
