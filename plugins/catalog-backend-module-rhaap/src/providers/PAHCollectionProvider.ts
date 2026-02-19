@@ -14,7 +14,7 @@ import { readAapApiEntityConfigs } from './config';
 import { InputError, isError } from '@backstage/errors';
 import { AapConfig, type PAHRepositoryConfig } from './types';
 import { IAAPService, ICollection } from '@ansible/backstage-rhaap-common';
-import { pahCollectionParser } from './ansible-collections/pahCollectionParser';
+import { pahCollectionParser } from './entityParser';
 import { Entity } from '@backstage/catalog-model';
 
 export class PAHCollectionProvider implements EntityProvider {

@@ -894,11 +894,11 @@ describe('createRouter', () => {
       expect(response.body).toEqual({
         success: true,
         providersRun: 1,
-        skippedCount: 0,
         results: [
           {
             repositoryName: 'validated',
             providerName: 'PAHCollectionProvider:test',
+            syncInProgress: false,
             success: true,
             collectionsCount: 10,
           },
@@ -939,11 +939,11 @@ describe('createRouter', () => {
       expect(response.body).toEqual({
         success: true,
         providersRun: 1,
-        skippedCount: 0,
         results: [
           {
             repositoryName: 'validated',
             providerName: 'PAHCollectionProvider:test',
+            syncInProgress: false,
             success: true,
             collectionsCount: 15,
           },
@@ -1014,14 +1014,12 @@ describe('createRouter', () => {
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
         success: true,
-        providersRun: 0,
-        skippedCount: 1,
+        providersRun: 1,
         results: [
           {
             repositoryName: 'validated',
             providerName: 'PAHCollectionProvider:test',
-            skipped: true,
-            reason: 'Sync already in progress',
+            syncInProgress: true,
           },
         ],
       });

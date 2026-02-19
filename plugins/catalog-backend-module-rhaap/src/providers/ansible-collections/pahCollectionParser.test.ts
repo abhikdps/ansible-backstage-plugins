@@ -1,5 +1,5 @@
 import { ICollection } from '@ansible/backstage-rhaap-common';
-import { pahCollectionParser } from './pahCollectionParser';
+import { pahCollectionParser } from '../entityParser';
 
 describe('pahCollectionParser', () => {
   const baseUrl = 'https://pah.example.com';

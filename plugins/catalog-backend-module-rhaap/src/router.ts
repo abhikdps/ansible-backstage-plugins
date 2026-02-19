@@ -225,17 +225,17 @@ export async function createRouter(options: {
         providersToRun.map(async provider => {
           const repositoryName = provider.getPahRepositoryName();
           const providerName = provider.getProviderName();
+          const syncInProgress = provider.getIsSyncing();
 
           // Skip if sync is already in progress for this repository
-          if (provider.getIsSyncing()) {
+          if (syncInProgress) {
             logger.info(
               `Skipping sync for ${repositoryName}: sync already in progress`,
             );
             return {
               repositoryName,
               providerName,
-              skipped: true,
-              reason: 'Sync already in progress',
+              syncInProgress,
             };
           }
 
@@ -243,25 +243,24 @@ export async function createRouter(options: {
           return {
             repositoryName,
             providerName,
+            syncInProgress,
             success,
             collectionsCount,
           };
         }),
       );
 
-      // Separate results by type
-      const skippedResults = results.filter(r => 'skipped' in r && r.skipped);
-      const executedResults = results.filter(r => !('skipped' in r));
-      const failedProviders = executedResults.filter(r => !r.success);
+      const failedProviders = results.filter(
+        r => 'success' in r && !r.success,
+      );
+      const allSucceeded = results.every(
+        r => !('success' in r) || r.success,
+      );
 
-      const allExecutedSucceeded =
-        executedResults.length === 0 || executedResults.every(r => r.success);
-
-      if (allExecutedSucceeded) {
+      if (allSucceeded) {
         response.status(200).json({
           success: true,
-          providersRun: executedResults.length,
-          skippedCount: skippedResults.length,
+          providersRun: providersToRun.length,
           results,
         });
       } else {
@@ -270,8 +269,7 @@ export async function createRouter(options: {
         );
         response.status(207).json({
           success: false,
-          providersRun: executedResults.length,
-          skippedCount: skippedResults.length,
+          providersRun: providersToRun.length,
           results,
           failedRepositories: failedProviders.map(r => r.repositoryName),
         });
