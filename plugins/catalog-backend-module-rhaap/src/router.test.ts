@@ -703,6 +703,7 @@ describe('createRouter', () => {
           jobTemplates: { lastSync: '2024-01-15T11:00:00Z' },
         },
         content: {
+          syncInProgress: false,
           providers: [
             {
               sourceId: 'test:pah:validated',
@@ -762,6 +763,7 @@ describe('createRouter', () => {
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
         content: {
+          syncInProgress: true,
           providers: [
             {
               sourceId: 'test:pah:validated',
@@ -807,6 +809,7 @@ describe('createRouter', () => {
           jobTemplates: { lastSync: '2024-01-15T11:00:00Z' },
         },
         content: {
+          syncInProgress: false,
           providers: [
             {
               sourceId: 'test:pah:validated',
@@ -1366,6 +1369,49 @@ describe('createRouter', () => {
           (r: { status: string }) => r.status === 'failed',
         ),
       ).toBe(true);
+    });
+
+    it('should return 400 when mix of failed and invalid with no sync started (client error precedence)', async () => {
+      mockProvider1.startSync.mockReturnValue({
+        started: false,
+        skipped: false,
+        error: 'Provider not connected',
+      });
+
+      const response = await request(appWithMultipleProviders)
+        .post('/collections/sync/from-pah')
+        .send({
+          filters: [
+            { repository_name: 'repo1' },
+            { repository_name: 'nonexistent' },
+          ],
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.summary.failed).toBe(1);
+      expect(response.body.summary.invalid).toBe(1);
+      expect(response.body.results).toHaveLength(2);
+    });
+
+    it('should return 207 when mix of already_syncing and invalid', async () => {
+      mockProvider1.startSync.mockReturnValue({
+        started: false,
+        skipped: true,
+      });
+
+      const response = await request(appWithMultipleProviders)
+        .post('/collections/sync/from-pah')
+        .send({
+          filters: [
+            { repository_name: 'repo1' },
+            { repository_name: 'nonexistent' },
+          ],
+        });
+
+      expect(response.status).toBe(207);
+      expect(response.body.summary.already_syncing).toBe(1);
+      expect(response.body.summary.invalid).toBe(1);
+      expect(response.body.results).toHaveLength(2);
     });
   });
 });

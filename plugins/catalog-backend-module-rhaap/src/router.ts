@@ -76,6 +76,7 @@ export async function createRouter(options: {
           jobTemplates: { lastSync: string | null };
         };
         content?: {
+          syncInProgress: boolean;
           providers: Array<{
             sourceId: string;
             repository: string;
@@ -119,7 +120,10 @@ export async function createRouter(options: {
           newCollections: provider.getNewCollectionsCount(),
         }));
 
+        const anySyncInProgress = providers.some(p => p.syncInProgress);
+
         result.content = {
+          syncInProgress: anySyncInProgress,
           providers,
         };
       }
@@ -323,7 +327,11 @@ export async function createRouter(options: {
         repositoryNames.length === 0 && pahCollectionProviders.length === 0;
 
       let statusCode: number;
-      if (allInvalid || emptyRequest) {
+      if (
+        allInvalid ||
+        emptyRequest ||
+        (hasInvalid && hasFailures && !hasStarted)
+      ) {
         statusCode = 400;
       } else if (allFailed) {
         statusCode = 500;
@@ -332,6 +340,8 @@ export async function createRouter(options: {
       } else if (allSkipped) {
         statusCode = 200;
       } else if ((hasSkipped || hasFailures || hasInvalid) && hasStarted) {
+        statusCode = 207;
+      } else if (hasSkipped && hasInvalid) {
         statusCode = 207;
       } else {
         statusCode = 200;
