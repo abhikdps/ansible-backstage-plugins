@@ -7,7 +7,7 @@ import { mockServices } from '@backstage/backend-test-utils';
 import { EntityProviderConnection } from '@backstage/plugin-catalog-node';
 import { PAHCollectionProvider } from './PAHCollectionProvider';
 import { mockAnsibleService } from '../mock/mockIAAPService';
-import { ICollection } from '@ansible/backstage-rhaap-common';
+import { Collection } from '@ansible/backstage-rhaap-common';
 
 // Mock config for PAH collection provider
 const MOCK_PAH_CONFIG = {
@@ -154,7 +154,7 @@ const MOCK_MIXED_SCHEDULE_CONFIG = {
 };
 
 // Mock collection data
-const MOCK_COLLECTION: ICollection = {
+const MOCK_COLLECTION: Collection = {
   namespace: 'ansible',
   name: 'posix',
   version: '1.5.4',
@@ -166,7 +166,7 @@ const MOCK_COLLECTION: ICollection = {
   authors: ['Ansible Core Team'],
 };
 
-const MOCK_COLLECTION_2: ICollection = {
+const MOCK_COLLECTION_2: Collection = {
   namespace: 'cisco',
   name: 'ios',
   version: '4.6.1',

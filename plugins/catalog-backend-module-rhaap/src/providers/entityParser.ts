@@ -6,7 +6,7 @@ import {
   Entity,
 } from '@backstage/catalog-model';
 import {
-  ICollection,
+  Collection,
   IJobTemplate,
   Organization,
   ISurvey,
@@ -132,7 +132,7 @@ export const aapJobTemplateParser = (options: {
 };
 
 export const pahCollectionParser = (options: {
-  collection: ICollection;
+  collection: Collection;
   baseUrl: string;
 }): Entity => {
   const collectionBaseUrl =

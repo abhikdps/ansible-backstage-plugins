@@ -1,12 +1,12 @@
-import { ICollection } from '@ansible/backstage-rhaap-common';
+import { Collection } from '@ansible/backstage-rhaap-common';
 import { pahCollectionParser } from '../entityParser';
 
 describe('pahCollectionParser', () => {
   const baseUrl = 'https://pah.example.com';
 
   const createMockCollection = (
-    overrides: Partial<ICollection> = {},
-  ): ICollection => ({
+    overrides: Partial<Collection> = {},
+  ): Collection => ({
     namespace: 'ansible',
     name: 'posix',
     version: '1.5.4',

@@ -13,7 +13,7 @@ import type { Config } from '@backstage/config';
 import { readAapApiEntityConfigs } from './config';
 import { InputError, isError } from '@backstage/errors';
 import { AapConfig, type PAHRepositoryConfig } from './types';
-import { IAAPService, ICollection } from '@ansible/backstage-rhaap-common';
+import { IAAPService, Collection } from '@ansible/backstage-rhaap-common';
 import { pahCollectionParser } from './entityParser';
 import { Entity } from '@backstage/catalog-model';
 
@@ -178,7 +178,7 @@ export class PAHCollectionProvider implements EntityProvider {
       );
 
       let collectionsCount = 0;
-      let collections: ICollection[] = [];
+      let collections: Collection[] = [];
       let error: boolean = false;
       const entities: Entity[] = [];
       try {
