@@ -76,8 +76,18 @@ export async function createRouter(options: {
           jobTemplates: { lastSync: string | null };
         };
         content?: {
-          lastSync: string | null;
-          syncInProgress: boolean;
+          providers: Array<{
+            sourceId: string;
+            repository: string;
+            providerName: string;
+            enabled: boolean;
+            syncInProgress: boolean;
+            lastSyncTime: string | null;
+            lastFailedSyncTime: string | null;
+            lastSyncStatus: 'success' | 'failure' | null;
+            collectionsFound: number;
+            newCollections: number;
+          }>;
         };
       } = {};
 
@@ -95,20 +105,22 @@ export async function createRouter(options: {
 
       // Include content block if ansible_contents=true or no query params
       if (ansibleContents || noQueryParams) {
-        // Content is syncing if any PAH provider is syncing
-        const contentSyncInProgress = pahCollectionProviders.some(provider =>
-          provider.getIsSyncing(),
-        );
-        // Get the most recent lastSync time among all PAH providers
-        const lastSyncTimes = pahCollectionProviders
-          .map(provider => provider.getLastSyncTime())
-          .filter((time): time is string => time !== null);
-        const contentLastSync =
-          lastSyncTimes.length > 0 ? lastSyncTimes.sort().reverse()[0] : null;
+        // Return per-provider status
+        const providers = pahCollectionProviders.map(provider => ({
+          sourceId: provider.getSourceId(),
+          repository: provider.getPahRepositoryName(),
+          providerName: provider.getProviderName(),
+          enabled: provider.isEnabled(),
+          syncInProgress: provider.getIsSyncing(),
+          lastSyncTime: provider.getLastSyncTime(),
+          lastFailedSyncTime: provider.getLastFailedSyncTime(),
+          lastSyncStatus: provider.getLastSyncStatus(),
+          collectionsFound: provider.getLastCollectionsCount(),
+          newCollections: provider.getNewCollectionsCount(),
+        }));
 
         result.content = {
-          lastSync: contentLastSync,
-          syncInProgress: contentSyncInProgress,
+          providers,
         };
       }
 
@@ -199,81 +211,136 @@ export async function createRouter(options: {
           );
       }
 
+      // Separate valid and invalid repository names
+      const invalidRepositories: string[] = [];
       let providersToRun: PAHCollectionProvider[];
+
       if (repositoryNames.length > 0) {
-        // if filters are provided, sync only the repositories specified
-        const notFound = repositoryNames.filter(n => !_PAH_PROVIDERS.has(n));
-        if (notFound.length > 0) {
-          response.status(400).json({
-            success: false,
-            error: `No provider found for repository name(s): ${notFound.join(', ')}`,
-            notFound,
-          });
-          return;
+        // Filter out invalid repositories but don't fail the request
+        const validNames: string[] = [];
+        for (const name of repositoryNames) {
+          if (_PAH_PROVIDERS.has(name)) {
+            validNames.push(name);
+          } else {
+            invalidRepositories.push(name);
+          }
         }
-        // build a list of providers to run based on the repository names provided
-        providersToRun = repositoryNames.map(name => _PAH_PROVIDERS.get(name)!);
+        providersToRun = validNames.map(name => _PAH_PROVIDERS.get(name)!);
       } else {
         // if no filters provided, run all providers
         providersToRun = pahCollectionProviders;
       }
 
       logger.info(
-        `Starting PAH collections sync for repository name(s): ${repositoryNames.length > 0 ? repositoryNames.join(', ') : 'all'}`,
+        `Starting PAH collections sync for repository name(s): ${providersToRun.length > 0 ? providersToRun.map(p => p.getPahRepositoryName()).join(', ') : 'none'}`,
       );
-      const results = await Promise.all(
-        providersToRun.map(async provider => {
-          const repositoryName = provider.getPahRepositoryName();
-          const providerName = provider.getProviderName();
-          const syncInProgress = provider.getIsSyncing();
 
-          // Skip if sync is already in progress for this repository
-          if (syncInProgress) {
-            logger.info(
-              `Skipping sync for ${repositoryName}: sync already in progress`,
-            );
-            return {
-              repositoryName,
-              providerName,
-              syncInProgress,
-            };
-          }
+      type SyncStatus =
+        | 'sync_started'
+        | 'already_syncing'
+        | 'failed'
+        | 'invalid';
+      interface SyncResult {
+        repositoryName: string;
+        providerName?: string;
+        status: SyncStatus;
+        error?: { code: string; message: string };
+      }
 
-          const { success, collectionsCount } = await provider.run();
+      const results: SyncResult[] = providersToRun.map(provider => {
+        const repositoryName = provider.getPahRepositoryName();
+        const providerName = provider.getProviderName();
+
+        const { started, skipped, error } = provider.startSync();
+
+        if (skipped) {
+          logger.info(
+            `Skipping sync for ${repositoryName}: sync already in progress`,
+          );
           return {
             repositoryName,
             providerName,
-            syncInProgress,
-            success,
-            collectionsCount,
+            status: 'already_syncing' as SyncStatus,
           };
-        }),
-      );
+        }
 
-      const failedProviders = results.filter(
-        r => 'success' in r && !r.success,
-      );
-      const allSucceeded = results.every(
-        r => !('success' in r) || r.success,
-      );
+        if (!started) {
+          logger.error(
+            `Failed to start sync for ${repositoryName}: ${error ?? 'unknown error'}`,
+          );
+          return {
+            repositoryName,
+            providerName,
+            status: 'failed' as SyncStatus,
+            error: {
+              code: 'SYNC_START_FAILED',
+              message: error ?? 'Failed to initiate sync for provider',
+            },
+          };
+        }
 
-      if (allSucceeded) {
-        response.status(200).json({
-          success: true,
-          providersRun: providersToRun.length,
-          results,
-        });
-      } else {
-        logger.error(
-          `PAH collections sync failed for: ${failedProviders.map(r => r.repositoryName).join(', ')}`,
-        );
-        response.status(207).json({
-          success: false,
-          providersRun: providersToRun.length,
-          results,
-          failedRepositories: failedProviders.map(r => r.repositoryName),
+        return {
+          repositoryName,
+          providerName,
+          status: 'sync_started' as SyncStatus,
+        };
+      });
+
+      for (const invalidRepo of invalidRepositories) {
+        results.push({
+          repositoryName: invalidRepo,
+          status: 'invalid' as SyncStatus,
+          error: {
+            code: 'INVALID_REPOSITORY',
+            message: `Repository '${invalidRepo}' not found in configured providers`,
+          },
         });
       }
+
+      const summary = {
+        total: results.length,
+        sync_started: results.filter(r => r.status === 'sync_started').length,
+        already_syncing: results.filter(r => r.status === 'already_syncing')
+          .length,
+        failed: results.filter(r => r.status === 'failed').length,
+        invalid: results.filter(r => r.status === 'invalid').length,
+      };
+
+      const hasFailures = results.some(r => r.status === 'failed');
+      const hasSkipped = results.some(r => r.status === 'already_syncing');
+      const hasStarted = results.some(r => r.status === 'sync_started');
+      const hasInvalid = results.some(r => r.status === 'invalid');
+      const allStarted =
+        results.length > 0 && results.every(r => r.status === 'sync_started');
+      const allSkipped =
+        results.length > 0 &&
+        results.every(r => r.status === 'already_syncing');
+      const allFailed =
+        results.length > 0 && results.every(r => r.status === 'failed');
+      const allInvalid =
+        results.length > 0 && results.every(r => r.status === 'invalid');
+      const emptyRequest =
+        repositoryNames.length === 0 && pahCollectionProviders.length === 0;
+
+      let statusCode: number;
+      if (allInvalid || emptyRequest) {
+        statusCode = 400;
+      } else if (allFailed) {
+        statusCode = 500;
+      } else if (allStarted) {
+        statusCode = 202;
+      } else if (allSkipped) {
+        statusCode = 200;
+      } else if ((hasSkipped || hasFailures || hasInvalid) && hasStarted) {
+        statusCode = 207;
+      } else {
+        statusCode = 200;
+      }
+
+      response.status(statusCode).json({
+        summary,
+        results,
+      });
     },
   );
 

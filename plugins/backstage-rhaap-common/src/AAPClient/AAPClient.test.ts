@@ -3459,7 +3459,9 @@ describe('AAPClient', () => {
           const mockResponse = {
             ok: true,
             json: jest.fn().mockResolvedValue({
-              results: [{ name: repoName, pulp_href: `/api/pulp/repo/${repoName}/` }],
+              results: [
+                { name: repoName, pulp_href: `/api/pulp/repo/${repoName}/` },
+              ],
             }),
           };
           mockFetch.mockResolvedValue(mockResponse);

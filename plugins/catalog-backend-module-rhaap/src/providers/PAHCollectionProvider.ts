@@ -26,7 +26,12 @@ export class PAHCollectionProvider implements EntityProvider {
   private readonly scheduleFn: () => Promise<void>;
   private connection?: EntityProviderConnection;
   private lastSyncTime: string | null = null;
+  private lastFailedSyncTime: string | null = null;
+  private lastSyncStatus: 'success' | 'failure' | null = null;
+  private lastCollectionsCount: number = 0;
+  private previousCollectionsCount: number = 0;
   private isSyncing: boolean = false;
+  private enabled: boolean = true;
 
   static pluginLogName = 'plugin-catalog-rh-aap';
   static syncEntity = 'pahCollections';
@@ -123,8 +128,56 @@ export class PAHCollectionProvider implements EntityProvider {
     return this.lastSyncTime;
   }
 
+  getLastFailedSyncTime(): string | null {
+    return this.lastFailedSyncTime;
+  }
+
+  getLastSyncStatus(): 'success' | 'failure' | null {
+    return this.lastSyncStatus;
+  }
+
+  getLastCollectionsCount(): number {
+    return this.lastCollectionsCount;
+  }
+
+  getNewCollectionsCount(): number {
+    return Math.max(
+      0,
+      this.lastCollectionsCount - this.previousCollectionsCount,
+    );
+  }
+
   getIsSyncing(): boolean {
     return this.isSyncing;
+  }
+
+  getSourceId(): string {
+    return `${this.env}:pah:${this.pahRepositoryName}`;
+  }
+
+  isEnabled(): boolean {
+    return this.enabled;
+  }
+
+  /** Start sync without waiting for completion. Returns true if sync was started, false if already running or error. */
+  startSync(): { started: boolean; skipped: boolean; error?: string } {
+    if (this.isSyncing) {
+      return { started: false, skipped: true };
+    }
+    if (!this.connection) {
+      return {
+        started: false,
+        skipped: false,
+        error: 'Provider not connected',
+      };
+    }
+    // Fire and forget - don't await
+    this.run().catch(err => {
+      this.logger.error(
+        `[${this.getProviderName()}]: Background sync failed: ${err?.message ?? err}`,
+      );
+    });
+    return { started: true, skipped: false };
   }
 
   createScheduleFn(
@@ -221,6 +274,12 @@ export class PAHCollectionProvider implements EntityProvider {
         );
 
         this.lastSyncTime = new Date().toISOString();
+        this.lastSyncStatus = 'success';
+        this.previousCollectionsCount = this.lastCollectionsCount;
+        this.lastCollectionsCount = collectionsCount;
+      } else {
+        this.lastFailedSyncTime = new Date().toISOString();
+        this.lastSyncStatus = 'failure';
       }
       return { success: !error, collectionsCount };
     } finally {

@@ -62,11 +62,18 @@ describe('createRouter', () => {
 
     mockPAHCollectionProvider = {
       run: jest.fn(),
+      startSync: jest.fn().mockReturnValue({ started: true, skipped: false }),
       getProviderName: jest.fn().mockReturnValue('PAHCollectionProvider:test'),
       getPahRepositoryName: jest.fn().mockReturnValue('validated'),
       connect: jest.fn(),
       getLastSyncTime: jest.fn().mockReturnValue(null),
+      getLastFailedSyncTime: jest.fn().mockReturnValue(null),
+      getLastSyncStatus: jest.fn().mockReturnValue(null),
+      getLastCollectionsCount: jest.fn().mockReturnValue(0),
+      getNewCollectionsCount: jest.fn().mockReturnValue(0),
       getIsSyncing: jest.fn().mockReturnValue(false),
+      getSourceId: jest.fn().mockReturnValue('test:pah:validated'),
+      isEnabled: jest.fn().mockReturnValue(true),
     } as unknown as jest.Mocked<PAHCollectionProvider>;
 
     const router = await createRouter({
@@ -681,6 +688,10 @@ describe('createRouter', () => {
       mockPAHCollectionProvider.getLastSyncTime.mockReturnValue(
         '2024-01-15T12:00:00Z',
       );
+      mockPAHCollectionProvider.getLastFailedSyncTime.mockReturnValue(null);
+      mockPAHCollectionProvider.getLastSyncStatus.mockReturnValue('success');
+      mockPAHCollectionProvider.getLastCollectionsCount.mockReturnValue(25);
+      mockPAHCollectionProvider.getNewCollectionsCount.mockReturnValue(5);
       mockPAHCollectionProvider.getIsSyncing.mockReturnValue(false);
 
       const response = await request(app).get('/aap/sync_status');
@@ -692,8 +703,20 @@ describe('createRouter', () => {
           jobTemplates: { lastSync: '2024-01-15T11:00:00Z' },
         },
         content: {
-          lastSync: '2024-01-15T12:00:00Z',
-          syncInProgress: false,
+          providers: [
+            {
+              sourceId: 'test:pah:validated',
+              repository: 'validated',
+              providerName: 'PAHCollectionProvider:test',
+              enabled: true,
+              syncInProgress: false,
+              lastSyncTime: '2024-01-15T12:00:00Z',
+              lastFailedSyncTime: null,
+              lastSyncStatus: 'success',
+              collectionsFound: 25,
+              newCollections: 5,
+            },
+          ],
         },
       });
       expect(mockLogger.info).toHaveBeenCalledWith('Getting sync status');
@@ -724,6 +747,12 @@ describe('createRouter', () => {
       mockPAHCollectionProvider.getLastSyncTime.mockReturnValue(
         '2024-01-15T12:00:00Z',
       );
+      mockPAHCollectionProvider.getLastFailedSyncTime.mockReturnValue(
+        '2024-01-15T13:00:00Z',
+      );
+      mockPAHCollectionProvider.getLastSyncStatus.mockReturnValue('failure');
+      mockPAHCollectionProvider.getLastCollectionsCount.mockReturnValue(0);
+      mockPAHCollectionProvider.getNewCollectionsCount.mockReturnValue(0);
       mockPAHCollectionProvider.getIsSyncing.mockReturnValue(true);
 
       const response = await request(app).get(
@@ -733,8 +762,20 @@ describe('createRouter', () => {
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
         content: {
-          lastSync: '2024-01-15T12:00:00Z',
-          syncInProgress: true,
+          providers: [
+            {
+              sourceId: 'test:pah:validated',
+              repository: 'validated',
+              providerName: 'PAHCollectionProvider:test',
+              enabled: true,
+              syncInProgress: true,
+              lastSyncTime: '2024-01-15T12:00:00Z',
+              lastFailedSyncTime: '2024-01-15T13:00:00Z',
+              lastSyncStatus: 'failure',
+              collectionsFound: 0,
+              newCollections: 0,
+            },
+          ],
         },
       });
     });
@@ -749,6 +790,10 @@ describe('createRouter', () => {
       mockPAHCollectionProvider.getLastSyncTime.mockReturnValue(
         '2024-01-15T12:00:00Z',
       );
+      mockPAHCollectionProvider.getLastFailedSyncTime.mockReturnValue(null);
+      mockPAHCollectionProvider.getLastSyncStatus.mockReturnValue('success');
+      mockPAHCollectionProvider.getLastCollectionsCount.mockReturnValue(10);
+      mockPAHCollectionProvider.getNewCollectionsCount.mockReturnValue(2);
       mockPAHCollectionProvider.getIsSyncing.mockReturnValue(false);
 
       const response = await request(app).get(
@@ -762,8 +807,20 @@ describe('createRouter', () => {
           jobTemplates: { lastSync: '2024-01-15T11:00:00Z' },
         },
         content: {
-          lastSync: '2024-01-15T12:00:00Z',
-          syncInProgress: false,
+          providers: [
+            {
+              sourceId: 'test:pah:validated',
+              repository: 'validated',
+              providerName: 'PAHCollectionProvider:test',
+              enabled: true,
+              syncInProgress: false,
+              lastSyncTime: '2024-01-15T12:00:00Z',
+              lastFailedSyncTime: null,
+              lastSyncStatus: 'success',
+              collectionsFound: 10,
+              newCollections: 2,
+            },
+          ],
         },
       });
     });
@@ -879,73 +936,30 @@ describe('createRouter', () => {
   });
 
   describe('POST /collections/sync/from-pah', () => {
-    it('should sync all providers when no filters provided', async () => {
-      mockPAHCollectionProvider.run.mockResolvedValue({
-        success: true,
-        collectionsCount: 10,
+    it('should return 202 when sync starts for all providers', async () => {
+      mockPAHCollectionProvider.startSync.mockReturnValue({
+        started: true,
+        skipped: false,
       });
-      mockPAHCollectionProvider.getIsSyncing.mockReturnValue(false);
 
       const response = await request(app)
         .post('/collections/sync/from-pah')
         .send({});
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(202);
       expect(response.body).toEqual({
-        success: true,
-        providersRun: 1,
+        summary: {
+          total: 1,
+          sync_started: 1,
+          already_syncing: 0,
+          failed: 0,
+          invalid: 0,
+        },
         results: [
           {
             repositoryName: 'validated',
             providerName: 'PAHCollectionProvider:test',
-            syncInProgress: false,
-            success: true,
-            collectionsCount: 10,
-          },
-        ],
-      });
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Starting PAH collections sync for repository name(s): all',
-      );
-    });
-
-    it('should sync all providers when filters array is empty', async () => {
-      mockPAHCollectionProvider.run.mockResolvedValue({
-        success: true,
-        collectionsCount: 5,
-      });
-
-      const response = await request(app)
-        .post('/collections/sync/from-pah')
-        .send({ filters: [] });
-
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
-      expect(response.body.providersRun).toBe(1);
-    });
-
-    it('should sync specific repository when filter is provided', async () => {
-      mockPAHCollectionProvider.run.mockResolvedValue({
-        success: true,
-        collectionsCount: 15,
-      });
-      mockPAHCollectionProvider.getIsSyncing.mockReturnValue(false);
-
-      const response = await request(app)
-        .post('/collections/sync/from-pah')
-        .send({ filters: [{ repository_name: 'validated' }] });
-
-      expect(response.status).toBe(200);
-      expect(response.body).toEqual({
-        success: true,
-        providersRun: 1,
-        results: [
-          {
-            repositoryName: 'validated',
-            providerName: 'PAHCollectionProvider:test',
-            syncInProgress: false,
-            success: true,
-            collectionsCount: 15,
+            status: 'sync_started',
           },
         ],
       });
@@ -954,41 +968,108 @@ describe('createRouter', () => {
       );
     });
 
-    it('should return 400 when repository not found', async () => {
+    it('should return 202 when filters array is empty and all syncs start', async () => {
+      mockPAHCollectionProvider.startSync.mockReturnValue({
+        started: true,
+        skipped: false,
+      });
+
+      const response = await request(app)
+        .post('/collections/sync/from-pah')
+        .send({ filters: [] });
+
+      expect(response.status).toBe(202);
+      expect(response.body.summary.total).toBe(1);
+      expect(response.body.summary.sync_started).toBe(1);
+      expect(response.body.results[0].status).toBe('sync_started');
+    });
+
+    it('should return 202 when sync starts for specific repository', async () => {
+      mockPAHCollectionProvider.startSync.mockReturnValue({
+        started: true,
+        skipped: false,
+      });
+
+      const response = await request(app)
+        .post('/collections/sync/from-pah')
+        .send({ filters: [{ repository_name: 'validated' }] });
+
+      expect(response.status).toBe(202);
+      expect(response.body).toEqual({
+        summary: {
+          total: 1,
+          sync_started: 1,
+          already_syncing: 0,
+          failed: 0,
+          invalid: 0,
+        },
+        results: [
+          {
+            repositoryName: 'validated',
+            providerName: 'PAHCollectionProvider:test',
+            status: 'sync_started',
+          },
+        ],
+      });
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'Starting PAH collections sync for repository name(s): validated',
+      );
+    });
+
+    it('should return 400 when all requested repositories are invalid', async () => {
       const response = await request(app)
         .post('/collections/sync/from-pah')
         .send({ filters: [{ repository_name: 'nonexistent' }] });
 
       expect(response.status).toBe(400);
       expect(response.body).toEqual({
-        success: false,
-        error: 'No provider found for repository name(s): nonexistent',
-        notFound: ['nonexistent'],
+        summary: {
+          total: 1,
+          sync_started: 0,
+          already_syncing: 0,
+          failed: 0,
+          invalid: 1,
+        },
+        results: [
+          {
+            repositoryName: 'nonexistent',
+            status: 'invalid',
+            error: {
+              code: 'INVALID_REPOSITORY',
+              message:
+                "Repository 'nonexistent' not found in configured providers",
+            },
+          },
+        ],
       });
     });
 
-    it('should return 207 when some providers fail', async () => {
-      mockPAHCollectionProvider.run.mockResolvedValue({
-        success: false,
-        collectionsCount: 0,
+    it('should return 500 when provider fails to start', async () => {
+      mockPAHCollectionProvider.startSync.mockReturnValue({
+        started: false,
+        skipped: false,
+        error: 'Provider not connected',
       });
 
       const response = await request(app)
         .post('/collections/sync/from-pah')
         .send({});
 
-      expect(response.status).toBe(207);
-      expect(response.body.success).toBe(false);
-      expect(response.body.failedRepositories).toContain('validated');
+      expect(response.status).toBe(500);
+      expect(response.body.summary.failed).toBe(1);
+      expect(response.body.results[0].status).toBe('failed');
+      expect(response.body.results[0].error).toEqual({
+        code: 'SYNC_START_FAILED',
+        message: 'Provider not connected',
+      });
       expect(mockLogger.error).toHaveBeenCalled();
     });
 
-    it('should filter out invalid repository names from filters', async () => {
-      mockPAHCollectionProvider.run.mockResolvedValue({
-        success: true,
-        collectionsCount: 8,
+    it('should filter out invalid repository names from filters and return 202 when sync starts', async () => {
+      mockPAHCollectionProvider.startSync.mockReturnValue({
+        started: true,
+        skipped: false,
       });
-      mockPAHCollectionProvider.getIsSyncing.mockReturnValue(false);
 
       const response = await request(app)
         .post('/collections/sync/from-pah')
@@ -1000,12 +1081,16 @@ describe('createRouter', () => {
           ],
         });
 
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
+      expect(response.status).toBe(202);
+      expect(response.body.summary.sync_started).toBe(1);
+      expect(response.body.results[0].status).toBe('sync_started');
     });
 
     it('should skip sync when already in progress', async () => {
-      mockPAHCollectionProvider.getIsSyncing.mockReturnValue(true);
+      mockPAHCollectionProvider.startSync.mockReturnValue({
+        started: false,
+        skipped: true,
+      });
 
       const response = await request(app)
         .post('/collections/sync/from-pah')
@@ -1013,13 +1098,18 @@ describe('createRouter', () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
-        success: true,
-        providersRun: 1,
+        summary: {
+          total: 1,
+          sync_started: 0,
+          already_syncing: 1,
+          failed: 0,
+          invalid: 0,
+        },
         results: [
           {
             repositoryName: 'validated',
             providerName: 'PAHCollectionProvider:test',
-            syncInProgress: true,
+            status: 'already_syncing',
           },
         ],
       });
@@ -1027,6 +1117,255 @@ describe('createRouter', () => {
       expect(mockLogger.info).toHaveBeenCalledWith(
         'Skipping sync for validated: sync already in progress',
       );
+    });
+
+    it('should return 207 with valid results and invalid repositories mixed', async () => {
+      mockPAHCollectionProvider.startSync.mockReturnValue({
+        started: true,
+        skipped: false,
+      });
+
+      const response = await request(app)
+        .post('/collections/sync/from-pah')
+        .send({
+          filters: [
+            { repository_name: 'validated' },
+            { repository_name: 'invalid-repo' },
+          ],
+        });
+
+      expect(response.status).toBe(207);
+      expect(response.body).toEqual({
+        summary: {
+          total: 2,
+          sync_started: 1,
+          already_syncing: 0,
+          failed: 0,
+          invalid: 1,
+        },
+        results: [
+          {
+            repositoryName: 'validated',
+            providerName: 'PAHCollectionProvider:test',
+            status: 'sync_started',
+          },
+          {
+            repositoryName: 'invalid-repo',
+            status: 'invalid',
+            error: {
+              code: 'INVALID_REPOSITORY',
+              message:
+                "Repository 'invalid-repo' not found in configured providers",
+            },
+          },
+        ],
+      });
+    });
+
+    it('should return 400 when no providers are configured and request has no filters', async () => {
+      const routerWithNoProviders = await createRouter({
+        logger: mockLogger,
+        aapEntityProvider: mockAAPEntityProvider,
+        jobTemplateProvider: mockJobTemplateProvider,
+        eeEntityProvider: mockEEEntityProvider,
+        pahCollectionProviders: [],
+      });
+      const appWithNoProviders = express().use(routerWithNoProviders);
+
+      const response = await request(appWithNoProviders)
+        .post('/collections/sync/from-pah')
+        .send({});
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        summary: {
+          total: 0,
+          sync_started: 0,
+          already_syncing: 0,
+          failed: 0,
+          invalid: 0,
+        },
+        results: [],
+      });
+    });
+  });
+
+  describe('POST /collections/sync/from-pah with multiple providers', () => {
+    let appWithMultipleProviders: express.Express;
+    let mockProvider1: jest.Mocked<PAHCollectionProvider>;
+    let mockProvider2: jest.Mocked<PAHCollectionProvider>;
+
+    beforeEach(async () => {
+      mockProvider1 = {
+        run: jest.fn(),
+        startSync: jest.fn(),
+        getProviderName: jest
+          .fn()
+          .mockReturnValue('PAHCollectionProvider:test:repo1'),
+        getPahRepositoryName: jest.fn().mockReturnValue('repo1'),
+        connect: jest.fn(),
+        getLastSyncTime: jest.fn().mockReturnValue(null),
+        getLastFailedSyncTime: jest.fn().mockReturnValue(null),
+        getLastSyncStatus: jest.fn().mockReturnValue(null),
+        getLastCollectionsCount: jest.fn().mockReturnValue(0),
+        getNewCollectionsCount: jest.fn().mockReturnValue(0),
+        getIsSyncing: jest.fn().mockReturnValue(false),
+        getSourceId: jest.fn().mockReturnValue('test:pah:repo1'),
+        isEnabled: jest.fn().mockReturnValue(true),
+      } as unknown as jest.Mocked<PAHCollectionProvider>;
+
+      mockProvider2 = {
+        run: jest.fn(),
+        startSync: jest.fn(),
+        getProviderName: jest
+          .fn()
+          .mockReturnValue('PAHCollectionProvider:test:repo2'),
+        getPahRepositoryName: jest.fn().mockReturnValue('repo2'),
+        connect: jest.fn(),
+        getLastSyncTime: jest.fn().mockReturnValue(null),
+        getLastFailedSyncTime: jest.fn().mockReturnValue(null),
+        getLastSyncStatus: jest.fn().mockReturnValue(null),
+        getLastCollectionsCount: jest.fn().mockReturnValue(0),
+        getNewCollectionsCount: jest.fn().mockReturnValue(0),
+        getIsSyncing: jest.fn().mockReturnValue(false),
+        getSourceId: jest.fn().mockReturnValue('test:pah:repo2'),
+        isEnabled: jest.fn().mockReturnValue(true),
+      } as unknown as jest.Mocked<PAHCollectionProvider>;
+
+      const router = await createRouter({
+        logger: mockLogger,
+        aapEntityProvider: mockAAPEntityProvider,
+        jobTemplateProvider: mockJobTemplateProvider,
+        eeEntityProvider: mockEEEntityProvider,
+        pahCollectionProviders: [mockProvider1, mockProvider2],
+      });
+
+      appWithMultipleProviders = express().use(router);
+    });
+
+    it('should return 202 when all providers start sync successfully', async () => {
+      mockProvider1.startSync.mockReturnValue({
+        started: true,
+        skipped: false,
+      });
+      mockProvider2.startSync.mockReturnValue({
+        started: true,
+        skipped: false,
+      });
+
+      const response = await request(appWithMultipleProviders)
+        .post('/collections/sync/from-pah')
+        .send({});
+
+      expect(response.status).toBe(202);
+      expect(response.body.summary.total).toBe(2);
+      expect(response.body.summary.sync_started).toBe(2);
+      expect(response.body.results).toHaveLength(2);
+      expect(
+        response.body.results.every(
+          (r: { status: string }) => r.status === 'sync_started',
+        ),
+      ).toBe(true);
+    });
+
+    it('should return 200 when all providers are already syncing', async () => {
+      mockProvider1.startSync.mockReturnValue({
+        started: false,
+        skipped: true,
+      });
+      mockProvider2.startSync.mockReturnValue({
+        started: false,
+        skipped: true,
+      });
+
+      const response = await request(appWithMultipleProviders)
+        .post('/collections/sync/from-pah')
+        .send({});
+
+      expect(response.status).toBe(200);
+      expect(response.body.summary.total).toBe(2);
+      expect(response.body.summary.already_syncing).toBe(2);
+      expect(response.body.results).toHaveLength(2);
+      expect(
+        response.body.results.every(
+          (r: { status: string }) => r.status === 'already_syncing',
+        ),
+      ).toBe(true);
+    });
+
+    it('should return 207 when some providers start and some are skipped', async () => {
+      mockProvider1.startSync.mockReturnValue({
+        started: true,
+        skipped: false,
+      });
+      mockProvider2.startSync.mockReturnValue({
+        started: false,
+        skipped: true,
+      });
+
+      const response = await request(appWithMultipleProviders)
+        .post('/collections/sync/from-pah')
+        .send({});
+
+      expect(response.status).toBe(207);
+      expect(response.body.summary.total).toBe(2);
+      expect(response.body.summary.sync_started).toBe(1);
+      expect(response.body.summary.already_syncing).toBe(1);
+      expect(response.body.results).toHaveLength(2);
+      expect(response.body.results[0].status).toBe('sync_started');
+      expect(response.body.results[1].status).toBe('already_syncing');
+    });
+
+    it('should return 207 when some providers start and some fail', async () => {
+      mockProvider1.startSync.mockReturnValue({
+        started: true,
+        skipped: false,
+      });
+      mockProvider2.startSync.mockReturnValue({
+        started: false,
+        skipped: false,
+        error: 'Provider not connected',
+      });
+
+      const response = await request(appWithMultipleProviders)
+        .post('/collections/sync/from-pah')
+        .send({});
+
+      expect(response.status).toBe(207);
+      expect(response.body.summary.total).toBe(2);
+      expect(response.body.summary.sync_started).toBe(1);
+      expect(response.body.summary.failed).toBe(1);
+      expect(response.body.results).toHaveLength(2);
+      expect(response.body.results[0].status).toBe('sync_started');
+      expect(response.body.results[1].status).toBe('failed');
+      expect(response.body.results[1].error.code).toBe('SYNC_START_FAILED');
+    });
+
+    it('should return 500 when all providers fail to start', async () => {
+      mockProvider1.startSync.mockReturnValue({
+        started: false,
+        skipped: false,
+        error: 'Provider not connected',
+      });
+      mockProvider2.startSync.mockReturnValue({
+        started: false,
+        skipped: false,
+        error: 'Provider not connected',
+      });
+
+      const response = await request(appWithMultipleProviders)
+        .post('/collections/sync/from-pah')
+        .send({});
+
+      expect(response.status).toBe(500);
+      expect(response.body.summary.total).toBe(2);
+      expect(response.body.summary.failed).toBe(2);
+      expect(response.body.results).toHaveLength(2);
+      expect(
+        response.body.results.every(
+          (r: { status: string }) => r.status === 'failed',
+        ),
+      ).toBe(true);
     });
   });
 });

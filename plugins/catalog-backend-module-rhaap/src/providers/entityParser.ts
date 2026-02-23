@@ -194,8 +194,9 @@ export const pahCollectionParser = (options: {
       // Tags displayed in the Backstage UI tags column (deduplicated, filtered to strings only)
       tags: [
         ...new Set(
-          (options.collection.tags || [])
-            .filter((tag): tag is string => typeof tag === 'string' && tag.length > 0),
+          (options.collection.tags || []).filter(
+            (tag): tag is string => typeof tag === 'string' && tag.length > 0,
+          ),
         ),
       ],
 
