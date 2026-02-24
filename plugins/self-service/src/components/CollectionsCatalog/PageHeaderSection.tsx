@@ -11,6 +11,7 @@ import { COLLECTION_TOOLTIP, COLLECTION_DESCRIPTION } from './constants';
 export const PageHeaderSection = ({
   onSyncClick,
   syncDisabled = false,
+  syncDisabledReason,
 }: PageHeaderSectionProps) => {
   const classes = useCollectionsStyles();
   const { allowed } = usePermission({
@@ -34,7 +35,7 @@ export const PageHeaderSection = ({
         </Box>
         {allowed && (
           <Tooltip
-            title={syncDisabled ? 'No content sources configured' : ''}
+            title={syncDisabled && syncDisabledReason ? syncDisabledReason : ''}
             arrow
           >
             <span>

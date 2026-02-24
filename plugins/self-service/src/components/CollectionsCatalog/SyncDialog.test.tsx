@@ -3,18 +3,15 @@ import { ThemeProvider, createTheme } from '@material-ui/core/styles';
 import { TestApiProvider } from '@backstage/test-utils';
 import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
 import { SyncDialog } from './SyncDialog';
+import type { SyncDialogProps } from './types';
 
 const theme = createTheme();
 
-const mockShowSyncStarted = jest.fn();
-const mockShowSyncCompleted = jest.fn();
-const mockShowSyncFailed = jest.fn();
+const mockShowNotification = jest.fn();
 
-jest.mock('./notifications', () => ({
-  useSyncNotifications: () => ({
-    showSyncStarted: mockShowSyncStarted,
-    showSyncCompleted: mockShowSyncCompleted,
-    showSyncFailed: mockShowSyncFailed,
+jest.mock('../notifications', () => ({
+  useNotifications: () => ({
+    showNotification: mockShowNotification,
   }),
 }));
 
@@ -26,7 +23,7 @@ const mockFetchApi = {
   fetch: jest.fn(),
 };
 
-const renderDialog = (props: { open: boolean; onClose: () => void }) => {
+const renderDialog = (props: SyncDialogProps) => {
   return render(
     <ThemeProvider theme={theme}>
       <TestApiProvider
@@ -49,10 +46,23 @@ describe('SyncDialog', () => {
     mockFetchApi.fetch.mockResolvedValue({
       ok: true,
       json: async () => ({
-        sourcesTree: {
-          github: {
-            'github.com': ['org1', 'org2'],
-          },
+        content: {
+          providers: [
+            {
+              sourceId: 'src-1',
+              scmProvider: 'github',
+              hostName: 'github.com',
+              organization: 'org1',
+              lastSyncTime: null,
+            },
+            {
+              sourceId: 'src-2',
+              scmProvider: 'github',
+              hostName: 'github.com',
+              organization: 'org2',
+              lastSyncTime: null,
+            },
+          ],
         },
       }),
     });
@@ -81,7 +91,7 @@ describe('SyncDialog', () => {
       expect(mockDiscoveryApi.getBaseUrl).toHaveBeenCalledWith('catalog');
     });
     expect(mockFetchApi.fetch).toHaveBeenCalledWith(
-      'http://localhost:7007/api/catalog/ansible-collections/sync_status',
+      'http://localhost:7007/api/catalog/aap/sync_status?ansible_contents=true',
     );
   });
 
@@ -123,7 +133,7 @@ describe('SyncDialog', () => {
   it('shows info alert when no sources configured', async () => {
     mockFetchApi.fetch.mockResolvedValue({
       ok: true,
-      json: async () => ({ sourcesTree: {} }),
+      json: async () => ({ content: { providers: [] } }),
     });
 
     renderDialog({ open: true, onClose: mockOnClose });
@@ -170,7 +180,7 @@ describe('SyncDialog', () => {
     renderDialog({ open: true, onClose: mockOnClose });
 
     await waitFor(() => {
-      expect(screen.getByText('GITHUB')).toBeInTheDocument();
+      expect(screen.getByText('GitHub')).toBeInTheDocument();
     });
     expect(screen.getByText('github.com')).toBeInTheDocument();
     expect(screen.getByText('org1')).toBeInTheDocument();
@@ -181,7 +191,7 @@ describe('SyncDialog', () => {
     renderDialog({ open: true, onClose: mockOnClose });
 
     await waitFor(() => {
-      expect(screen.getByText('GITHUB')).toBeInTheDocument();
+      expect(screen.getByText('GitHub')).toBeInTheDocument();
     });
     const selectAllBtn = screen.getByRole('button', { name: /Select All/i });
     expect(selectAllBtn).not.toBeDisabled();
@@ -217,22 +227,32 @@ describe('SyncDialog', () => {
     expect(syncButton).toBeDisabled();
   });
 
-  it('handleSync calls showSyncStarted and sync endpoint when org selected', async () => {
+  it('handleSync calls showNotification and onSyncsStarted and sync endpoint when org selected', async () => {
+    const mockOnSyncsStarted = jest.fn();
     mockFetchApi.fetch
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          sourcesTree: {
-            github: { 'github.com': ['myorg'] },
+          content: {
+            providers: [
+              {
+                sourceId: 'src-myorg',
+                scmProvider: 'github',
+                hostName: 'github.com',
+                organization: 'myorg',
+                lastSyncTime: null,
+              },
+            ],
           },
         }),
       })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ results: [{ success: true }] }),
-      });
+      .mockResolvedValueOnce({ ok: true });
 
-    renderDialog({ open: true, onClose: mockOnClose });
+    renderDialog({
+      open: true,
+      onClose: mockOnClose,
+      onSyncsStarted: mockOnSyncsStarted,
+    });
 
     await waitFor(() => {
       expect(screen.getByText('myorg')).toBeInTheDocument();
@@ -249,13 +269,30 @@ describe('SyncDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: /Sync Selected/i }));
 
     await waitFor(() => {
-      expect(mockShowSyncStarted).toHaveBeenCalledWith(['github.com/myorg']);
+      expect(mockShowNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Sync started',
+          description: 'Syncing content from 1 source',
+          items: ['github.com/myorg'],
+          severity: 'info',
+          collapsible: true,
+          category: 'sync-started',
+        }),
+      );
+      expect(mockOnSyncsStarted).toHaveBeenCalledWith([
+        expect.objectContaining({
+          sourceId: 'src-myorg',
+          displayName: 'github.com/myorg',
+          lastSyncTime: null,
+        }),
+      ]);
       expect(mockOnClose).toHaveBeenCalled();
     });
     expect(mockFetchApi.fetch).toHaveBeenCalledWith(
-      'http://localhost:7007/api/catalog/collections/sync/from-scm',
+      'http://localhost:7007/api/catalog/ansible/sync/from-scm/content',
       expect.objectContaining({
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           filters: [
             {
@@ -267,27 +304,27 @@ describe('SyncDialog', () => {
         }),
       }),
     );
-    await waitFor(() => {
-      expect(mockShowSyncCompleted).toHaveBeenCalledWith('github.com/myorg');
-    });
   });
 
-  it('handleSync calls showSyncFailed when sync response fails', async () => {
+  it('handleSync closes dialog and fires sync requests (fire-and-forget)', async () => {
     mockFetchApi.fetch
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          sourcesTree: {
-            github: { 'github.com': ['myorg'] },
+          content: {
+            providers: [
+              {
+                sourceId: 'src-myorg',
+                scmProvider: 'github',
+                hostName: 'github.com',
+                organization: 'myorg',
+                lastSyncTime: null,
+              },
+            ],
           },
         }),
       })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          results: [{ success: false, error: 'Sync error' }],
-        }),
-      });
+      .mockResolvedValue({ ok: true });
 
     renderDialog({ open: true, onClose: mockOnClose });
 
@@ -303,21 +340,23 @@ describe('SyncDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: /Sync Selected/i }));
 
     await waitFor(() => {
-      expect(mockShowSyncFailed).toHaveBeenCalledWith(
-        'github.com/myorg',
-        'Sync error',
-      );
+      expect(mockOnClose).toHaveBeenCalled();
     });
+    expect(mockFetchApi.fetch).toHaveBeenCalledWith(
+      'http://localhost:7007/api/catalog/ansible/sync/from-scm/content',
+      expect.any(Object),
+    );
   });
 
   it('toggle provider expand/collapse', async () => {
     renderDialog({ open: true, onClose: mockOnClose });
 
     await waitFor(() => {
-      expect(screen.getByText('GITHUB')).toBeInTheDocument();
+      expect(screen.getByText('GitHub')).toBeInTheDocument();
     });
-    const providerButton = screen.getByRole('button', { name: 'GITHUB' });
-    fireEvent.click(providerButton);
-    fireEvent.click(providerButton);
+    const providerRow = screen.getByText('GitHub').closest('.MuiListItem-root');
+    expect(providerRow).toBeInTheDocument();
+    fireEvent.click(providerRow!);
+    fireEvent.click(providerRow!);
   });
 });

@@ -19,6 +19,7 @@ import { formatTimeAgo, getSourceUrl, buildSourceString } from './utils';
 export const CollectionAboutCard = ({
   entity,
   lastSync,
+  lastFailedSync,
   onViewSource,
   onRefresh,
   isRefreshing,
@@ -44,16 +45,17 @@ export const CollectionAboutCard = ({
   const sourceUrl = getSourceUrl(entity);
   const sourceString = buildSourceString(entity);
 
-  const tags: string[] = Array.isArray(entity.metadata.tags)
-    ? entity.metadata.tags.filter(
-        (t: string) =>
-          t !== 'ansible-collection' && !['github', 'gitlab'].includes(t),
-      )
-    : [];
+  const collectionTags = spec.collection_tags as string[] | undefined;
+  const tags: string[] = Array.isArray(collectionTags) ? collectionTags : [];
 
-  const lastSyncFormatted = lastSync
-    ? formatTimeAgo(new Date(lastSync))
-    : 'Unknown';
+  let lastSyncFormatted: string;
+  if (lastSync) {
+    lastSyncFormatted = formatTimeAgo(new Date(lastSync));
+  } else if (!lastSync && !lastFailedSync) {
+    lastSyncFormatted = 'Never Synced';
+  } else {
+    lastSyncFormatted = 'Not Available';
+  }
 
   return (
     <Card className={classes.aboutCard} variant="outlined">

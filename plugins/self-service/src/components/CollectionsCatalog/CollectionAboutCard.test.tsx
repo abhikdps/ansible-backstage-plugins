@@ -42,6 +42,7 @@ describe('CollectionAboutCard', () => {
       <CollectionAboutCard
         entity={mockEntity}
         lastSync={null}
+        lastFailedSync={null}
         onViewSource={mockOnViewSource}
       />,
     );
@@ -55,6 +56,7 @@ describe('CollectionAboutCard', () => {
       <CollectionAboutCard
         entity={mockEntity}
         lastSync={null}
+        lastFailedSync={null}
         onViewSource={mockOnViewSource}
       />,
     );
@@ -76,6 +78,7 @@ describe('CollectionAboutCard', () => {
       <CollectionAboutCard
         entity={entity}
         lastSync={null}
+        lastFailedSync={null}
         onViewSource={mockOnViewSource}
       />,
     );
@@ -89,6 +92,7 @@ describe('CollectionAboutCard', () => {
       <CollectionAboutCard
         entity={mockEntity}
         lastSync={null}
+        lastFailedSync={null}
         onViewSource={mockOnViewSource}
       />,
     );
@@ -104,6 +108,7 @@ describe('CollectionAboutCard', () => {
       <CollectionAboutCard
         entity={mockEntity}
         lastSync={null}
+        lastFailedSync={null}
         onViewSource={mockOnViewSource}
       />,
     );
@@ -121,16 +126,33 @@ describe('CollectionAboutCard', () => {
       <CollectionAboutCard
         entity={mockEntity}
         lastSync={null}
+        lastFailedSync={null}
         onViewSource={mockOnViewSource}
         onRefresh={mockOnRefresh}
       />,
     );
 
-    const refreshButton = screen.getByRole('button', { name: /refresh/i });
+    const refreshButton = screen.getByTitle('Refresh').closest('button');
     expect(refreshButton).toBeInTheDocument();
-
-    fireEvent.click(refreshButton);
+    fireEvent.click(refreshButton!);
     expect(mockOnRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables refresh button when isRefreshing is true', () => {
+    const mockOnRefresh = jest.fn();
+    renderWithTheme(
+      <CollectionAboutCard
+        entity={mockEntity}
+        lastSync={null}
+        lastFailedSync={null}
+        onViewSource={mockOnViewSource}
+        onRefresh={mockOnRefresh}
+        isRefreshing
+      />,
+    );
+
+    const refreshButton = screen.getByTitle('Refresh').closest('button');
+    expect(refreshButton).toBeDisabled();
   });
 
   it('renders Last Sync section', () => {
@@ -138,6 +160,7 @@ describe('CollectionAboutCard', () => {
       <CollectionAboutCard
         entity={mockEntity}
         lastSync="2024-06-15T10:00:00Z"
+        lastFailedSync={null}
         onViewSource={mockOnViewSource}
       />,
     );
@@ -156,6 +179,7 @@ describe('CollectionAboutCard', () => {
           },
         }}
         lastSync={null}
+        lastFailedSync={null}
         onViewSource={mockOnViewSource}
       />,
     );
@@ -174,6 +198,7 @@ describe('CollectionAboutCard', () => {
       <CollectionAboutCard
         entity={entity}
         lastSync={null}
+        lastFailedSync={null}
         onViewSource={mockOnViewSource}
       />,
     );

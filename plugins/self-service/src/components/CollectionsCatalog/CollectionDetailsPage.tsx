@@ -16,7 +16,6 @@ import { CollectionResourcesCard } from './CollectionResourcesCard';
 import { CollectionReadmeCard } from './CollectionReadmeCard';
 import { RepositoryBadge } from './RepositoryBadge';
 import { useCollectionsStyles } from './styles';
-import { SourceSyncStatus } from './types';
 import { EmptyState } from './EmptyState';
 
 export const CollectionDetailsPage = () => {
@@ -33,6 +32,7 @@ export const CollectionDetailsPage = () => {
   const [readmeLoading, setReadmeLoading] = useState(false);
   const [isHtmlReadme, setIsHtmlReadme] = useState(false);
   const [lastSync, setLastSync] = useState<string | null>(null);
+  const [lastFailedSync, setLastFailedSync] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [tab, setTab] = useState(0);
 
@@ -78,14 +78,17 @@ export const CollectionDetailsPage = () => {
       try {
         const baseUrl = await discoveryApi.getBaseUrl('catalog');
         const response = await fetchApi.fetch(
-          `${baseUrl}/ansible-collections/sync_status`,
+          `${baseUrl}/aap/sync_status?ansible_contents=true`,
         );
         if (response.ok) {
           const data = await response.json();
-          const sources: SourceSyncStatus[] = data.sources || [];
-          const matchingSource = sources.find(s => s.sourceId === sourceId);
-          if (matchingSource?.lastSync) {
-            setLastSync(matchingSource.lastSync);
+          const providers = data.content?.providers || [];
+          const matchingSource = providers.find(
+            (s: { sourceId: string }) => s.sourceId === sourceId,
+          );
+          if (matchingSource) {
+            setLastSync(matchingSource.lastSyncTime ?? null);
+            setLastFailedSync(matchingSource.lastFailedSyncTime ?? null);
           }
         }
       } catch {
@@ -337,6 +340,7 @@ export const CollectionDetailsPage = () => {
             <CollectionAboutCard
               entity={entity}
               lastSync={lastSync}
+              lastFailedSync={lastFailedSync}
               onViewSource={handleViewSource}
               onRefresh={handleRefresh}
               isRefreshing={isRefreshing}

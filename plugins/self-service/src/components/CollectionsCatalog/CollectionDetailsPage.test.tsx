@@ -72,7 +72,15 @@ describe('CollectionDetailsPage', () => {
     mockFetchApi.fetch.mockResolvedValue({
       ok: true,
       json: async () => ({
-        sources: [{ sourceId: 'src-1', lastSync: '2024-06-15T10:00:00Z' }],
+        content: {
+          providers: [
+            {
+              sourceId: 'src-1',
+              lastSyncTime: '2024-06-15T10:00:00Z',
+              lastFailedSyncTime: null,
+            },
+          ],
+        },
       }),
     });
   });
@@ -219,7 +227,7 @@ describe('CollectionDetailsPage', () => {
 
     await waitFor(() => {
       expect(mockFetchApi.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('ansible-collections/sync_status'),
+        expect.stringContaining('aap/sync_status'),
       );
     });
   });

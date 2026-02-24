@@ -24,7 +24,9 @@ describe('PageHeaderSection', () => {
 
     expect(screen.getByText('Collections')).toBeInTheDocument();
     expect(
-      screen.getByText(/Browse and discover Ansible collections/),
+      screen.getByText(
+        /Browse and discover Ansible collections \(modules, roles and plugins\)/,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -59,5 +61,19 @@ describe('PageHeaderSection', () => {
     expect(
       screen.getByTitle(/An Ansible Collection is a package of reusable/),
     ).toBeInTheDocument();
+  });
+
+  it('shows syncDisabledReason in tooltip when sync disabled with reason', () => {
+    renderWithTheme(
+      <PageHeaderSection
+        onSyncClick={mockOnSyncClick}
+        syncDisabled
+        syncDisabledReason="Sync in progress"
+      />,
+    );
+
+    const syncButton = screen.getByRole('button', { name: /Sync Now/i });
+    expect(syncButton).toBeDisabled();
+    expect(screen.getByTitle('Sync in progress')).toBeInTheDocument();
   });
 });

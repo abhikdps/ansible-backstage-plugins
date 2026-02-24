@@ -109,8 +109,15 @@ describe('CollectionsListPage', () => {
     mockFetchApi.fetch.mockResolvedValue({
       ok: true,
       json: async () => ({
-        sources: [{ sourceId: 'src-1', lastSync: null }],
-        sourcesTree: { github: { 'github.com': ['org1'] } },
+        content: {
+          providers: [
+            {
+              sourceId: 'src-1',
+              lastSyncTime: null,
+              lastFailedSyncTime: null,
+            },
+          ],
+        },
       }),
     });
   });

@@ -48,8 +48,16 @@ export const CollectionCard = ({
 
   const sourceId =
     entity.metadata?.annotations?.['ansible.io/discovery-source-id'];
-  const lastSyncTime = sourceId ? syncStatusMap[sourceId] : null;
-  const lastSync = lastSyncTime ? formatTimeAgo(lastSyncTime) : 'Unknown';
+  const syncStatus = sourceId ? syncStatusMap[sourceId] : null;
+
+  let lastSync: string;
+  if (syncStatus?.lastSyncTime) {
+    lastSync = formatTimeAgo(syncStatus.lastSyncTime);
+  } else if (!syncStatus?.lastSyncTime && !syncStatus?.lastFailedSyncTime) {
+    lastSync = 'Never Synced';
+  } else {
+    lastSync = 'Not Available';
+  }
 
   const handleStarClick = (e: React.MouseEvent) => {
     e.stopPropagation();

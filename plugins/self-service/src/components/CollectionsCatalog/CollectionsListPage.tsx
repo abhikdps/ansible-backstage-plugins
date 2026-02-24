@@ -31,7 +31,7 @@ import {
 import { Entity } from '@backstage/catalog-model';
 import { useNavigate } from 'react-router-dom';
 
-import { SyncStatusMap, SourceSyncStatus } from './types';
+import { SyncStatusMap } from './types';
 import { useCollectionsStyles } from './styles';
 import { PAGE_SIZE } from './constants';
 import { sortEntities, filterLatestVersions, getUniqueFilters } from './utils';
@@ -108,9 +108,8 @@ export const CollectionsListPage = ({
   const fetchSyncStatus = useCallback(async () => {
     try {
       const baseUrl = await discoveryApi.getBaseUrl('catalog');
-      // TO-DO: Update this endpoint
       const response = await fetchApi.fetch(
-        `${baseUrl}/ansible-collections/sync_status`,
+        `${baseUrl}/aap/sync_status?ansible_contents=true`,
       );
 
       if (!response.ok) {
@@ -123,16 +122,24 @@ export const CollectionsListPage = ({
       const data = await response.json();
       const statusMap: SyncStatusMap = {};
 
-      if (data.sources && Array.isArray(data.sources)) {
-        data.sources.forEach((source: SourceSyncStatus) => {
-          statusMap[source.sourceId] = source.lastSync;
-        });
-      }
+      const providers = data.content?.providers || [];
+
+      providers.forEach(
+        (provider: {
+          sourceId: string;
+          lastSyncTime: string | null;
+          lastFailedSyncTime: string | null;
+        }) => {
+          statusMap[provider.sourceId] = {
+            lastSyncTime: provider.lastSyncTime,
+            lastFailedSyncTime: provider.lastFailedSyncTime,
+          };
+        },
+      );
 
       if (isMountedRef.current) {
         setSyncStatusMap(statusMap);
-        const sourcesTree = data.sourcesTree || {};
-        const hasSources = Object.keys(sourcesTree).length > 0;
+        const hasSources = providers.length > 0;
         setHasConfiguredSources(hasSources);
       }
     } catch {

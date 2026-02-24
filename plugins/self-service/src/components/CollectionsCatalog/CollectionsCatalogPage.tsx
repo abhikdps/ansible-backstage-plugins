@@ -5,17 +5,20 @@ import { PageHeaderSection } from './PageHeaderSection';
 import { SyncDialog } from './SyncDialog';
 import { CollectionsContent } from './CollectionsListPage';
 import {
-  SyncNotificationProvider,
-  SyncNotificationStack,
-  useSyncNotifications,
-} from './notifications';
+  NotificationProvider,
+  NotificationStack,
+  useNotifications,
+} from '../notifications';
+import { useSyncStatusPolling } from './useSyncStatusPolling';
+import { StartedSyncInfo } from './types';
 
 const CollectionsCatalogPageInner = () => {
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [hasConfiguredSources, setHasConfiguredSources] = useState<
     boolean | null
   >(null);
-  const { notifications, removeNotification } = useSyncNotifications();
+  const { notifications, removeNotification } = useNotifications();
+  const { isSyncInProgress, startTracking } = useSyncStatusPolling();
 
   const handleSyncClick = () => setSyncDialogOpen(true);
 
@@ -23,7 +26,21 @@ const CollectionsCatalogPageInner = () => {
     setHasConfiguredSources(status);
   }, []);
 
-  const syncDisabled = hasConfiguredSources === false;
+  const handleSyncsStarted = useCallback(
+    (syncs: StartedSyncInfo[]) => {
+      startTracking(syncs);
+    },
+    [startTracking],
+  );
+
+  const syncDisabled = hasConfiguredSources === false || isSyncInProgress;
+
+  let syncDisabledReason: string | undefined;
+  if (hasConfiguredSources === false) {
+    syncDisabledReason = 'No content sources configured';
+  } else if (isSyncInProgress) {
+    syncDisabledReason = 'Sync in progress';
+  }
 
   return (
     <Page themeId="app">
@@ -31,6 +48,7 @@ const CollectionsCatalogPageInner = () => {
         <PageHeaderSection
           onSyncClick={handleSyncClick}
           syncDisabled={syncDisabled}
+          syncDisabledReason={syncDisabledReason}
         />
         <CollectionsContent
           onSyncClick={handleSyncClick}
@@ -39,9 +57,10 @@ const CollectionsCatalogPageInner = () => {
         <SyncDialog
           open={syncDialogOpen}
           onClose={() => setSyncDialogOpen(false)}
+          onSyncsStarted={handleSyncsStarted}
         />
       </Content>
-      <SyncNotificationStack
+      <NotificationStack
         notifications={notifications}
         onClose={removeNotification}
       />
@@ -51,8 +70,8 @@ const CollectionsCatalogPageInner = () => {
 
 export const CollectionsCatalogPage = () => {
   return (
-    <SyncNotificationProvider>
+    <NotificationProvider>
       <CollectionsCatalogPageInner />
-    </SyncNotificationProvider>
+    </NotificationProvider>
   );
 };

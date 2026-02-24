@@ -29,19 +29,39 @@ import {
   fetchApiRef,
 } from '@backstage/core-plugin-api';
 
-import { SyncDialogProps, SyncFilter, SourcesTree } from './types';
+import {
+  SyncDialogProps,
+  SyncFilter,
+  SourcesTree,
+  StartedSyncInfo,
+} from './types';
 import { useCollectionsStyles } from './styles';
-import { GitLabIcon } from './icons';
-import { useSyncNotifications } from './notifications';
+import { GitLabIcon, RedHatIcon } from './icons';
+import { useNotifications } from '../notifications';
 
-export const SyncDialog = ({ open, onClose }: SyncDialogProps) => {
+interface ProviderInfo {
+  sourceId: string;
+  repository?: string;
+  scmProvider?: string;
+  hostName?: string;
+  organization?: string;
+  lastSyncTime: string | null;
+}
+
+const SYNC_STARTED_CATEGORY = 'sync-started';
+
+export const SyncDialog = ({
+  open,
+  onClose,
+  onSyncsStarted,
+}: SyncDialogProps) => {
   const classes = useCollectionsStyles();
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
-  const { showSyncStarted, showSyncCompleted, showSyncFailed } =
-    useSyncNotifications();
+  const { showNotification } = useNotifications();
 
   const [sourcesTree, setSourcesTree] = useState<SourcesTree>({});
+  const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,6 +72,45 @@ export const SyncDialog = ({ open, onClose }: SyncDialogProps) => {
 
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
+  const buildSourcesTreeFromProviders = (
+    rawProviders: Array<{
+      repository?: string;
+      scmProvider?: string;
+      hostName?: string;
+      organization?: string;
+    }>,
+  ): SourcesTree => {
+    const tree: SourcesTree = {};
+
+    rawProviders.forEach(provider => {
+      if (provider.repository) {
+        if (!tree.pah) {
+          tree.pah = {};
+        }
+        tree.pah[provider.repository] = [];
+      } else if (provider.scmProvider && provider.hostName) {
+        if (!tree[provider.scmProvider]) {
+          tree[provider.scmProvider] = {};
+        }
+        if (!tree[provider.scmProvider][provider.hostName]) {
+          tree[provider.scmProvider][provider.hostName] = [];
+        }
+        if (
+          provider.organization &&
+          !tree[provider.scmProvider][provider.hostName].includes(
+            provider.organization,
+          )
+        ) {
+          tree[provider.scmProvider][provider.hostName].push(
+            provider.organization,
+          );
+        }
+      }
+    });
+
+    return tree;
+  };
+
   useEffect(() => {
     if (!open) return;
 
@@ -60,21 +119,25 @@ export const SyncDialog = ({ open, onClose }: SyncDialogProps) => {
       setError(null);
       try {
         const baseUrl = await discoveryApi.getBaseUrl('catalog');
-        // TO-DO: Update this endpoint
         const response = await fetchApi.fetch(
-          `${baseUrl}/ansible-collections/sync_status`,
+          `${baseUrl}/aap/sync_status?ansible_contents=true`,
         );
         if (!response.ok) {
           throw new Error('Failed to fetch sources');
         }
         const data = await response.json();
-        setSourcesTree(data.sourcesTree || {});
+        const rawProviders = data.content?.providers || [];
 
-        const providers = Object.keys(data.sourcesTree || {});
-        setExpandedProviders(new Set(providers));
+        setProviders(rawProviders);
+
+        const builtTree = buildSourcesTreeFromProviders(rawProviders);
+        setSourcesTree(builtTree);
+
+        const providerKeys = Object.keys(builtTree);
+        setExpandedProviders(new Set(providerKeys));
         const hosts = new Set<string>();
-        providers.forEach(provider => {
-          Object.keys(data.sourcesTree[provider] || {}).forEach(host => {
+        providerKeys.forEach(provider => {
+          Object.keys(builtTree[provider] || {}).forEach(host => {
             hosts.add(`${provider}:${host}`);
           });
         });
@@ -170,21 +233,35 @@ export const SyncDialog = ({ open, onClose }: SyncDialogProps) => {
     if (level === 'provider') {
       const provider = parts[0];
       Object.keys(sourcesTree[provider] || {}).forEach(host => {
-        (sourcesTree[provider][host] || []).forEach(org => {
+        const orgs = sourcesTree[provider][host] || [];
+        if (orgs.length === 0) {
+          totalChildren++;
+          if (selectedItems.has(`${provider}:${host}`)) {
+            childrenSelected++;
+          }
+        } else {
+          orgs.forEach(org => {
+            totalChildren++;
+            if (selectedItems.has(`${provider}:${host}:${org}`)) {
+              childrenSelected++;
+            }
+          });
+        }
+      });
+    } else {
+      const [provider, host] = parts;
+      const orgs = sourcesTree[provider]?.[host] || [];
+      if (orgs.length === 0) {
+        totalChildren = 1;
+        childrenSelected = selectedItems.has(key) ? 1 : 0;
+      } else {
+        orgs.forEach(org => {
           totalChildren++;
           if (selectedItems.has(`${provider}:${host}:${org}`)) {
             childrenSelected++;
           }
         });
-      });
-    } else {
-      const [provider, host] = parts;
-      (sourcesTree[provider]?.[host] || []).forEach(org => {
-        totalChildren++;
-        if (selectedItems.has(`${provider}:${host}:${org}`)) {
-          childrenSelected++;
-        }
-      });
+      }
     }
 
     return { childrenSelected, totalChildren };
@@ -212,9 +289,12 @@ export const SyncDialog = ({ open, onClose }: SyncDialogProps) => {
       all.add(provider);
       Object.keys(sourcesTree[provider]).forEach(host => {
         all.add(`${provider}:${host}`);
-        sourcesTree[provider][host].forEach(org => {
-          all.add(`${provider}:${host}:${org}`);
-        });
+        const orgs = sourcesTree[provider][host];
+        if (orgs.length > 0) {
+          orgs.forEach(org => {
+            all.add(`${provider}:${host}:${org}`);
+          });
+        }
       });
     });
     setSelectedItems(all);
@@ -233,7 +313,11 @@ export const SyncDialog = ({ open, onClose }: SyncDialogProps) => {
       if (selectedItems.has(provider)) {
         const allHostsSelected = Object.keys(sourcesTree[provider]).every(
           host => {
-            return sourcesTree[provider][host].every(org =>
+            const orgs = sourcesTree[provider][host];
+            if (orgs.length === 0) {
+              return selectedItems.has(`${provider}:${host}`);
+            }
+            return orgs.every(org =>
               selectedItems.has(`${provider}:${host}:${org}`),
             );
           },
@@ -249,8 +333,22 @@ export const SyncDialog = ({ open, onClose }: SyncDialogProps) => {
       if (processedProviders.has(provider)) return;
       Object.keys(sourcesTree[provider]).forEach(host => {
         const hostKey = `${provider}:${host}`;
+        const orgs = sourcesTree[provider][host];
+
+        if (orgs.length === 0) {
+          if (selectedItems.has(hostKey)) {
+            filters.push({
+              scmProvider: provider,
+              hostName: host,
+              organization: host,
+            });
+            processedHosts.add(hostKey);
+          }
+          return;
+        }
+
         if (selectedItems.has(hostKey)) {
-          const allOrgsSelected = sourcesTree[provider][host].every(org =>
+          const allOrgsSelected = orgs.every(org =>
             selectedItems.has(`${provider}:${host}:${org}`),
           );
           if (allOrgsSelected) {
@@ -266,7 +364,8 @@ export const SyncDialog = ({ open, onClose }: SyncDialogProps) => {
       Object.keys(sourcesTree[provider]).forEach(host => {
         const hostKey = `${provider}:${host}`;
         if (processedHosts.has(hostKey)) return;
-        sourcesTree[provider][host].forEach(org => {
+        const orgs = sourcesTree[provider][host];
+        orgs.forEach(org => {
           const orgKey = `${provider}:${host}:${org}`;
           if (selectedItems.has(orgKey)) {
             filters.push({
@@ -293,7 +392,17 @@ export const SyncDialog = ({ open, onClose }: SyncDialogProps) => {
 
     Object.keys(sourcesTree).forEach(provider => {
       Object.keys(sourcesTree[provider]).forEach(host => {
-        sourcesTree[provider][host].forEach(org => {
+        const orgs = sourcesTree[provider][host];
+
+        if (orgs.length === 0) {
+          const hostKey = `${provider}:${host}`;
+          if (selectedItems.has(hostKey)) {
+            sourceNames.push(provider === 'pah' ? `PAH/${host}` : host);
+          }
+          return;
+        }
+
+        orgs.forEach(org => {
           const orgKey = `${provider}:${host}:${org}`;
           if (selectedItems.has(orgKey)) {
             sourceNames.push(`${host}/${org}`);
@@ -305,49 +414,45 @@ export const SyncDialog = ({ open, onClose }: SyncDialogProps) => {
     return sourceNames;
   };
 
-  const syncSingleSource = async (
+  const syncScmSource = async (
     baseUrl: string,
     filter: SyncFilter,
-    sourceName: string,
   ): Promise<void> => {
-    try {
-      const response = await fetchApi.fetch(
-        `${baseUrl}/collections/sync/from-scm`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filters: [filter] }),
-        },
-      );
+    await fetchApi.fetch(`${baseUrl}/ansible/sync/from-scm/content`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filters: [filter] }),
+    });
+  };
 
-      const data = await response.json();
+  const syncPahSource = async (
+    baseUrl: string,
+    repositoryName: string,
+  ): Promise<void> => {
+    await fetchApi.fetch(`${baseUrl}/ansible/sync/from-aap/content`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filters: [{ repository_name: repositoryName }],
+      }),
+    });
+  };
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Sync failed');
-      }
-
-      if (
-        data.results &&
-        Array.isArray(data.results) &&
-        data.results.length > 0
-      ) {
-        const result = data.results[0];
-        if (result.success) {
-          showSyncCompleted(sourceName);
-        } else {
-          showSyncFailed(sourceName, result.error);
-        }
-      } else if (data.successCount > 0) {
-        showSyncCompleted(sourceName);
-      } else {
-        showSyncFailed(sourceName, 'No results returned');
-      }
-    } catch (err) {
-      showSyncFailed(
-        sourceName,
-        err instanceof Error ? err.message : 'Unknown error',
-      );
+  const findProviderForSelection = (
+    scmProvider: string,
+    hostName: string,
+    organization?: string,
+  ): ProviderInfo | undefined => {
+    if (scmProvider === 'pah') {
+      return providers.find(p => p.repository === hostName);
     }
+
+    return providers.find(
+      p =>
+        p.scmProvider === scmProvider &&
+        p.hostName === hostName &&
+        (!organization || p.organization === organization),
+    );
   };
 
   const getFilterDisplayName = (filter: SyncFilter): string => {
@@ -371,13 +476,67 @@ export const SyncDialog = ({ open, onClose }: SyncDialogProps) => {
     }
 
     const sourceNames = getSelectedSourceNames();
-    showSyncStarted(sourceNames);
+
+    showNotification({
+      title: 'Sync started',
+      description: `Syncing content from ${sourceNames.length} source${sourceNames.length > 1 ? 's' : ''}`,
+      items: sourceNames,
+      severity: 'info',
+      collapsible: true,
+      category: SYNC_STARTED_CATEGORY,
+      autoHideDuration: 30000,
+    });
+
+    const startedSyncs: StartedSyncInfo[] = [];
+    const pahFilters = filters.filter(f => f.scmProvider === 'pah');
+    const scmFilters = filters.filter(f => f.scmProvider !== 'pah');
+
+    pahFilters.forEach(filter => {
+      if (filter.organization) {
+        const provider = findProviderForSelection('pah', filter.organization);
+        if (provider) {
+          startedSyncs.push({
+            sourceId: provider.sourceId,
+            displayName: `PAH/${filter.organization}`,
+            lastSyncTime: provider.lastSyncTime,
+          });
+        }
+      }
+    });
+
+    scmFilters.forEach(filter => {
+      if (filter.scmProvider && filter.hostName) {
+        const provider = findProviderForSelection(
+          filter.scmProvider,
+          filter.hostName,
+          filter.organization,
+        );
+        if (provider) {
+          startedSyncs.push({
+            sourceId: provider.sourceId,
+            displayName: getFilterDisplayName(filter),
+            lastSyncTime: provider.lastSyncTime,
+          });
+        }
+      }
+    });
+
+    if (onSyncsStarted && startedSyncs.length > 0) {
+      onSyncsStarted(startedSyncs);
+    }
+
     handleClose();
     const baseUrl = await discoveryApi.getBaseUrl('catalog');
+    const syncPromises: Promise<void>[] = [];
 
-    const syncPromises = filters.map(filter => {
-      const displayName = getFilterDisplayName(filter);
-      return syncSingleSource(baseUrl, filter, displayName);
+    pahFilters.forEach(filter => {
+      if (filter.organization) {
+        syncPromises.push(syncPahSource(baseUrl, filter.organization));
+      }
+    });
+
+    scmFilters.forEach(filter => {
+      syncPromises.push(syncScmSource(baseUrl, filter));
     });
 
     await Promise.allSettled(syncPromises);
@@ -422,9 +581,40 @@ export const SyncDialog = ({ open, onClose }: SyncDialogProps) => {
 
   const renderHost = (provider: string, host: string) => {
     const hostKey = `${provider}:${host}`;
-    const sortedOrgs = [...sourcesTree[provider][host]].sort((a, b) =>
-      a.localeCompare(b),
-    );
+    const orgs = sourcesTree[provider][host] || [];
+    const isLeaf = orgs.length === 0;
+    const sortedOrgs = [...orgs].sort((a, b) => a.localeCompare(b));
+
+    if (isLeaf) {
+      return (
+        <ListItem
+          key={hostKey}
+          button
+          className={classes.hostItem}
+          onClick={() => toggleSelection(hostKey, 'host')}
+        >
+          <ListItemIcon className={classes.expandIcon}>
+            <Box width={24} />
+          </ListItemIcon>
+          <ListItemIcon className={classes.checkboxIcon}>
+            <Checkbox
+              edge="start"
+              checked={selectedItems.has(hostKey)}
+              onClick={e => {
+                e.stopPropagation();
+                toggleSelection(hostKey, 'host');
+              }}
+              color="primary"
+              size="small"
+            />
+          </ListItemIcon>
+          <ListItemIcon className={classes.providerIcon}>
+            <FolderIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary={host} className={classes.treeItemText} />
+        </ListItem>
+      );
+    }
 
     return (
       <div key={hostKey}>
@@ -473,8 +663,23 @@ export const SyncDialog = ({ open, onClose }: SyncDialogProps) => {
         return <GitHubIcon fontSize="small" />;
       case 'gitlab':
         return <GitLabIcon fontSize="small" style={{ color: '#FC6D26' }} />;
+      case 'pah':
+        return <RedHatIcon fontSize="small" />;
       default:
         return <LanguageIcon fontSize="small" />;
+    }
+  };
+
+  const getProviderDisplayName = (provider: string): string => {
+    switch (provider.toLowerCase()) {
+      case 'pah':
+        return 'Private Automation Hub';
+      case 'github':
+        return 'GitHub';
+      case 'gitlab':
+        return 'GitLab';
+      default:
+        return provider.toUpperCase();
     }
   };
 
@@ -510,7 +715,7 @@ export const SyncDialog = ({ open, onClose }: SyncDialogProps) => {
             {getProviderIcon(provider)}
           </ListItemIcon>
           <ListItemText
-            primary={provider.toUpperCase()}
+            primary={getProviderDisplayName(provider)}
             className={classes.treeItemText}
           />
         </ListItem>

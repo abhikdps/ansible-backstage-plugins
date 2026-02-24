@@ -73,7 +73,7 @@ describe('CollectionsCatalogPage', () => {
   it('opens sync dialog when Sync Now is clicked', async () => {
     mockFetchApi.fetch.mockResolvedValue({
       ok: true,
-      json: async () => ({ sourcesTree: {} }),
+      json: async () => ({ content: { providers: [] } }),
     });
 
     await renderInTestApp(

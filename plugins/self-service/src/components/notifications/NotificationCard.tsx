@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Collapse,
@@ -15,10 +15,10 @@ import WarningIcon from '@material-ui/icons/Warning';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ExpandLessIcon from '@material-ui/icons/ExpandLess';
 
-import { SyncNotificationCardProps, SyncNotificationSeverity } from './types';
+import { NotificationCardProps, NotificationSeverity } from './types';
 
 const severityColors: Record<
-  SyncNotificationSeverity,
+  NotificationSeverity,
   { border: string; icon: string }
 > = {
   info: {
@@ -46,7 +46,12 @@ const useStyles = makeStyles(theme => ({
     overflow: 'hidden',
     boxShadow: theme.shadows[3],
     marginBottom: theme.spacing(1.5),
-    animation: '$slideIn 0.3s ease-out',
+  },
+  cardEntering: {
+    animation: '$slideIn 0.3s ease-out forwards',
+  },
+  cardExiting: {
+    animation: '$slideOut 0.3s ease-out forwards',
   },
   '@keyframes slideIn': {
     '0%': {
@@ -56,6 +61,20 @@ const useStyles = makeStyles(theme => ({
     '100%': {
       opacity: 1,
       transform: 'translateX(0)',
+    },
+  },
+  '@keyframes slideOut': {
+    '0%': {
+      opacity: 1,
+      transform: 'translateX(0)',
+      maxHeight: 200,
+      marginBottom: theme.spacing(1.5),
+    },
+    '100%': {
+      opacity: 0,
+      transform: 'translateX(100%)',
+      maxHeight: 0,
+      marginBottom: 0,
     },
   },
   cardContent: {
@@ -118,12 +137,12 @@ const useStyles = makeStyles(theme => ({
     color: theme.palette.text.secondary,
     lineHeight: 1.4,
   },
-  sourcesList: {
+  itemsList: {
     marginTop: theme.spacing(1),
     paddingLeft: theme.spacing(2),
     marginBottom: 0,
   },
-  sourceItem: {
+  listItem: {
     fontSize: '0.85rem',
     color: theme.palette.text.secondary,
     lineHeight: 1.6,
@@ -138,7 +157,7 @@ const SeverityIcon = ({
   color,
   className,
 }: {
-  severity: SyncNotificationSeverity;
+  severity: NotificationSeverity;
   color: string;
   className?: string;
 }) => {
@@ -157,22 +176,43 @@ const SeverityIcon = ({
   }
 };
 
-export const SyncNotificationCard = ({
+export const NotificationCard = ({
   notification,
   onClose,
-}: SyncNotificationCardProps) => {
+}: NotificationCardProps) => {
   const classes = useStyles();
   const [expanded, setExpanded] = useState(true);
+  const [hasEntered, setHasEntered] = useState(false);
+  const isFirstRender = useRef(true);
 
   const colors = severityColors[notification.severity];
   const hasExpandableContent =
     notification.collapsible &&
-    notification.sources &&
-    notification.sources.length > 0;
+    notification.items &&
+    notification.items.length > 0;
+  const isExiting = notification.isExiting ?? false;
+
+  const isEntering = isFirstRender.current && !hasEntered;
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      const timer = setTimeout(() => setHasEntered(true), 300);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, []);
+
+  let animationClass = '';
+  if (isExiting) {
+    animationClass = classes.cardExiting;
+  } else if (isEntering) {
+    animationClass = classes.cardEntering;
+  }
 
   return (
     <Paper
-      className={classes.card}
+      className={`${classes.card} ${animationClass}`}
       style={{
         borderLeft: `4px solid ${colors.border}`,
       }}
@@ -219,17 +259,19 @@ export const SyncNotificationCard = ({
               <CloseIcon className={classes.closeIcon} />
             </IconButton>
           </Box>
+
           {notification.description && (
             <Typography className={classes.description}>
               {notification.description}
             </Typography>
           )}
+
           {hasExpandableContent && (
             <Collapse in={expanded} timeout="auto">
-              <ul className={classes.sourcesList}>
-                {notification.sources!.map((source, index) => (
-                  <li key={index} className={classes.sourceItem}>
-                    {source}
+              <ul className={classes.itemsList}>
+                {notification.items!.map((item, index) => (
+                  <li key={index} className={classes.listItem}>
+                    {item}
                   </li>
                 ))}
               </ul>

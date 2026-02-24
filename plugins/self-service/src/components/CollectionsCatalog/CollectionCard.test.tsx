@@ -59,7 +59,12 @@ describe('CollectionCard', () => {
         onClick={mockOnClick}
         isStarred={false}
         onToggleStar={mockOnToggleStar}
-        syncStatusMap={{ 'src-1': '2024-06-15T10:00:00Z' }}
+        syncStatusMap={{
+          'src-1': {
+            lastSyncTime: '2024-06-15T10:00:00Z',
+            lastFailedSyncTime: null,
+          },
+        }}
       />,
     );
 

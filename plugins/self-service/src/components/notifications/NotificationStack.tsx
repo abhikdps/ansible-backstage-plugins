@@ -2,8 +2,8 @@ import { createPortal } from 'react-dom';
 import { Box } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 
-import { SyncNotificationStackProps } from './types';
-import { SyncNotificationCard } from './SyncNotificationCard';
+import { NotificationStackProps } from './types';
+import { NotificationCard } from './NotificationCard';
 
 const useStyles = makeStyles(theme => ({
   stack: {
@@ -29,10 +29,10 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-export const SyncNotificationStack = ({
+export const NotificationStack = ({
   notifications,
   onClose,
-}: SyncNotificationStackProps) => {
+}: NotificationStackProps) => {
   const classes = useStyles();
 
   if (notifications.length === 0) {
@@ -42,7 +42,7 @@ export const SyncNotificationStack = ({
   const content = (
     <Box className={classes.stack}>
       {notifications.map(notification => (
-        <SyncNotificationCard
+        <NotificationCard
           key={notification.id}
           notification={notification}
           onClose={onClose}
