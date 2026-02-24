@@ -1647,6 +1647,159 @@ describe('PAHCollectionProvider', () => {
       // Delta should be -1 (1 - 2 = -1)
       expect(provider.getCollectionsDelta()).toBe(-1);
     });
+
+    it('should return large negative delta when many collections are removed', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      // First sync: 100 collections
+      const manyCollections = Array.from({ length: 100 }, (_, i) => ({
+        ...MOCK_COLLECTION,
+        name: `collection-${i}`,
+      }));
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue(
+        manyCollections,
+      );
+      await provider.run();
+
+      expect(provider.getCurrentCollectionsCount()).toBe(100);
+      expect(provider.getCollectionsDelta()).toBe(100); // First run: 100 - 0 = 100
+
+      // Second sync: only 25 collections (75 removed)
+      const fewerCollections = Array.from({ length: 25 }, (_, i) => ({
+        ...MOCK_COLLECTION,
+        name: `collection-${i}`,
+      }));
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue(
+        fewerCollections,
+      );
+      await provider.run();
+
+      expect(provider.getCurrentCollectionsCount()).toBe(25);
+      // Delta should be -75 (25 - 100 = -75)
+      expect(provider.getCollectionsDelta()).toBe(-75);
+    });
+
+    it('should return negative delta equal to previous count when all collections are removed', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      // First sync: 10 collections
+      const collections = Array.from({ length: 10 }, (_, i) => ({
+        ...MOCK_COLLECTION,
+        name: `collection-${i}`,
+      }));
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue(
+        collections,
+      );
+      await provider.run();
+
+      expect(provider.getCurrentCollectionsCount()).toBe(10);
+
+      // Second sync: 0 collections (all removed)
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue([]);
+      await provider.run();
+
+      expect(provider.getCurrentCollectionsCount()).toBe(0);
+      // Delta should be -10 (0 - 10 = -10)
+      expect(provider.getCollectionsDelta()).toBe(-10);
+    });
+
+    it('should track delta correctly across multiple syncs with additions and removals', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      // Run 1: 5 collections (delta: +5)
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue(
+        Array.from({ length: 5 }, (_, i) => ({
+          ...MOCK_COLLECTION,
+          name: `col-${i}`,
+        })),
+      );
+      await provider.run();
+      expect(provider.getCurrentCollectionsCount()).toBe(5);
+      expect(provider.getCollectionsDelta()).toBe(5);
+
+      // Run 2: 8 collections (delta: +3)
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue(
+        Array.from({ length: 8 }, (_, i) => ({
+          ...MOCK_COLLECTION,
+          name: `col-${i}`,
+        })),
+      );
+      await provider.run();
+      expect(provider.getCurrentCollectionsCount()).toBe(8);
+      expect(provider.getCollectionsDelta()).toBe(3);
+
+      // Run 3: 3 collections (delta: -5)
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue(
+        Array.from({ length: 3 }, (_, i) => ({
+          ...MOCK_COLLECTION,
+          name: `col-${i}`,
+        })),
+      );
+      await provider.run();
+      expect(provider.getCurrentCollectionsCount()).toBe(3);
+      expect(provider.getCollectionsDelta()).toBe(-5);
+
+      // Run 4: 3 collections again (delta: 0)
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue(
+        Array.from({ length: 3 }, (_, i) => ({
+          ...MOCK_COLLECTION,
+          name: `col-${i}`,
+        })),
+      );
+      await provider.run();
+      expect(provider.getCurrentCollectionsCount()).toBe(3);
+      expect(provider.getCollectionsDelta()).toBe(0);
+
+      // Run 5: 7 collections (delta: +4)
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue(
+        Array.from({ length: 7 }, (_, i) => ({
+          ...MOCK_COLLECTION,
+          name: `col-${i}`,
+        })),
+      );
+      await provider.run();
+      expect(provider.getCurrentCollectionsCount()).toBe(7);
+      expect(provider.getCollectionsDelta()).toBe(4);
+    });
   });
 
   describe('getSourceId', () => {
@@ -1831,6 +1984,237 @@ describe('PAHCollectionProvider', () => {
       expect(result.started).toBe(false);
       expect(result.skipped).toBe(false);
       expect(result.error).toBe('Provider not connected');
+    });
+  });
+
+  describe('delayed failure scenarios', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('should correctly set failure status when sync fails after a delay', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      // Verify initial state
+      expect(provider.getLastSyncStatus()).toBeNull();
+      expect(provider.getLastFailedSyncTime()).toBeNull();
+      expect(provider.getIsSyncing()).toBe(false);
+
+      // Mock a delayed failure (simulating a 30-second operation that fails)
+      mockAnsibleService.syncCollectionsByRepositories.mockImplementation(
+        () =>
+          new Promise((_, reject) => {
+            setTimeout(() => {
+              reject(new Error('Connection timeout after 30 seconds'));
+            }, 30000);
+          }),
+      );
+
+      // Start the sync (don't await - we want to observe intermediate state)
+      const syncPromise = provider.run();
+
+      // Immediately after starting, isSyncing should be true
+      expect(provider.getIsSyncing()).toBe(true);
+
+      // Advance timers by 30 seconds to trigger the rejection
+      await jest.advanceTimersByTimeAsync(30000);
+
+      // Wait for the promise to settle
+      await syncPromise;
+
+      // Verify failure state after delayed error
+      expect(provider.getIsSyncing()).toBe(false);
+      expect(provider.getLastSyncStatus()).toBe('failure');
+      expect(provider.getLastFailedSyncTime()).not.toBeNull();
+      expect(provider.getLastSyncTime()).toBeNull(); // Should not be updated on failure
+      expect(provider.getCurrentCollectionsCount()).toBe(0); // Should not be updated on failure
+      expect(provider.getCollectionsDelta()).toBe(0); // No change since no successful sync
+    });
+
+    it('should correctly set failure status when sync fails during entity parsing after delay', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      // Mock a delayed successful fetch, but parser will fail
+      mockAnsibleService.syncCollectionsByRepositories.mockImplementation(
+        () =>
+          new Promise(resolve => {
+            setTimeout(() => {
+              resolve([MOCK_COLLECTION]);
+            }, 15000);
+          }),
+      );
+
+      // Mock parser to throw after fetch succeeds
+      (pahCollectionParser as jest.Mock).mockImplementation(() => {
+        throw new Error('Failed to parse collection data');
+      });
+
+      const syncPromise = provider.run();
+
+      // Verify sync is in progress
+      expect(provider.getIsSyncing()).toBe(true);
+
+      // Advance timers to trigger the fetch completion
+      await jest.advanceTimersByTimeAsync(15000);
+
+      await syncPromise;
+
+      // Verify failure state
+      expect(provider.getIsSyncing()).toBe(false);
+      expect(provider.getLastSyncStatus()).toBe('failure');
+      expect(provider.getLastFailedSyncTime()).not.toBeNull();
+    });
+
+    it('should correctly set failure status when applyMutation fails after delay', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      // Mock a delayed successful fetch
+      mockAnsibleService.syncCollectionsByRepositories.mockImplementation(
+        () =>
+          new Promise(resolve => {
+            setTimeout(() => {
+              resolve([MOCK_COLLECTION]);
+            }, 10000);
+          }),
+      );
+
+      // Reset parser mock to work correctly
+      (pahCollectionParser as jest.Mock).mockReturnValue({
+        apiVersion: 'backstage.io/v1alpha1',
+        kind: 'Component',
+        metadata: { name: 'test-collection' },
+        spec: { type: 'ansible-collection', lifecycle: 'production' },
+      });
+
+      // Mock applyMutation to fail after a delay
+      mockConnection.applyMutation.mockImplementation(
+        () =>
+          new Promise((_, reject) => {
+            setTimeout(() => {
+              reject(new Error('Database connection lost'));
+            }, 5000);
+          }),
+      );
+
+      const syncPromise = provider.run();
+
+      expect(provider.getIsSyncing()).toBe(true);
+
+      // Advance timers for fetch (10s)
+      await jest.advanceTimersByTimeAsync(10000);
+      // Advance timers for mutation failure (5s)
+      await jest.advanceTimersByTimeAsync(5000);
+
+      await syncPromise;
+
+      // Verify failure state
+      expect(provider.getIsSyncing()).toBe(false);
+      expect(provider.getLastSyncStatus()).toBe('failure');
+      expect(provider.getLastFailedSyncTime()).not.toBeNull();
+      expect(provider.getLastSyncTime()).toBeNull();
+    });
+
+    it('should preserve previous successful sync data when delayed sync fails', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      // First sync: successful with 2 collections
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue([
+        MOCK_COLLECTION,
+        MOCK_COLLECTION_2,
+      ]);
+      (pahCollectionParser as jest.Mock).mockReturnValue({
+        apiVersion: 'backstage.io/v1alpha1',
+        kind: 'Component',
+        metadata: { name: 'test-collection' },
+        spec: { type: 'ansible-collection', lifecycle: 'production' },
+      });
+      mockConnection.applyMutation.mockResolvedValue(undefined);
+
+      await provider.run();
+
+      const firstSyncTime = provider.getLastSyncTime();
+      expect(provider.getLastSyncStatus()).toBe('success');
+      expect(provider.getCurrentCollectionsCount()).toBe(2);
+
+      // Second sync: delayed failure
+      mockAnsibleService.syncCollectionsByRepositories.mockImplementation(
+        () =>
+          new Promise((_, reject) => {
+            setTimeout(() => {
+              reject(new Error('Service unavailable'));
+            }, 20000);
+          }),
+      );
+
+      const syncPromise = provider.run();
+
+      await jest.advanceTimersByTimeAsync(20000);
+
+      await syncPromise;
+
+      // Verify: failure status is set but previous successful data is preserved
+      expect(provider.getLastSyncStatus()).toBe('failure');
+      expect(provider.getLastFailedSyncTime()).not.toBeNull();
+      // Previous successful sync time should still be available
+      expect(provider.getLastSyncTime()).toBe(firstSyncTime);
+      // Collection count from last successful sync should be preserved
+      expect(provider.getCurrentCollectionsCount()).toBe(2);
     });
   });
 });
