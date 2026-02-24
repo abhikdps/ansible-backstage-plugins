@@ -82,7 +82,10 @@ describe('utils', () => {
 
   describe('createCollectionIdentifier', () => {
     it('should create a collection identifier from galaxy file and source config', () => {
-      const result = createCollectionIdentifier(mockGalaxyFile, mockSourceConfig);
+      const result = createCollectionIdentifier(
+        mockGalaxyFile,
+        mockSourceConfig,
+      );
 
       expect(result).toEqual({
         scmProvider: 'github',
@@ -97,13 +100,20 @@ describe('utils', () => {
 
     it('should use default host when host is not provided', () => {
       const configWithoutHost = { ...mockSourceConfig, host: undefined };
-      const result = createCollectionIdentifier(mockGalaxyFile, configWithoutHost);
+      const result = createCollectionIdentifier(
+        mockGalaxyFile,
+        configWithoutHost,
+      );
 
       expect(result.host).toBe('github.com');
     });
 
     it('should use gitlab.com as default for gitlab provider', () => {
-      const gitlabConfig = { ...mockSourceConfig, scmProvider: 'gitlab' as const, host: undefined };
+      const gitlabConfig = {
+        ...mockSourceConfig,
+        scmProvider: 'gitlab' as const,
+        host: undefined,
+      };
       const result = createCollectionIdentifier(mockGalaxyFile, gitlabConfig);
 
       expect(result.host).toBe('gitlab.com');
@@ -159,11 +169,15 @@ describe('utils', () => {
 
   describe('sanitizeEntityName', () => {
     it('should lowercase and replace special characters', () => {
-      expect(sanitizeEntityName('My_Collection.Name')).toBe('my-collection-name');
+      expect(sanitizeEntityName('My_Collection.Name')).toBe(
+        'my-collection-name',
+      );
     });
 
     it('should collapse multiple hyphens', () => {
-      expect(sanitizeEntityName('name--with---hyphens')).toBe('name-with-hyphens');
+      expect(sanitizeEntityName('name--with---hyphens')).toBe(
+        'name-with-hyphens',
+      );
     });
 
     it('should remove leading and trailing hyphens', () => {
@@ -178,7 +192,10 @@ describe('utils', () => {
 
   describe('generateCollectionEntityName', () => {
     it('should generate a sanitized entity name for a collection', () => {
-      const result = generateCollectionEntityName(mockGalaxyFile, mockSourceConfig);
+      const result = generateCollectionEntityName(
+        mockGalaxyFile,
+        mockSourceConfig,
+      );
 
       expect(result).toBe('ansible-posix-1-5-0-github-github-com');
     });
@@ -201,7 +218,10 @@ describe('utils', () => {
 
   describe('generateRepositoryEntityName', () => {
     it('should generate a sanitized entity name for a repository', () => {
-      const result = generateRepositoryEntityName(mockRepository, mockSourceConfig);
+      const result = generateRepositoryEntityName(
+        mockRepository,
+        mockSourceConfig,
+      );
 
       expect(result).toBe('org-test-repo-github-github-com');
     });
@@ -239,7 +259,7 @@ describe('utils', () => {
     });
 
     it('should handle dependencies without namespace separator', () => {
-      const dependencies = { 'singlename': '1.0.0' };
+      const dependencies = { singlename: '1.0.0' };
       const result = parseDependencies(dependencies);
 
       // When no dot separator, namespace gets the value, name falls back to fullName

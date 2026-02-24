@@ -1,4 +1,4 @@
-import { AnsibleGitContentsProvider } from './providers/ansible-collections';
+import { AnsibleGitContentsProvider } from './providers/AnsibleGitContentsProvider';
 
 export function formatNameSpace(name: string): string {
   return name
@@ -83,26 +83,6 @@ export function parseSourceId(sourceId: string): ParsedSourceInfo {
   };
 }
 
-export function buildSourcesTree(
-  providers: AnsibleGitContentsProvider[],
-): Record<string, Record<string, string[]>> {
-  const tree: Record<string, Record<string, string[]>> = {};
-
-  for (const provider of providers) {
-    const info = parseSourceId(provider.getSourceId());
-
-    if (!tree[info.scmProvider]) {
-      tree[info.scmProvider] = {};
-    }
-    if (!tree[info.scmProvider][info.hostName]) {
-      tree[info.scmProvider][info.hostName] = [];
-    }
-    tree[info.scmProvider][info.hostName].push(info.organization);
-  }
-
-  return tree;
-}
-
 export function providerMatchesFilter(
   providerInfo: ParsedSourceInfo,
   filter: SyncFilter,
@@ -142,18 +122,41 @@ export function findMatchingProviders(
   return matchedProviderIds;
 }
 
-export function buildFilterDescription(filters: SyncFilter[]): string {
-  if (filters.length === 0) {
-    return 'all sources';
-  }
+export interface SyncStatus {
+  sync_started: number;
+  already_syncing: number;
+  failed: number;
+  invalid: number;
+}
 
-  const filterDescriptions = filters.map(f => {
-    const parts: string[] = [];
-    if (f.scmProvider) parts.push(`scmProvider=${f.scmProvider}`);
-    if (f.hostName) parts.push(`hostName=${f.hostName}`);
-    if (f.organization) parts.push(`org=${f.organization}`);
-    return parts.length > 0 ? `{${parts.join(', ')}}` : 'all';
-  });
+export interface SCMProviderStatus {
+  sourceId: string;
+  scmProvider: string;
+  hostName: string;
+  organization: string;
+  providerName: string;
+  enabled: boolean;
+  syncInProgress: boolean;
+  lastSyncTime: string | null;
+  lastFailedSyncTime: string | null;
+  lastSyncStatus: 'success' | 'failure' | null;
+  collectionsFound: number;
+  collectionsDelta: number;
+}
 
-  return `filters: [${filterDescriptions.join(', ')}]`;
+export type ProviderStatus = SCMProviderStatus;
+
+export type SyncResultStatus =
+  | 'sync_started'
+  | 'already_syncing'
+  | 'failed'
+  | 'invalid';
+
+export interface SCMSyncResult {
+  scmProvider: string;
+  hostName: string;
+  organization: string;
+  providerName?: string;
+  status: SyncResultStatus;
+  error?: { code: string; message: string };
 }

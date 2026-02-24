@@ -7,7 +7,7 @@ import {
 import type {
   DiscoveredGalaxyFile,
   AnsibleGitContentsSourceConfig,
-} from '../types';
+} from '../../types';
 
 export type {
   RepositoryInfo,

@@ -325,7 +325,10 @@ describe('config', () => {
                               name: 'ansible',
                               branches: ['main', 'develop'],
                               tags: ['v1.*', 'v2.*'],
-                              galaxyFilePaths: ['galaxy.yml', 'collections/galaxy.yml'],
+                              galaxyFilePaths: [
+                                'galaxy.yml',
+                                'collections/galaxy.yml',
+                              ],
                               crawlDepth: 3,
                               schedule: {
                                 frequency: { minutes: 30 },
@@ -480,8 +483,16 @@ describe('config', () => {
       const result = readAnsibleGitContentsConfigs(config);
 
       expect(result).toHaveLength(2);
-      expect(result.find(s => s.env === 'development' && s.organization === 'dev-org')).toBeDefined();
-      expect(result.find(s => s.env === 'production' && s.organization === 'prod-org')).toBeDefined();
+      expect(
+        result.find(
+          s => s.env === 'development' && s.organization === 'dev-org',
+        ),
+      ).toBeDefined();
+      expect(
+        result.find(
+          s => s.env === 'production' && s.organization === 'prod-org',
+        ),
+      ).toBeDefined();
     });
   });
 

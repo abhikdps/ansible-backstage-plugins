@@ -14,18 +14,17 @@ import { Entity } from '@backstage/catalog-model';
 import type {
   AnsibleGitContentsSourceConfig,
   DiscoveredGalaxyFile,
-  SourceSyncStatus,
 } from './types';
-import { ScmCrawlerFactory } from './scm';
-import type { ScmCrawler } from './scm';
+import { ScmCrawlerFactory } from './ansible-collections/scm';
+import type { ScmCrawler } from './ansible-collections/scm';
 import {
   createCollectionKey,
   createCollectionIdentifier,
   createRepositoryKey,
   generateSourceId,
   generateCollectionEntityName,
-} from './utils';
-import { collectionParser, repositoryParser } from '../entityParser';
+} from './ansible-collections/utils';
+import { scmCollectionParser, repositoryParser } from './entityParser';
 import { readAnsibleGitContentsConfigs } from './config';
 
 const DEFAULT_CRAWL_DEPTH = 5;
@@ -39,11 +38,12 @@ export class AnsibleGitContentsProvider implements EntityProvider {
   private readonly sourceId: string;
   private connection?: EntityProviderConnection;
   private lastSyncTime: string | null = null;
+  private lastFailedSyncTime: string | null = null;
+  private lastSyncStatus: 'success' | 'failure' | null = null;
   private lastSyncCollections: number = 0;
   private lastSyncNewCollections: number = 0;
-  private lastSyncRepositories: number = 0;
-  private lastSyncError?: string;
-  static pluginLogName = 'plugin-catalog-rhaap-git-contents';
+  private isSyncing: boolean = false;
+  static readonly pluginLogName = 'plugin-catalog-rhaap-git-contents';
 
   static async fromConfig(
     config: Config,
@@ -169,7 +169,6 @@ export class AnsibleGitContentsProvider implements EntityProvider {
                   stack: error.stack,
                 },
               );
-              this.lastSyncError = error.message;
             }
           }
         },
@@ -189,16 +188,49 @@ export class AnsibleGitContentsProvider implements EntityProvider {
     return this.lastSyncTime;
   }
 
-  getSyncStatus(): SourceSyncStatus {
-    return {
-      sourceId: this.sourceId,
-      enabled: this.sourceConfig.enabled,
-      lastSync: this.lastSyncTime,
-      collectionsFound: this.lastSyncCollections,
-      newCollections: this.lastSyncNewCollections,
-      repositoriesFound: this.lastSyncRepositories,
-      lastError: this.lastSyncError,
-    };
+  getIsSyncing(): boolean {
+    return this.isSyncing;
+  }
+
+  isEnabled(): boolean {
+    return this.sourceConfig.enabled;
+  }
+
+  getLastFailedSyncTime(): string | null {
+    return this.lastFailedSyncTime;
+  }
+
+  getLastSyncStatus(): 'success' | 'failure' | null {
+    return this.lastSyncStatus;
+  }
+
+  getCurrentCollectionsCount(): number {
+    return this.lastSyncCollections;
+  }
+
+  getCollectionsDelta(): number {
+    return this.lastSyncNewCollections;
+  }
+
+  startSync(): { started: boolean; skipped: boolean; error?: string } {
+    if (this.isSyncing) {
+      return { started: false, skipped: true };
+    }
+    if (!this.connection) {
+      return {
+        started: false,
+        skipped: false,
+        error: 'Provider not connected',
+      };
+    }
+    this.run().catch(err => {
+      this.logger.error(
+        `[${this.getProviderName()}]: Background sync failed: ${
+          err?.message ?? err
+        }`,
+      );
+    });
+    return { started: true, skipped: false };
   }
 
   async connect(connection: EntityProviderConnection): Promise<void> {
@@ -211,6 +243,7 @@ export class AnsibleGitContentsProvider implements EntityProvider {
       throw new NotFoundError('Provider not initialized - not connected');
     }
 
+    this.isSyncing = true;
     this.logger.info(
       `[${AnsibleGitContentsProvider.pluginLogName}]: Starting collection discovery for ${this.sourceId}`,
     );
@@ -356,8 +389,7 @@ export class AnsibleGitContentsProvider implements EntityProvider {
 
       this.lastSyncTime = new Date().toISOString();
       this.lastSyncCollections = currentCollectionCount;
-      this.lastSyncRepositories = repositoryEntities.length;
-      this.lastSyncError = undefined;
+      this.lastSyncStatus = 'success';
 
       const duration = Date.now() - startTime;
       const deltaStr =
@@ -370,10 +402,13 @@ export class AnsibleGitContentsProvider implements EntityProvider {
     } catch (e: unknown) {
       success = false;
       const errorMessage = e instanceof Error ? e.message : String(e);
-      this.lastSyncError = errorMessage;
+      this.lastSyncStatus = 'failure';
+      this.lastFailedSyncTime = new Date().toISOString();
       this.logger.error(
         `[${AnsibleGitContentsProvider.pluginLogName}]: Error during collection discovery: ${errorMessage}`,
       );
+    } finally {
+      this.isSyncing = false;
     }
 
     return success;
@@ -426,7 +461,7 @@ export class AnsibleGitContentsProvider implements EntityProvider {
           galaxyFile.path,
         );
 
-        const entity = collectionParser({
+        const entity = scmCollectionParser({
           galaxyFile,
           sourceConfig: this.sourceConfig,
           sourceLocation,

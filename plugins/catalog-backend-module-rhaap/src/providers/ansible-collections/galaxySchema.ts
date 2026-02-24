@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { GalaxyMetadata } from './types';
+import type { GalaxyMetadata } from '../types';
 
 const namespaceNameRegex = /^[a-zA-Z][a-zA-Z0-9]*([_.][a-zA-Z0-9]+)*$/;
 

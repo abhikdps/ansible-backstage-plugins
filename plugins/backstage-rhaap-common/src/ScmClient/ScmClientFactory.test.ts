@@ -189,7 +189,9 @@ describe('ScmClientFactory', () => {
           host: 'github.example.com',
           organization: 'ansible',
         }),
-      ).rejects.toThrow('No GitHub integration configured for host: github.example.com');
+      ).rejects.toThrow(
+        'No GitHub integration configured for host: github.example.com',
+      );
     });
 
     it('should throw error when no GitLab integration is configured for custom host', async () => {
@@ -215,7 +217,9 @@ describe('ScmClientFactory', () => {
           host: 'gitlab.example.com',
           organization: 'mygroup',
         }),
-      ).rejects.toThrow('No GitLab integration configured for host: gitlab.example.com');
+      ).rejects.toThrow(
+        'No GitLab integration configured for host: gitlab.example.com',
+      );
     });
 
     it('should throw error when GitHub token is missing', async () => {

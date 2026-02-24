@@ -21,14 +21,17 @@ import { AAPJobTemplateProvider } from './providers/AAPJobTemplateProvider';
 import { AAPEntityProvider } from './providers/AAPEntityProvider';
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { EEEntityProvider } from './providers/EEEntityProvider';
-import { AnsibleGitContentsProvider } from './providers/ansible-collections';
+import { AnsibleGitContentsProvider } from './providers/AnsibleGitContentsProvider';
 import {
   SyncFilter,
   parseSourceId,
-  buildSourcesTree,
   findMatchingProviders,
-  buildFilterDescription,
   validateSyncFilter,
+  SyncStatus,
+  SCMProviderStatus,
+  ProviderStatus,
+  SyncResultStatus,
+  SCMSyncResult,
 } from './helpers';
 import { ScmClientFactory } from '@ansible/backstage-rhaap-common';
 
@@ -79,19 +82,65 @@ export async function createRouter(options: {
   router.get('/aap/sync_status', async (request, response) => {
     logger.info('Getting sync status');
     const aapEntities = request.query.aap_entities === 'true';
+    const ansibleContents = request.query.ansible_contents === 'true';
+    const noQueryParams =
+      request.query.aap_entities === undefined &&
+      request.query.ansible_contents === undefined;
 
     try {
-      const orgsUsersTeamsLastSync = aapEntityProvider.getLastSyncTime();
-      const jobTemplatesLastSync = jobTemplateProvider.getLastSyncTime();
+      const result: {
+        aap?: {
+          orgsUsersTeams: { lastSync: string | null };
+          jobTemplates: { lastSync: string | null };
+        };
+        content?: {
+          syncInProgress: boolean;
+          providers: ProviderStatus[];
+        };
+      } = {};
 
-      if (aapEntities) {
-        response.status(200).json({
-          aap: {
-            orgsUsersTeams: { lastSync: orgsUsersTeamsLastSync },
-            jobTemplates: { lastSync: jobTemplatesLastSync },
+      // Include aap block if aap_entities=true or no query params
+      if (aapEntities || noQueryParams) {
+        result.aap = {
+          orgsUsersTeams: {
+            lastSync: aapEntityProvider.getLastSyncTime(),
           },
-        });
+          jobTemplates: {
+            lastSync: jobTemplateProvider.getLastSyncTime(),
+          },
+        };
       }
+
+      if (ansibleContents || noQueryParams) {
+        const scmProviders: SCMProviderStatus[] =
+          ansibleGitContentsProviders.map(provider => {
+            const providerInfo = parseSourceId(provider.getSourceId());
+            return {
+              sourceId: provider.getSourceId(),
+              scmProvider: providerInfo.scmProvider,
+              hostName: providerInfo.hostName,
+              organization: providerInfo.organization,
+              providerName: provider.getProviderName(),
+              enabled: provider.isEnabled(),
+              syncInProgress: provider.getIsSyncing(),
+              lastSyncTime: provider.getLastSyncTime(),
+              lastFailedSyncTime: provider.getLastFailedSyncTime(),
+              lastSyncStatus: provider.getLastSyncStatus(),
+              collectionsFound: provider.getCurrentCollectionsCount(),
+              collectionsDelta: provider.getCollectionsDelta(),
+            };
+          });
+
+        const providers: ProviderStatus[] = [...scmProviders];
+        const anySyncInProgress = providers.some(p => p.syncInProgress);
+
+        result.content = {
+          syncInProgress: anySyncInProgress,
+          providers,
+        };
+      }
+
+      response.status(200).json(result);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -103,6 +152,7 @@ export async function createRouter(options: {
           orgsUsersTeams: null,
           jobTemplates: null,
         },
+        content: null,
       });
     }
   });
@@ -153,41 +203,6 @@ export async function createRouter(options: {
     }
   });
 
-  router.get('/ansible-collections/sync_status', async (_, response) => {
-    logger.info('Getting Ansible Git Contents sync status');
-    try {
-      const sources = ansibleGitContentsProviders.map(provider => {
-        const syncStatus = provider.getSyncStatus();
-        const providerInfo = parseSourceId(provider.getSourceId());
-        return {
-          ...syncStatus,
-          env: providerInfo.env,
-          scmProvider: providerInfo.scmProvider,
-          hostName: providerInfo.hostName,
-          organization: providerInfo.organization,
-        };
-      });
-
-      const sourcesTree = buildSourcesTree(ansibleGitContentsProviders);
-
-      response.status(200).json({
-        sources,
-        sourcesTree,
-      });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      logger.error(
-        `Failed to get Ansible Git Contents sync status: ${errorMessage}`,
-      );
-      response.status(500).json({
-        error: `Failed to get sync status: ${errorMessage}`,
-        sources: [],
-        sourcesTree: {},
-      });
-    }
-  });
-
   // sync endpoint using POST with hierarchical filtering
   // filter hierarchy: scmProvider -> hostName -> organization
   //  - scmProvider can come alone (syncs all hosts and orgs for that provider)
@@ -205,77 +220,138 @@ export async function createRouter(options: {
   //    ]
   //  } -> multiple selections
   router.post(
-    '/collections/sync/from-scm',
+    '/ansible/sync/from-scm/content',
     express.json(),
     async (request, response) => {
       const { filters = [] } = request.body as { filters?: SyncFilter[] };
-
+      const invalidFilters: Array<{ filter: SyncFilter; error: string }> = [];
       for (const filter of filters) {
         const validationError = validateSyncFilter(filter);
         if (validationError) {
-          response.status(400).json({
-            success: false,
-            error: `Invalid filter: ${validationError}`,
-            invalidFilter: filter,
-            hint: 'Filter hierarchy: scmProvider -> hostName -> organization. hostName requires scmProvider, organization requires both.',
-          });
-          return;
+          invalidFilters.push({ filter, error: validationError });
         }
       }
+
+      const validFilters = filters.filter(
+        f => !invalidFilters.some(inv => inv.filter === f),
+      );
+      const providersToSync =
+        filters.length === 0
+          ? ansibleGitContentsProviders
+          : getProvidersFromFilters(validFilters);
 
       logger.info(
-        `Triggering Ansible Git Contents sync for ${buildFilterDescription(filters)}`,
+        `Starting Ansible Git Contents sync for ${
+          providersToSync.length > 0
+            ? providersToSync.map(p => p.getSourceId()).join(', ')
+            : 'none'
+        }`,
       );
 
-      try {
-        const providersToSync =
-          filters.length === 0
-            ? ansibleGitContentsProviders
-            : getProvidersFromFilters(filters);
+      const results: SCMSyncResult[] = providersToSync.map(provider => {
+        const sourceId = provider.getSourceId();
+        const providerName = provider.getProviderName();
+        const { scmProvider, hostName, organization } = parseSourceId(sourceId);
 
-        if (providersToSync.length === 0) {
-          response.status(404).json({
-            success: false,
-            error: 'No sources match the provided filters',
-            filters,
-            availableSources: buildSourcesTree(ansibleGitContentsProviders),
-          });
-          return;
+        const { started, skipped, error } = provider.startSync();
+
+        if (skipped) {
+          logger.info(
+            `Skipping sync for ${sourceId}: sync already in progress`,
+          );
+          return {
+            scmProvider,
+            hostName,
+            organization,
+            providerName,
+            status: 'already_syncing' as SyncResultStatus,
+          };
         }
 
-        const settledResults = await Promise.allSettled(
-          providersToSync.map(provider => provider.run()),
-        );
-
-        const results = buildSyncResults(providersToSync, settledResults);
-        const successCount = results.filter(r => r.success).length;
-        const failureCount = results.length - successCount;
-
-        let statusCode: number;
-        if (successCount === results.length) {
-          statusCode = 200;
-        } else if (successCount > 0) {
-          statusCode = 207;
-        } else {
-          statusCode = 500;
+        if (!started) {
+          logger.error(
+            `Failed to start sync for ${sourceId}: ${error ?? 'unknown error'}`,
+          );
+          return {
+            scmProvider,
+            hostName,
+            organization,
+            providerName,
+            status: 'failed' as SyncResultStatus,
+            error: {
+              code: 'SYNC_START_FAILED',
+              message: error ?? 'Failed to initiate sync for provider',
+            },
+          };
         }
 
-        response.status(statusCode).json({
-          success: successCount === results.length,
-          providersRun: results.length,
-          successCount,
-          failureCount,
-          results,
-        });
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        logger.error(`Failed to sync Ansible Git Contents: ${errorMessage}`);
-        response.status(500).json({
-          success: false,
-          error: `Failed to sync Ansible Git Contents: ${errorMessage}`,
+        return {
+          scmProvider,
+          hostName,
+          organization,
+          providerName,
+          status: 'sync_started' as SyncResultStatus,
+        };
+      });
+
+      for (const { filter, error } of invalidFilters) {
+        results.push({
+          scmProvider: filter.scmProvider || '',
+          hostName: filter.hostName || '',
+          organization: filter.organization || '',
+          status: 'invalid' as SyncResultStatus,
+          error: {
+            code: 'INVALID_FILTER',
+            message: error,
+          },
         });
       }
+
+      const summary: SyncStatus & { total: number } = {
+        total: results.length,
+        sync_started: results.filter(r => r.status === 'sync_started').length,
+        already_syncing: results.filter(r => r.status === 'already_syncing')
+          .length,
+        failed: results.filter(r => r.status === 'failed').length,
+        invalid: results.filter(r => r.status === 'invalid').length,
+      };
+
+      const hasFailures = results.some(r => r.status === 'failed');
+      const hasStarted = results.some(r => r.status === 'sync_started');
+      const hasInvalid = results.some(r => r.status === 'invalid');
+      const allStarted =
+        results.length > 0 && results.every(r => r.status === 'sync_started');
+      const allSkipped =
+        results.length > 0 &&
+        results.every(r => r.status === 'already_syncing');
+      const allFailed =
+        results.length > 0 && results.every(r => r.status === 'failed');
+      const allInvalid =
+        results.length > 0 && results.every(r => r.status === 'invalid');
+      const emptyRequest =
+        filters.length === 0 && ansibleGitContentsProviders.length === 0;
+
+      let statusCode: number;
+      if (
+        allInvalid ||
+        emptyRequest ||
+        (hasInvalid && hasFailures && !hasStarted)
+      ) {
+        statusCode = 400;
+      } else if (allFailed) {
+        statusCode = 500;
+      } else if (allStarted) {
+        statusCode = 202;
+      } else if (allSkipped) {
+        statusCode = 200;
+      } else {
+        statusCode = 207;
+      }
+
+      response.status(statusCode).json({
+        summary,
+        results,
+      });
     },
   );
 
@@ -287,36 +363,6 @@ export async function createRouter(options: {
       filters,
     );
     return Array.from(matchedIds).map(id => _GIT_CONTENTS_PROVIDERS.get(id)!);
-  }
-
-  function buildSyncResults(
-    providers: AnsibleGitContentsProvider[],
-    settledResults: PromiseSettledResult<boolean>[],
-  ) {
-    return settledResults.map((result, index) => {
-      const provider = providers[index];
-      const providerInfo = parseSourceId(provider.getSourceId());
-      const baseResult = {
-        sourceId: provider.getSourceId(),
-        env: providerInfo.env,
-        scmProvider: providerInfo.scmProvider,
-        hostName: providerInfo.hostName,
-        organization: providerInfo.organization,
-      };
-
-      if (result.status === 'fulfilled') {
-        return { ...baseResult, success: result.value };
-      }
-
-      return {
-        ...baseResult,
-        success: false,
-        error:
-          result.reason instanceof Error
-            ? result.reason.message
-            : String(result.reason),
-      };
-    });
   }
 
   router.get('/git_readme_content', async (request, response) => {

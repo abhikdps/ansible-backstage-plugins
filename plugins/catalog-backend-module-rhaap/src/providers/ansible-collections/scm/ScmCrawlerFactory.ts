@@ -3,7 +3,7 @@ import type { Config } from '@backstage/config';
 import { ScmClientFactory } from '@ansible/backstage-rhaap-common';
 
 import type { ScmCrawler } from './ScmCrawler';
-import type { AnsibleGitContentsSourceConfig } from '../types';
+import type { AnsibleGitContentsSourceConfig } from '../../types';
 import { GithubCrawler } from './GithubCrawler';
 import { GitlabCrawler } from './GitlabCrawler';
 

@@ -13,7 +13,7 @@ import { AAPJobTemplateProvider } from './providers/AAPJobTemplateProvider';
 import { AAPEntityProvider } from './providers/AAPEntityProvider';
 import { makeValidator } from '@backstage/catalog-model';
 import { EEEntityProvider } from './providers/EEEntityProvider';
-import { AnsibleGitContentsProvider } from './providers/ansible-collections';
+import { AnsibleGitContentsProvider } from './providers/AnsibleGitContentsProvider';
 
 export const catalogModuleRhaap = createBackendModule({
   pluginId: 'catalog',

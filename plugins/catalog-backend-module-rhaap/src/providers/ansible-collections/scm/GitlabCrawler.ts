@@ -1,6 +1,6 @@
 import { RepositoryInfo } from '@ansible/backstage-rhaap-common';
 import { BaseScmCrawler, DiscoveryOptions } from './ScmCrawler';
-import type { DiscoveredGalaxyFile } from '../types';
+import type { DiscoveredGalaxyFile } from '../../types';
 import { validateGalaxyContent } from '../galaxySchema';
 import yaml from 'yaml';
 

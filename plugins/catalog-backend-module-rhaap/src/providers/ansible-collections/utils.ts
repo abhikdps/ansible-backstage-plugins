@@ -3,7 +3,7 @@ import type {
   AnsibleGitContentsSourceConfig,
   CollectionIdentifier,
   RepositoryInfo,
-} from './types';
+} from '../types';
 
 export interface CollectionParserOptions {
   galaxyFile: DiscoveredGalaxyFile;

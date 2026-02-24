@@ -139,19 +139,25 @@ describe('galaxySchema', () => {
     it('should return error for null content', () => {
       const result = validateGalaxyContent(null);
       expect(result.success).toBe(false);
-      expect(result.errors).toContain('galaxy.yml content is empty or not a valid object');
+      expect(result.errors).toContain(
+        'galaxy.yml content is empty or not a valid object',
+      );
     });
 
     it('should return error for undefined content', () => {
       const result = validateGalaxyContent(undefined);
       expect(result.success).toBe(false);
-      expect(result.errors).toContain('galaxy.yml content is empty or not a valid object');
+      expect(result.errors).toContain(
+        'galaxy.yml content is empty or not a valid object',
+      );
     });
 
     it('should return error for non-object content', () => {
       const result = validateGalaxyContent('string content');
       expect(result.success).toBe(false);
-      expect(result.errors).toContain('galaxy.yml content is empty or not a valid object');
+      expect(result.errors).toContain(
+        'galaxy.yml content is empty or not a valid object',
+      );
     });
 
     it('should return error for empty object', () => {

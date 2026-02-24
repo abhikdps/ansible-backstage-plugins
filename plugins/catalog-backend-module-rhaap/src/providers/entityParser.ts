@@ -161,7 +161,7 @@ export const aapJobTemplateParser = (options: {
   return generateTemplate(options);
 };
 
-export function collectionParser(options: CollectionParserOptions): Entity {
+export function scmCollectionParser(options: CollectionParserOptions): Entity {
   const { galaxyFile, sourceConfig, sourceLocation } = options;
   const { metadata, repository, ref, refType, path } = galaxyFile;
   const host = sourceConfig.host || getDefaultHost(sourceConfig.scmProvider);
@@ -175,7 +175,7 @@ export function collectionParser(options: CollectionParserOptions): Entity {
 
   const sanitizedGalaxyTags = metadata.tags
     ? metadata.tags.map((t: string) =>
-        t.toLowerCase().replaceAll(/[^a-z0-9-]/g, '-'),
+        t.toLowerCase().replaceAll(/[^a-z0-9\-:+#]/g, '-'),
       )
     : [];
   const tags: string[] = [
@@ -282,6 +282,10 @@ export function collectionParser(options: CollectionParserOptions): Entity {
       collection_name: metadata.name,
       collection_version: metadata.version,
       collection_full_name: `${metadata.namespace}.${metadata.name}`,
+      ...(metadata.tags &&
+        metadata.tags.length > 0 && {
+          collection_tags: metadata.tags,
+        }),
       ...(metadata.dependencies &&
         Object.keys(metadata.dependencies).length > 0 && {
           collection_dependencies: metadata.dependencies,
