@@ -96,4 +96,52 @@ describe('CollectionResourcesCard', () => {
 
     expect(screen.getByText('Link')).toBeInTheDocument();
   });
+
+  it('renders link with Bug/Issue title using BugReport icon path', () => {
+    const entity: Entity = {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'Component',
+      metadata: {
+        name: 'c',
+        links: [{ title: 'Bug tracker', url: 'https://example.com/issues' }],
+      },
+      spec: {},
+    };
+
+    renderWithTheme(<CollectionResourcesCard entity={entity} />);
+
+    expect(screen.getByText('Bug tracker')).toBeInTheDocument();
+  });
+
+  it('renders link with Home/Homepage title using Home icon path', () => {
+    const entity: Entity = {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'Component',
+      metadata: {
+        name: 'c',
+        links: [{ title: 'Homepage', url: 'https://example.com' }],
+      },
+      spec: {},
+    };
+
+    renderWithTheme(<CollectionResourcesCard entity={entity} />);
+
+    expect(screen.getByText('Homepage')).toBeInTheDocument();
+  });
+
+  it('renders link with Source/Code/Repository title using Code icon path', () => {
+    const entity: Entity = {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'Component',
+      metadata: {
+        name: 'c',
+        links: [{ title: 'Source code', url: 'https://example.com/repo' }],
+      },
+      spec: {},
+    };
+
+    renderWithTheme(<CollectionResourcesCard entity={entity} />);
+
+    expect(screen.getByText('Source code')).toBeInTheDocument();
+  });
 });

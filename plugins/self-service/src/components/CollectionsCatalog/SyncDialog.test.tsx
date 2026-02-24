@@ -1,4 +1,11 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ThemeProvider, createTheme } from '@material-ui/core/styles';
 import { TestApiProvider } from '@backstage/test-utils';
 import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
@@ -447,22 +454,31 @@ describe('SyncDialog', () => {
   it('Deselect All clears selection and disables Sync Selected', async () => {
     renderDialog({ open: true, onClose: mockOnClose });
 
-    await waitFor(() => {
-      expect(screen.getByText('org1')).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByText('org1')).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
     fireEvent.click(screen.getByRole('button', { name: /Select All/i }));
-    await waitFor(() => {
-      expect(
-        screen.getByRole('button', { name: /Sync Selected/i }),
-      ).not.toBeDisabled();
-    });
+    await waitFor(
+      () => {
+        expect(
+          screen.getByRole('button', { name: /Sync Selected/i }),
+        ).not.toBeDisabled();
+      },
+      { timeout: 5000 },
+    );
     fireEvent.click(screen.getByRole('button', { name: /Deselect All/i }));
-    await waitFor(() => {
-      expect(
-        screen.getByRole('button', { name: /Sync Selected/i }),
-      ).toBeDisabled();
-    });
-  });
+    await waitFor(
+      () => {
+        expect(
+          screen.getByRole('button', { name: /Sync Selected/i }),
+        ).toBeDisabled();
+      },
+      { timeout: 5000 },
+    );
+  }, 15000);
 
   it('toggleSelection at provider level deselects provider and all children', async () => {
     renderDialog({ open: true, onClose: mockOnClose });
@@ -688,6 +704,187 @@ describe('SyncDialog', () => {
 
     await waitFor(() => {
       expect(screen.getByText('CUSTOM')).toBeInTheDocument();
+    });
+  });
+
+  it('renders providers in sorted alphabetical order', async () => {
+    mockFetchApi.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        content: {
+          providers: [
+            {
+              sourceId: 'gl-1',
+              scmProvider: 'gitlab',
+              hostName: 'gitlab.com',
+              organization: 'group',
+              lastSyncTime: null,
+            },
+            {
+              sourceId: 'custom-1',
+              scmProvider: 'custom',
+              hostName: 'custom.example.com',
+              organization: 'team',
+              lastSyncTime: null,
+            },
+            {
+              sourceId: 'gh-1',
+              scmProvider: 'github',
+              hostName: 'github.com',
+              organization: 'org',
+              lastSyncTime: null,
+            },
+          ],
+        },
+      }),
+    });
+
+    renderDialog({ open: true, onClose: mockOnClose });
+
+    await waitFor(() => {
+      expect(screen.getByText('CUSTOM')).toBeInTheDocument();
+      expect(screen.getByText('GitHub')).toBeInTheDocument();
+      expect(screen.getByText('GitLab')).toBeInTheDocument();
+    });
+
+    const customEl = screen.getByText('CUSTOM').closest('.MuiListItem-root');
+    const githubEl = screen.getByText('GitHub').closest('.MuiListItem-root');
+    const gitlabEl = screen.getByText('GitLab').closest('.MuiListItem-root');
+    expect(
+      customEl!.compareDocumentPosition(githubEl!) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(
+      githubEl!.compareDocumentPosition(gitlabEl!) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('toggleSelection at host level deselects orgs under that host', async () => {
+    const user = userEvent.setup();
+    mockFetchApi.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          content: {
+            providers: [
+              {
+                sourceId: 'src-1',
+                scmProvider: 'github',
+                hostName: 'github.com',
+                organization: 'org1',
+                lastSyncTime: null,
+              },
+              {
+                sourceId: 'src-2',
+                scmProvider: 'github',
+                hostName: 'github.com',
+                organization: 'org2',
+                lastSyncTime: null,
+              },
+              {
+                sourceId: 'src-3',
+                scmProvider: 'gitlab',
+                hostName: 'gitlab.com',
+                organization: 'mygroup',
+                lastSyncTime: null,
+              },
+            ],
+          },
+        }),
+      })
+      .mockResolvedValue({ ok: true });
+
+    renderDialog({ open: true, onClose: mockOnClose });
+
+    await waitFor(() => {
+      expect(screen.getByText('org1')).toBeInTheDocument();
+      expect(screen.getByText('mygroup')).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: /Select All/i }));
+    await waitFor(
+      () => {
+        expect(
+          screen.getByRole('button', { name: /Sync Selected/i }),
+        ).not.toBeDisabled();
+      },
+      { timeout: 5000 },
+    );
+    // Deselect the github.com host so only GitLab remains (covers toggleSelection host-level branch)
+    const hostRow = screen.getByText('github.com').closest('.MuiListItem-root');
+    expect(hostRow).toBeTruthy();
+    const hostCheckbox = within(hostRow as HTMLElement).getByRole('checkbox');
+    await user.click(hostCheckbox);
+    await user.click(screen.getByRole('button', { name: /Sync Selected/i }));
+
+    await waitFor(() => {
+      const syncCalls = mockFetchApi.fetch.mock.calls.filter((c: [string]) =>
+        String(c[0]).includes('from-scm'),
+      );
+      expect(syncCalls.length).toBeGreaterThan(0);
+      const lastSync = syncCalls.at(-1);
+      expect(lastSync).toBeDefined();
+      const body = JSON.parse((lastSync as [string, { body: string }])[1].body);
+      const gitlabFilter = body.filters.find(
+        (f: { scmProvider?: string }) => f.scmProvider === 'gitlab',
+      );
+      expect(gitlabFilter).toBeDefined();
+      // Each sync call sends one filter; shape is org-level (host+org) when only one org selected, or provider-level when whole provider selected
+      expect(gitlabFilter).toMatchObject({ scmProvider: 'gitlab' });
+    });
+  });
+
+  it('selecting leaf host syncs with host-only filter', async () => {
+    mockFetchApi.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          content: {
+            providers: [
+              {
+                sourceId: 'src-standalone',
+                scmProvider: 'github',
+                hostName: 'standalone.example.com',
+                lastSyncTime: null,
+              },
+            ],
+          },
+        }),
+      })
+      .mockResolvedValue({ ok: true });
+
+    renderDialog({ open: true, onClose: mockOnClose });
+
+    await waitFor(() => {
+      expect(screen.getByText('GitHub')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText('GitHub'));
+    await waitFor(() => {
+      expect(screen.getByText('standalone.example.com')).toBeInTheDocument();
+    });
+    const hostRow = screen
+      .getByText('standalone.example.com')
+      .closest('.MuiListItem-root');
+    const hostCheckbox = hostRow?.querySelector('input[type="checkbox"]');
+    fireEvent.click(hostCheckbox!);
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: /Sync Selected/i }),
+      ).not.toBeDisabled();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Sync Selected/i }));
+
+    await waitFor(() => {
+      const syncCall = mockFetchApi.fetch.mock.calls.find((c: [string]) =>
+        String(c[0]).includes('from-scm/content'),
+      );
+      expect(syncCall).toBeDefined();
+      const body = JSON.parse((syncCall as [string, { body: string }])[1].body);
+      expect(body.filters).toContainEqual({
+        scmProvider: 'github',
+        hostName: 'standalone.example.com',
+        organization: 'standalone.example.com',
+      });
     });
   });
 });

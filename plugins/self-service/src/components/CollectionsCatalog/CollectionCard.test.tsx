@@ -168,4 +168,29 @@ describe('CollectionCard', () => {
 
     expect(screen.getByText('N/A')).toBeInTheDocument();
   });
+
+  it('displays Not Available for last sync when sync failed and no last sync time', () => {
+    renderWithTheme(
+      <CollectionCard
+        entity={mockEntity}
+        onClick={mockOnClick}
+        isStarred={false}
+        onToggleStar={mockOnToggleStar}
+        syncStatusMap={{
+          'src-1': {
+            lastSyncTime: null,
+            lastFailedSyncTime: '2024-06-14T10:00:00Z',
+          },
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        (content, el) =>
+          el?.textContent === 'Last Sync: Not Available' ||
+          content.includes('Not Available'),
+      ),
+    ).toBeInTheDocument();
+  });
 });

@@ -616,6 +616,46 @@ describe('CollectionDetailsPage', () => {
     globalThis.fetch = originalFetch;
   });
 
+  it('sets empty readme when direct fetch rejects', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = jest.fn().mockRejectedValue(new Error('Network error'));
+
+    const entityDirectFetch: Entity = {
+      ...mockEntity,
+      metadata: {
+        ...mockEntity.metadata,
+        annotations: {
+          ...mockEntity.metadata.annotations,
+          'ansible.io/collection-source': 'scm',
+        },
+      },
+      spec: {
+        ...mockEntity.spec,
+        collection_readme_url:
+          'https://github.com/org/repo/blob/main/README.md',
+      } as any,
+    };
+    mockCatalogApi.getEntities.mockResolvedValue({
+      items: [entityDirectFetch],
+    });
+    mockFetchApi.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ content: { providers: [] } }),
+    });
+
+    renderWithRouter('my-namespace-my-collection');
+
+    await waitFor(() => {
+      expect(screen.getByText('About')).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalled();
+    });
+    expect(screen.queryByText('GitHub raw readme')).not.toBeInTheDocument();
+
+    globalThis.fetch = originalFetch;
+  });
+
   it('fetches readme from GitLab raw URL when no backend params', async () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = jest.fn().mockResolvedValue({
