@@ -189,6 +189,77 @@ describe('CollectionAboutCard', () => {
     expect(screen.getByText('other-tag')).toBeInTheDocument();
   });
 
+  it('renders "No description available" when description missing', () => {
+    renderWithTheme(
+      <CollectionAboutCard
+        entity={{
+          ...mockEntity,
+          metadata: { ...mockEntity.metadata, description: undefined },
+        }}
+        lastSync={null}
+        lastFailedSync={null}
+        onViewSource={mockOnViewSource}
+      />,
+    );
+    expect(screen.getByText('No description available.')).toBeInTheDocument();
+  });
+
+  it('renders "Unknown" when no authors', () => {
+    renderWithTheme(
+      <CollectionAboutCard
+        entity={{
+          ...mockEntity,
+          spec: {
+            ...mockEntity.spec,
+            collection_authors: [],
+          } as any,
+        }}
+        lastSync={null}
+        lastFailedSync={null}
+        onViewSource={mockOnViewSource}
+      />,
+    );
+    expect(screen.getByText('Unknown')).toBeInTheDocument();
+  });
+
+  it('does not render License section when license empty', () => {
+    renderWithTheme(
+      <CollectionAboutCard
+        entity={{
+          ...mockEntity,
+          spec: {
+            ...mockEntity.spec,
+            collection_license: undefined,
+          } as any,
+        }}
+        lastSync={null}
+        lastFailedSync={null}
+        onViewSource={mockOnViewSource}
+      />,
+    );
+    expect(screen.getByText('Version')).toBeInTheDocument();
+    expect(screen.queryByText('License')).not.toBeInTheDocument();
+  });
+
+  it('renders source as text when no source url', () => {
+    const annotations = { ...mockEntity.metadata.annotations };
+    delete annotations['backstage.io/source-url'];
+    renderWithTheme(
+      <CollectionAboutCard
+        entity={{
+          ...mockEntity,
+          metadata: { ...mockEntity.metadata, annotations },
+        }}
+        lastSync={null}
+        lastFailedSync={null}
+        onViewSource={mockOnViewSource}
+      />,
+    );
+    expect(
+      screen.getByText('Private Automation Hub (repo1)'),
+    ).toBeInTheDocument();
+  });
+
   it('shows "No tags" when no displayable tags', () => {
     const entity: Entity = {
       ...mockEntity,

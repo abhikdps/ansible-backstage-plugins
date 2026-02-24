@@ -256,4 +256,521 @@ describe('CollectionDetailsPage', () => {
     );
     expect(syncStatusCalls.length).toBe(0);
   });
+
+  it('shows EmptyState and breadcrumbs when getEntities rejects', async () => {
+    mockCatalogApi.getEntities.mockRejectedValue(new Error('Catalog error'));
+
+    renderWithRouter('my-namespace-my-collection');
+
+    await waitFor(() => {
+      expect(screen.getByText('No Collections Found')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Collections')).toBeInTheDocument();
+  });
+
+  it('does not show description when entity has no metadata.description', async () => {
+    const entityNoDesc: Entity = {
+      ...mockEntity,
+      metadata: {
+        ...mockEntity.metadata,
+        description: undefined,
+      },
+    };
+    mockCatalogApi.getEntities.mockResolvedValue({ items: [entityNoDesc] });
+
+    renderWithRouter('my-namespace-my-collection');
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByText('my_namespace.my_collection').length,
+      ).toBeGreaterThan(0);
+    });
+    expect(screen.queryByText('Test collection')).not.toBeInTheDocument();
+  });
+
+  it('does not show View Source when entity has no source url or source-location', async () => {
+    const entityNoSource: Entity = {
+      ...mockEntity,
+      metadata: {
+        ...mockEntity.metadata,
+        annotations: {
+          'ansible.io/collection-source': 'pah',
+          'ansible.io/discovery-source-id': 'src-1',
+        },
+      },
+    };
+    mockCatalogApi.getEntities.mockResolvedValue({ items: [entityNoSource] });
+
+    renderWithRouter('my-namespace-my-collection');
+
+    await waitFor(() => {
+      expect(screen.getByText('About')).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByRole('button', { name: /View Source/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('uses collectionFullName from metadata.title when spec.collection_full_name missing', async () => {
+    const entityWithTitle: Entity = {
+      ...mockEntity,
+      metadata: {
+        ...mockEntity.metadata,
+        title: 'Custom Collection Title',
+      },
+      spec: {
+        ...mockEntity.spec,
+        collection_full_name: undefined,
+      } as any,
+    };
+    mockCatalogApi.getEntities.mockResolvedValue({ items: [entityWithTitle] });
+
+    renderWithRouter('my-namespace-my-collection');
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByText('Custom Collection Title').length,
+      ).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  it('tab change updates selected tab', async () => {
+    renderWithRouter('my-namespace-my-collection');
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: 'Overview' })).toBeInTheDocument();
+    });
+    const overviewTab = screen.getByRole('tab', { name: 'Overview' });
+    expect(overviewTab).toHaveAttribute('aria-selected', 'true');
+    fireEvent.click(overviewTab);
+    expect(overviewTab).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('displays lastSync and lastFailedSync from sync status', async () => {
+    mockFetchApi.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        content: {
+          providers: [
+            {
+              sourceId: 'src-1',
+              lastSyncTime: '2024-06-15T12:00:00Z',
+              lastFailedSyncTime: '2024-06-14T10:00:00Z',
+            },
+          ],
+        },
+      }),
+    });
+
+    renderWithRouter('my-namespace-my-collection');
+
+    await waitFor(() => {
+      expect(screen.getByText('About')).toBeInTheDocument();
+    });
+    expect(mockFetchApi.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('aap/sync_status'),
+    );
+  });
+
+  it('fetches readme via backend when SCM annotations and blob readme URL are present', async () => {
+    const entityWithScmReadme: Entity = {
+      ...mockEntity,
+      metadata: {
+        ...mockEntity.metadata,
+        annotations: {
+          ...mockEntity.metadata.annotations,
+          'ansible.io/collection-source': 'scm',
+          'ansible.io/scm-provider': 'github',
+          'ansible.io/scm-host': 'github.com',
+          'ansible.io/scm-organization': 'myorg',
+          'ansible.io/scm-repository': 'myrepo',
+          'ansible.io/ref': 'main',
+        },
+      },
+      spec: {
+        ...mockEntity.spec,
+        collection_readme_url:
+          'https://github.com/myorg/myrepo/blob/main/README.md',
+      } as any,
+    };
+    mockCatalogApi.getEntities.mockResolvedValue({
+      items: [entityWithScmReadme],
+    });
+    mockFetchApi.fetch.mockImplementation((url: string) => {
+      if (url.includes('sync_status')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            content: { providers: [{ sourceId: 'src-1', lastSyncTime: null }] },
+          }),
+        });
+      }
+      if (url.includes('git_readme_content')) {
+        return Promise.resolve({
+          ok: true,
+          text: () => Promise.resolve('# Backend readme content'),
+        });
+      }
+      return Promise.resolve({ ok: false });
+    });
+
+    renderWithRouter('my-namespace-my-collection');
+
+    await waitFor(() => {
+      expect(screen.getByText('Backend readme content')).toBeInTheDocument();
+    });
+    expect(mockFetchApi.fetch).toHaveBeenCalledWith(
+      expect.stringMatching(
+        /git_readme_content\?.*filePath=README\.md.*ref=main/,
+      ),
+    );
+  });
+
+  it('uses parseReadmeFilePath to extract path after blob for backend readme', async () => {
+    const entityWithNestedPath: Entity = {
+      ...mockEntity,
+      metadata: {
+        ...mockEntity.metadata,
+        annotations: {
+          ...mockEntity.metadata.annotations,
+          'ansible.io/collection-source': 'scm',
+          'ansible.io/scm-provider': 'github',
+          'ansible.io/scm-host': 'github.com',
+          'ansible.io/scm-organization': 'org',
+          'ansible.io/scm-repository': 'repo',
+          'ansible.io/ref': 'v1.0',
+        },
+      },
+      spec: {
+        ...mockEntity.spec,
+        collection_readme_url:
+          'https://github.com/org/repo/blob/v1.0/docs/README.md',
+      } as any,
+    };
+    mockCatalogApi.getEntities.mockResolvedValue({
+      items: [entityWithNestedPath],
+    });
+    mockFetchApi.fetch.mockImplementation((url: string) => {
+      if (url.includes('sync_status')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            content: { providers: [] },
+          }),
+        });
+      }
+      if (url.includes('git_readme_content')) {
+        return Promise.resolve({
+          ok: true,
+          text: () => Promise.resolve('Nested path readme'),
+        });
+      }
+      return Promise.resolve({ ok: false });
+    });
+
+    renderWithRouter('my-namespace-my-collection');
+
+    await waitFor(() => {
+      expect(screen.getByText('Nested path readme')).toBeInTheDocument();
+    });
+    expect(mockFetchApi.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('filePath=docs%2FREADME.md'),
+    );
+  });
+
+  it('sets empty readme when fetchReadmeFromBackend returns not ok', async () => {
+    const entityWithScmReadme: Entity = {
+      ...mockEntity,
+      metadata: {
+        ...mockEntity.metadata,
+        annotations: {
+          ...mockEntity.metadata.annotations,
+          'ansible.io/collection-source': 'scm',
+          'ansible.io/scm-provider': 'github',
+          'ansible.io/scm-host': 'github.com',
+          'ansible.io/scm-organization': 'o',
+          'ansible.io/scm-repository': 'r',
+          'ansible.io/ref': 'main',
+        },
+      },
+      spec: {
+        ...mockEntity.spec,
+        collection_readme_url: 'https://github.com/o/r/blob/main/README.md',
+      } as any,
+    };
+    mockCatalogApi.getEntities.mockResolvedValue({
+      items: [entityWithScmReadme],
+    });
+    mockFetchApi.fetch.mockImplementation((url: string) => {
+      if (url.includes('sync_status')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ content: { providers: [] } }),
+        });
+      }
+      if (url.includes('git_readme_content')) {
+        return Promise.resolve({ ok: false });
+      }
+      return Promise.resolve({ ok: false });
+    });
+
+    renderWithRouter('my-namespace-my-collection');
+
+    await waitFor(() => {
+      expect(screen.getByText('About')).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(mockFetchApi.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('git_readme_content'),
+      );
+    });
+  });
+
+  it('sets empty readme when fetchReadmeFromBackend rejects', async () => {
+    const entityWithScmReadme: Entity = {
+      ...mockEntity,
+      metadata: {
+        ...mockEntity.metadata,
+        annotations: {
+          ...mockEntity.metadata.annotations,
+          'ansible.io/collection-source': 'scm',
+          'ansible.io/scm-provider': 'github',
+          'ansible.io/scm-host': 'github.com',
+          'ansible.io/scm-organization': 'o',
+          'ansible.io/scm-repository': 'r',
+          'ansible.io/ref': 'main',
+        },
+      },
+      spec: {
+        ...mockEntity.spec,
+        collection_readme_url: 'https://github.com/o/r/blob/main/README.md',
+      } as any,
+    };
+    mockCatalogApi.getEntities.mockResolvedValue({
+      items: [entityWithScmReadme],
+    });
+    mockFetchApi.fetch.mockImplementation((url: string) => {
+      if (url.includes('sync_status')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ content: { providers: [] } }),
+        });
+      }
+      if (url.includes('git_readme_content')) {
+        return Promise.reject(new Error('Backend error'));
+      }
+      return Promise.resolve({ ok: false });
+    });
+
+    renderWithRouter('my-namespace-my-collection');
+
+    await waitFor(() => {
+      expect(screen.getByText('About')).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(mockFetchApi.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('git_readme_content'),
+      );
+    });
+  });
+
+  it('fetches readme from GitHub raw URL when no backend params', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve('# GitHub raw readme'),
+    });
+
+    const entityGitHubRaw: Entity = {
+      ...mockEntity,
+      metadata: {
+        ...mockEntity.metadata,
+        annotations: {
+          ...mockEntity.metadata.annotations,
+          'ansible.io/collection-source': 'scm',
+        },
+      },
+      spec: {
+        ...mockEntity.spec,
+        collection_readme_url:
+          'https://github.com/org/repo/blob/main/README.md',
+      } as any,
+    };
+    mockCatalogApi.getEntities.mockResolvedValue({
+      items: [entityGitHubRaw],
+    });
+    mockFetchApi.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ content: { providers: [] } }),
+    });
+
+    renderWithRouter('my-namespace-my-collection');
+
+    await waitFor(() => {
+      expect(screen.getByText('GitHub raw readme')).toBeInTheDocument();
+    });
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      'https://raw.githubusercontent.com/org/repo/main/README.md',
+    );
+
+    globalThis.fetch = originalFetch;
+  });
+
+  it('fetches readme from GitLab raw URL when no backend params', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve('# GitLab raw readme'),
+    });
+
+    const entityGitLabRaw: Entity = {
+      ...mockEntity,
+      metadata: {
+        ...mockEntity.metadata,
+        annotations: {
+          ...mockEntity.metadata.annotations,
+          'ansible.io/collection-source': 'scm',
+        },
+      },
+      spec: {
+        ...mockEntity.spec,
+        collection_readme_url:
+          'https://gitlab.com/org/repo/-/blob/main/README.md',
+      } as any,
+    };
+    mockCatalogApi.getEntities.mockResolvedValue({
+      items: [entityGitLabRaw],
+    });
+    mockFetchApi.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ content: { providers: [] } }),
+    });
+
+    renderWithRouter('my-namespace-my-collection');
+
+    await waitFor(() => {
+      expect(screen.getByText('GitLab raw readme')).toBeInTheDocument();
+    });
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      'https://gitlab.com/org/repo/-/raw/main/README.md',
+    );
+
+    globalThis.fetch = originalFetch;
+  });
+
+  it('falls back to direct fetch when readme URL has no blob path (parseReadmeFilePath returns empty)', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve('Direct fetch readme'),
+    });
+
+    const entityNoBlobInUrl: Entity = {
+      ...mockEntity,
+      metadata: {
+        ...mockEntity.metadata,
+        annotations: {
+          ...mockEntity.metadata.annotations,
+          'ansible.io/collection-source': 'scm',
+          'ansible.io/scm-provider': 'github',
+          'ansible.io/scm-host': 'github.com',
+          'ansible.io/scm-organization': 'o',
+          'ansible.io/scm-repository': 'r',
+          'ansible.io/ref': 'main',
+        },
+      },
+      spec: {
+        ...mockEntity.spec,
+        collection_readme_url:
+          'https://raw.githubusercontent.com/o/r/main/README.md',
+      } as any,
+    };
+    mockCatalogApi.getEntities.mockResolvedValue({
+      items: [entityNoBlobInUrl],
+    });
+    mockFetchApi.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ content: { providers: [] } }),
+    });
+
+    renderWithRouter('my-namespace-my-collection');
+
+    await waitFor(() => {
+      expect(screen.getByText('Direct fetch readme')).toBeInTheDocument();
+    });
+    expect(mockFetchApi.fetch).not.toHaveBeenCalledWith(
+      expect.stringContaining('git_readme_content'),
+    );
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      'https://raw.githubusercontent.com/o/r/main/README.md',
+    );
+
+    globalThis.fetch = originalFetch;
+  });
+
+  it('sets empty readme when no collection_readme_url and not PAH html', async () => {
+    const entityNoReadmeUrl: Entity = {
+      ...mockEntity,
+      metadata: {
+        ...mockEntity.metadata,
+        annotations: {
+          ...mockEntity.metadata.annotations,
+          'ansible.io/collection-source': 'scm',
+        },
+      },
+      spec: {
+        ...mockEntity.spec,
+        collection_readme_html: undefined,
+        collection_readme_url: undefined,
+      } as any,
+    };
+    mockCatalogApi.getEntities.mockResolvedValue({
+      items: [entityNoReadmeUrl],
+    });
+
+    renderWithRouter('my-namespace-my-collection');
+
+    await waitFor(() => {
+      expect(screen.getByText('About')).toBeInTheDocument();
+    });
+    expect(mockFetchApi.fetch).not.toHaveBeenCalledWith(
+      expect.stringContaining('git_readme_content'),
+    );
+  });
+
+  it('View Source opens source-location URL with url: prefix stripped', async () => {
+    const openSpy = jest
+      .spyOn(globalThis, 'open')
+      .mockImplementation(() => null);
+
+    const entitySourceLocation: Entity = {
+      ...mockEntity,
+      metadata: {
+        ...mockEntity.metadata,
+        annotations: {
+          'ansible.io/collection-source': 'scm',
+          'backstage.io/source-location': 'url:https://gitlab.com/org/repo',
+          'ansible.io/discovery-source-id': 'src-1',
+        },
+      },
+    };
+    mockCatalogApi.getEntities.mockResolvedValue({
+      items: [entitySourceLocation],
+    });
+
+    renderWithRouter('my-namespace-my-collection');
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: /View Source/i }),
+      ).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /View Source/i }));
+
+    expect(openSpy).toHaveBeenCalledWith(
+      'https://gitlab.com/org/repo',
+      '_blank',
+    );
+    openSpy.mockRestore();
+  });
 });

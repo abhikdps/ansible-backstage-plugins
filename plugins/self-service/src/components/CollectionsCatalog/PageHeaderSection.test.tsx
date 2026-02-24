@@ -2,8 +2,9 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { ThemeProvider, createTheme } from '@material-ui/core/styles';
 import { PageHeaderSection } from './PageHeaderSection';
 
+const mockUsePermission = jest.fn().mockReturnValue({ allowed: true });
 jest.mock('@backstage/plugin-permission-react', () => ({
-  usePermission: () => ({ allowed: true }),
+  usePermission: (...args: unknown[]) => mockUsePermission(...args),
 }));
 
 const theme = createTheme();
@@ -61,6 +62,16 @@ describe('PageHeaderSection', () => {
     expect(
       screen.getByTitle(/An Ansible Collection is a package of reusable/),
     ).toBeInTheDocument();
+  });
+
+  it('does not render Sync Now when permission denied', () => {
+    mockUsePermission.mockReturnValueOnce({ allowed: false });
+
+    renderWithTheme(<PageHeaderSection onSyncClick={mockOnSyncClick} />);
+
+    expect(
+      screen.queryByRole('button', { name: /Sync Now/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows syncDisabledReason in tooltip when sync disabled with reason', () => {

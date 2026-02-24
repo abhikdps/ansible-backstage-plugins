@@ -2,8 +2,9 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { ThemeProvider, createTheme } from '@material-ui/core/styles';
 import { EmptyState } from './EmptyState';
 
+const mockUsePermission = jest.fn().mockReturnValue({ allowed: true });
 jest.mock('@backstage/plugin-permission-react', () => ({
-  usePermission: () => ({ allowed: true }),
+  usePermission: (...args: unknown[]) => mockUsePermission(...args),
 }));
 
 const theme = createTheme();
@@ -71,5 +72,33 @@ describe('EmptyState', () => {
     );
 
     expect(screen.getByText('View Documentation')).toBeInTheDocument();
+  });
+
+  it('shows admin message when allowed is false and hasConfiguredSources is false', () => {
+    mockUsePermission.mockReturnValueOnce({ allowed: false });
+
+    renderWithTheme(
+      <EmptyState hasConfiguredSources={false} onSyncClick={mockOnSyncClick} />,
+    );
+
+    expect(
+      screen.getByText(/Content sources are not currently configured/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('View Documentation')).not.toBeInTheDocument();
+  });
+
+  it('shows admin message and no Sync when allowed is false and sources configured', () => {
+    mockUsePermission.mockReturnValueOnce({ allowed: false });
+
+    renderWithTheme(
+      <EmptyState hasConfiguredSources onSyncClick={mockOnSyncClick} />,
+    );
+
+    expect(
+      screen.getByText(/No collections are available in the catalog/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Sync Now/i }),
+    ).not.toBeInTheDocument();
   });
 });

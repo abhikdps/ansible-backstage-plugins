@@ -348,6 +348,63 @@ describe('SyncDialog', () => {
     );
   });
 
+  it('calls PAH sync endpoint when PAH repository is selected', async () => {
+    mockFetchApi.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          content: {
+            providers: [
+              {
+                sourceId: 'pah-src-1',
+                repository: 'my-pah-repo',
+                scmProvider: 'pah',
+                lastSyncTime: null,
+              },
+            ],
+          },
+        }),
+      })
+      .mockResolvedValue({ ok: true });
+
+    const mockOnSyncsStarted = jest.fn();
+    renderDialog({
+      open: true,
+      onClose: mockOnClose,
+      onSyncsStarted: mockOnSyncsStarted,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('my-pah-repo')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText('my-pah-repo'));
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: /Sync Selected/i }),
+      ).not.toBeDisabled();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Sync Selected/i }));
+
+    await waitFor(() => {
+      expect(mockOnSyncsStarted).toHaveBeenCalledWith([
+        expect.objectContaining({
+          sourceId: 'pah-src-1',
+          displayName: 'PAH/my-pah-repo',
+          lastSyncTime: null,
+        }),
+      ]);
+    });
+    expect(mockFetchApi.fetch).toHaveBeenCalledWith(
+      'http://localhost:7007/api/catalog/ansible/sync/from-aap/content',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          filters: [{ repository_name: 'my-pah-repo' }],
+        }),
+      }),
+    );
+  });
+
   it('toggle provider expand/collapse', async () => {
     renderDialog({ open: true, onClose: mockOnClose });
 
@@ -358,5 +415,279 @@ describe('SyncDialog', () => {
     expect(providerRow).toBeInTheDocument();
     fireEvent.click(providerRow!);
     fireEvent.click(providerRow!);
+  });
+
+  it('toggleHost collapses and expands host when clicking host row', async () => {
+    renderDialog({ open: true, onClose: mockOnClose });
+
+    await waitFor(() => {
+      expect(screen.getByText('org1')).toBeInTheDocument();
+    });
+    const hostRow = screen.getByText('github.com').closest('.MuiListItem-root');
+    expect(hostRow).toBeInTheDocument();
+    fireEvent.click(hostRow!);
+    await waitFor(
+      () => {
+        expect(screen.queryByText('org1')).not.toBeInTheDocument();
+      },
+      { timeout: 2000 },
+    );
+    const hostRowAgain = screen
+      .getByText('github.com')
+      .closest('.MuiListItem-root');
+    fireEvent.click(hostRowAgain!);
+    await waitFor(
+      () => {
+        expect(screen.getByText('org1')).toBeInTheDocument();
+      },
+      { timeout: 2000 },
+    );
+  });
+
+  it('Deselect All clears selection and disables Sync Selected', async () => {
+    renderDialog({ open: true, onClose: mockOnClose });
+
+    await waitFor(() => {
+      expect(screen.getByText('org1')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Select All/i }));
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: /Sync Selected/i }),
+      ).not.toBeDisabled();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Deselect All/i }));
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: /Sync Selected/i }),
+      ).toBeDisabled();
+    });
+  });
+
+  it('toggleSelection at provider level deselects provider and all children', async () => {
+    renderDialog({ open: true, onClose: mockOnClose });
+
+    await waitFor(() => {
+      expect(screen.getByText('GitHub')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Select All/i }));
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: /Sync Selected/i }),
+      ).not.toBeDisabled();
+    });
+    const providerRow = screen.getByText('GitHub').closest('.MuiListItem-root');
+    const providerCheckbox = providerRow?.querySelector(
+      'input[type="checkbox"]',
+    );
+    fireEvent.click(providerCheckbox!);
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: /Sync Selected/i }),
+      ).toBeDisabled();
+    });
+  });
+
+  it('toggleSelection at provider level selects provider and all children', async () => {
+    renderDialog({ open: true, onClose: mockOnClose });
+
+    await waitFor(() => {
+      expect(screen.getByText('GitHub')).toBeInTheDocument();
+    });
+    const providerRow = screen.getByText('GitHub').closest('.MuiListItem-root');
+    const providerCheckbox = providerRow?.querySelector(
+      'input[type="checkbox"]',
+    );
+    fireEvent.click(providerCheckbox!);
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: /Sync Selected/i }),
+      ).not.toBeDisabled();
+    });
+    expect(screen.getByText('org1')).toBeInTheDocument();
+    expect(screen.getByText('org2')).toBeInTheDocument();
+  });
+
+  it('buildFilters returns provider-only filter when entire provider selected and syncs', async () => {
+    const mockOnSyncsStarted = jest.fn();
+    mockFetchApi.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          content: {
+            providers: [
+              {
+                sourceId: 'src-1',
+                scmProvider: 'github',
+                hostName: 'github.com',
+                organization: 'org1',
+                lastSyncTime: null,
+              },
+              {
+                sourceId: 'src-2',
+                scmProvider: 'github',
+                hostName: 'github.com',
+                organization: 'org2',
+                lastSyncTime: null,
+              },
+              {
+                sourceId: 'src-leaf',
+                scmProvider: 'github',
+                hostName: 'leaf.com',
+                lastSyncTime: null,
+              },
+            ],
+          },
+        }),
+      })
+      .mockResolvedValue({ ok: true });
+
+    renderDialog({
+      open: true,
+      onClose: mockOnClose,
+      onSyncsStarted: mockOnSyncsStarted,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('GitHub')).toBeInTheDocument();
+    });
+    const providerRow = screen.getByText('GitHub').closest('.MuiListItem-root');
+    const providerCheckbox = providerRow?.querySelector(
+      'input[type="checkbox"]',
+    );
+    fireEvent.click(providerCheckbox!);
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: /Sync Selected/i }),
+      ).not.toBeDisabled();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Sync Selected/i }));
+
+    await waitFor(() => {
+      expect(mockFetchApi.fetch).toHaveBeenCalledWith(
+        'http://localhost:7007/api/catalog/ansible/sync/from-scm/content',
+        expect.objectContaining({
+          body: JSON.stringify({
+            filters: [{ scmProvider: 'github' }],
+          }),
+        }),
+      );
+    });
+    expect(mockShowNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Sync started',
+        items: expect.arrayContaining(['github.com/org1', 'github.com/org2']),
+      }),
+    );
+  });
+
+  it('selecting host level selects all orgs and syncs both', async () => {
+    mockFetchApi.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          content: {
+            providers: [
+              {
+                sourceId: 'src-1',
+                scmProvider: 'github',
+                hostName: 'github.com',
+                organization: 'org1',
+                lastSyncTime: null,
+              },
+              {
+                sourceId: 'src-2',
+                scmProvider: 'github',
+                hostName: 'github.com',
+                organization: 'org2',
+                lastSyncTime: null,
+              },
+            ],
+          },
+        }),
+      })
+      .mockResolvedValue({ ok: true });
+
+    renderDialog({ open: true, onClose: mockOnClose });
+
+    await waitFor(() => {
+      expect(screen.getByText('github.com')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText('GitHub'));
+    await waitFor(() => {
+      expect(screen.getByText('org1')).toBeInTheDocument();
+    });
+    const hostRow = screen.getByText('github.com').closest('.MuiListItem-root');
+    const hostCheckbox = hostRow?.querySelector('input[type="checkbox"]');
+    fireEvent.click(hostCheckbox!);
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: /Sync Selected/i }),
+      ).not.toBeDisabled();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Sync Selected/i }));
+
+    await waitFor(() => {
+      expect(mockFetchApi.fetch).toHaveBeenCalledWith(
+        'http://localhost:7007/api/catalog/ansible/sync/from-scm/content',
+        expect.objectContaining({
+          body: JSON.stringify({
+            filters: [{ scmProvider: 'github', hostName: 'github.com' }],
+          }),
+        }),
+      );
+    });
+  });
+
+  it('renders GitLab provider with correct display name', async () => {
+    mockFetchApi.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        content: {
+          providers: [
+            {
+              sourceId: 'gl-1',
+              scmProvider: 'gitlab',
+              hostName: 'gitlab.com',
+              organization: 'mygroup',
+              lastSyncTime: null,
+            },
+          ],
+        },
+      }),
+    });
+
+    renderDialog({ open: true, onClose: mockOnClose });
+
+    await waitFor(() => {
+      expect(screen.getByText('GitLab')).toBeInTheDocument();
+    });
+    expect(screen.getByText('gitlab.com')).toBeInTheDocument();
+    expect(screen.getByText('mygroup')).toBeInTheDocument();
+  });
+
+  it('renders unknown provider with uppercase display name', async () => {
+    mockFetchApi.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        content: {
+          providers: [
+            {
+              sourceId: 'custom-1',
+              scmProvider: 'custom',
+              hostName: 'custom.example.com',
+              organization: 'team',
+              lastSyncTime: null,
+            },
+          ],
+        },
+      }),
+    });
+
+    renderDialog({ open: true, onClose: mockOnClose });
+
+    await waitFor(() => {
+      expect(screen.getByText('CUSTOM')).toBeInTheDocument();
+    });
   });
 });

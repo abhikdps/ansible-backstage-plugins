@@ -5,7 +5,13 @@ import { NotificationProvider, useNotifications } from './NotificationContext';
 
 const theme = createTheme();
 
-const TestConsumer = () => {
+const TestConsumer = ({
+  showWithDismiss,
+  showWithAutoHideZero,
+}: {
+  showWithDismiss?: boolean;
+  showWithAutoHideZero?: boolean;
+} = {}) => {
   const { notifications, showNotification, removeNotification, clearAll } =
     useNotifications();
 
@@ -24,6 +30,34 @@ const TestConsumer = () => {
       >
         Show
       </button>
+      {showWithDismiss && (
+        <button
+          type="button"
+          onClick={() =>
+            showNotification({
+              title: 'Replace',
+              category: 'cat-a',
+              dismissCategories: ['cat-a'],
+            })
+          }
+        >
+          Show with dismiss
+        </button>
+      )}
+      {showWithAutoHideZero && (
+        <button
+          type="button"
+          onClick={() =>
+            showNotification({
+              title: 'Error',
+              severity: 'error',
+              autoHideDuration: 0,
+            })
+          }
+        >
+          Show error
+        </button>
+      )}
       <button
         type="button"
         onClick={() =>
@@ -100,6 +134,36 @@ describe('NotificationProvider', () => {
 
     await userEvent.click(screen.getByText('Clear all'));
     expect(screen.getByTestId('count')).toHaveTextContent('0');
+  });
+
+  it('showNotification with dismissCategories removes previous notifications of that category', () => {
+    jest.useFakeTimers();
+    renderWithTheme(<TestConsumer showWithDismiss />);
+
+    fireEvent.click(screen.getByText('Show with dismiss'));
+    expect(screen.getByTestId('count')).toHaveTextContent('1');
+    fireEvent.click(screen.getByText('Show'));
+    expect(screen.getByTestId('count')).toHaveTextContent('2');
+    fireEvent.click(screen.getByText('Show with dismiss'));
+    expect(screen.getByTestId('count')).toHaveTextContent('3');
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+    expect(screen.getByTestId('count')).toHaveTextContent('1');
+    jest.useRealTimers();
+  });
+
+  it('showNotification with autoHideDuration 0 does not auto-remove', () => {
+    jest.useFakeTimers();
+    renderWithTheme(<TestConsumer showWithAutoHideZero />);
+
+    fireEvent.click(screen.getByText('Show error'));
+    expect(screen.getByTestId('count')).toHaveTextContent('1');
+    act(() => {
+      jest.advanceTimersByTime(20000);
+    });
+    expect(screen.getByTestId('count')).toHaveTextContent('1');
+    jest.useRealTimers();
   });
 });
 

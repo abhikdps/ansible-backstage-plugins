@@ -77,10 +77,13 @@ const mockFetchApi = {
   fetch: jest.fn(),
 };
 
-const renderListPage = (props?: {
-  onSyncClick?: () => void;
-  onSourcesStatusChange?: (v: boolean | null) => void;
-}) => {
+const renderListPage = (
+  props?: {
+    onSyncClick?: () => void;
+    onSourcesStatusChange?: (v: boolean | null) => void;
+  },
+  starredApi?: InstanceType<typeof MockStarredEntitiesApi>,
+) => {
   return render(
     <ThemeProvider theme={theme}>
       <TestApiProvider
@@ -88,7 +91,7 @@ const renderListPage = (props?: {
           [catalogApiRef, mockCatalogApi],
           [discoveryApiRef, mockDiscoveryApi],
           [fetchApiRef, mockFetchApi],
-          [starredEntitiesApiRef, new MockStarredEntitiesApi()],
+          [starredEntitiesApiRef, starredApi ?? new MockStarredEntitiesApi()],
           [permissionApiRef, mockApis.permission()],
         ]}
       >
@@ -199,6 +202,40 @@ describe('CollectionsListPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('filters by search query matching entity tag', async () => {
+    const entityWithTag = {
+      ...mockEntity,
+      metadata: {
+        ...mockEntity.metadata,
+        name: 'tagged-collection',
+        uid: 'uid-tagged',
+        tags: ['ansible', 'automation'],
+      },
+      spec: {
+        ...mockEntity.spec,
+        collection_full_name: 'ns.tagged',
+        collection_namespace: 'ns',
+        collection_name: 'tagged',
+        collection_version: '1.0.0',
+      } as any,
+    };
+    mockCatalogApi.getEntities.mockResolvedValue({ items: [entityWithTag] });
+
+    renderListPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('ns.tagged')).toBeInTheDocument();
+    });
+
+    const searchInput = screen.getByPlaceholderText('Search');
+    fireEvent.change(searchInput, { target: { value: 'autom' } });
+
+    await waitFor(() => {
+      expect(screen.getByText('ns.tagged')).toBeInTheDocument();
+    });
+    expect(screen.getByText('v1.0.0')).toBeInTheDocument();
+  });
+
   it('calls onSourcesStatusChange when sync status is fetched', async () => {
     const onSourcesStatusChange = jest.fn();
 
@@ -211,6 +248,206 @@ describe('CollectionsListPage', () => {
     await waitFor(() => {
       expect(onSourcesStatusChange).toHaveBeenCalled();
     });
+  });
+
+  it('shows error message when getEntities rejects', async () => {
+    mockCatalogApi.getEntities.mockRejectedValue(new Error('Catalog error'));
+
+    renderListPage();
+
+    await waitFor(() => {
+      expect(screen.getByText(/Error: Catalog error/)).toBeInTheDocument();
+    });
+  });
+
+  it('handles getEntities returning array directly', async () => {
+    mockCatalogApi.getEntities.mockResolvedValue([mockEntity]);
+
+    renderListPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('ns.collection')).toBeInTheDocument();
+    });
+  });
+
+  it('calls onSourcesStatusChange with false when sync status fetch is not ok', async () => {
+    mockFetchApi.fetch.mockResolvedValue({ ok: false });
+    const onSourcesStatusChange = jest.fn();
+
+    renderListPage({ onSourcesStatusChange });
+
+    await waitFor(() => {
+      expect(mockFetchApi.fetch).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(onSourcesStatusChange).toHaveBeenCalledWith(false);
+    });
+  });
+
+  it('calls onSourcesStatusChange with false when sync status fetch rejects', async () => {
+    mockFetchApi.fetch
+      .mockRejectedValueOnce(new Error('Network error'))
+      .mockResolvedValue({
+        ok: true,
+        json: async () => ({ content: { providers: [] } }),
+      });
+    const onSourcesStatusChange = jest.fn();
+
+    renderListPage({ onSourcesStatusChange });
+
+    await waitFor(() => {
+      expect(onSourcesStatusChange).toHaveBeenCalledWith(false);
+    });
+  });
+
+  it('shows pagination when more than PAGE_SIZE entities', async () => {
+    const entities = Array.from({ length: 14 }, (_, i) => ({
+      ...mockEntity,
+      metadata: {
+        ...mockEntity.metadata,
+        name: `col-${i}`,
+        uid: `uid-${i}`,
+      },
+      spec: {
+        ...mockEntity.spec,
+        collection_full_name: `ns.col${i}`,
+        collection_namespace: 'ns',
+        collection_name: `col${i}`,
+        collection_version: '1.0.0',
+      } as any,
+    }));
+    mockCatalogApi.getEntities.mockResolvedValue({ items: entities });
+
+    renderListPage();
+
+    await waitFor(() => {
+      expect(screen.getByText(/Page 1 of 2/)).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText('Next page')).not.toBeDisabled();
+    expect(screen.getByLabelText('Previous page')).toBeDisabled();
+
+    fireEvent.click(screen.getByLabelText('Next page'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Page 2 of 2/)).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText('Previous page')).not.toBeDisabled();
+    expect(screen.getByLabelText('Next page')).toBeDisabled();
+  });
+
+  it('clear search button clears search query', async () => {
+    renderListPage();
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
+    });
+    const searchInput = screen.getByPlaceholderText('Search');
+    fireEvent.change(searchInput, { target: { value: 'test' } });
+    expect(searchInput).toHaveValue('test');
+
+    const clearButton = screen.getByLabelText('Clear search');
+    fireEvent.click(clearButton);
+
+    expect(searchInput).toHaveValue('');
+  });
+
+  it('Show latest version only checkbox toggles filter', async () => {
+    renderListPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('ns.collection')).toBeInTheDocument();
+    });
+    const checkbox = screen.getByLabelText('Show latest version only');
+    expect(checkbox).toBeChecked();
+    fireEvent.click(checkbox);
+    expect(checkbox).not.toBeChecked();
+  });
+
+  it('source filter can be changed', async () => {
+    renderListPage();
+
+    await waitFor(() => {
+      expect(
+        screen.getByPlaceholderText('Search sources...'),
+      ).toBeInTheDocument();
+    });
+    const sourceInput = screen.getByPlaceholderText('Search sources...');
+    fireEvent.focus(sourceInput);
+    fireEvent.keyDown(sourceInput, { key: 'ArrowDown' });
+    await waitFor(() => {
+      expect(screen.getByText('repo1')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText('repo1'));
+    expect(sourceInput.closest('input')).toHaveValue('repo1');
+  });
+
+  it('when filters.user is starred only starred entities are shown', async () => {
+    const catalogReact = require('@backstage/plugin-catalog-react');
+    const useEntityListSpy = jest
+      .spyOn(catalogReact, 'useEntityList')
+      .mockReturnValue({ filters: { user: { value: 'starred' } } } as any);
+
+    const starredApi = new MockStarredEntitiesApi();
+    starredApi.toggleStarred('component:default/test-collection');
+
+    const entities = [
+      mockEntity,
+      {
+        ...mockEntity,
+        metadata: { ...mockEntity.metadata, name: 'other', uid: 'uid-2' },
+        spec: {
+          ...mockEntity.spec,
+          collection_full_name: 'other.other',
+          collection_namespace: 'other',
+          collection_name: 'other',
+        } as any,
+      },
+    ];
+    mockCatalogApi.getEntities.mockResolvedValue({ items: entities });
+
+    renderListPage(undefined, starredApi);
+
+    await waitFor(() => {
+      expect(screen.getByText('ns.collection')).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText('other.other')).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('ns.collection')).toBeInTheDocument();
+
+    useEntityListSpy.mockRestore();
+  });
+
+  it('when filters.user is all all entities are shown with showLatestOnly applied', async () => {
+    const catalogReact = require('@backstage/plugin-catalog-react');
+    const useEntityListSpy = jest
+      .spyOn(catalogReact, 'useEntityList')
+      .mockReturnValue({ filters: { user: { value: 'all' } } } as any);
+
+    const entities = [
+      mockEntity,
+      {
+        ...mockEntity,
+        metadata: { ...mockEntity.metadata, name: 'other', uid: 'uid-2' },
+        spec: {
+          ...mockEntity.spec,
+          collection_full_name: 'other.other',
+          collection_namespace: 'other',
+          collection_name: 'other',
+        } as any,
+      },
+    ];
+    mockCatalogApi.getEntities.mockResolvedValue({ items: entities });
+
+    renderListPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('ns.collection')).toBeInTheDocument();
+      expect(screen.getByText('other.other')).toBeInTheDocument();
+    });
+
+    useEntityListSpy.mockRestore();
   });
 });
 

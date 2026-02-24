@@ -317,6 +317,38 @@ describe('CollectionsCatalog utils', () => {
       expect(result[0].spec?.collection_version).toBe('2.0.0');
     });
 
+    it('keeps existing entity when it has higher version', () => {
+      const entities: Entity[] = [
+        {
+          apiVersion: 'backstage.io/v1alpha1',
+          kind: 'Component',
+          metadata: {
+            name: 'a-2',
+            annotations: { 'ansible.io/discovery-source-id': 'src1' },
+          },
+          spec: {
+            collection_full_name: 'ns.col',
+            collection_version: '2.0.0',
+          } as any,
+        },
+        {
+          apiVersion: 'backstage.io/v1alpha1',
+          kind: 'Component',
+          metadata: {
+            name: 'a-1',
+            annotations: { 'ansible.io/discovery-source-id': 'src1' },
+          },
+          spec: {
+            collection_full_name: 'ns.col',
+            collection_version: '1.0.0',
+          } as any,
+        },
+      ];
+      const result = filterLatestVersions(entities);
+      expect(result).toHaveLength(1);
+      expect(result[0].spec?.collection_version).toBe('2.0.0');
+    });
+
     it('keeps separate entities for different sourceIds', () => {
       const entities: Entity[] = [
         {
@@ -350,6 +382,12 @@ describe('CollectionsCatalog utils', () => {
   });
 
   describe('getUniqueFilters', () => {
+    it('returns empty arrays when entities is empty', () => {
+      const { sources, tags } = getUniqueFilters([]);
+      expect(sources).toEqual([]);
+      expect(tags).toEqual([]);
+    });
+
     it('extracts unique sources and tags from entities', () => {
       const entities: Entity[] = [
         {
@@ -383,6 +421,45 @@ describe('CollectionsCatalog utils', () => {
       expect(sources).toHaveLength(2);
       expect(tags).toEqual(expect.arrayContaining(['tag1', 'tag2']));
       expect(tags).not.toContain('ansible-collection');
+    });
+
+    it('excludes PAH entity when repository is not a string', () => {
+      const entities: Entity[] = [
+        {
+          apiVersion: 'backstage.io/v1alpha1',
+          kind: 'Component',
+          metadata: {
+            name: 'a',
+            tags: [],
+            annotations: {
+              'ansible.io/collection-source': 'pah',
+              'ansible.io/collection-source-repository': 123 as any,
+            },
+          },
+          spec: {},
+        },
+      ];
+      const { sources } = getUniqueFilters(entities);
+      expect(sources).toHaveLength(0);
+    });
+
+    it('excludes entity when scm-host-name is not a string', () => {
+      const entities: Entity[] = [
+        {
+          apiVersion: 'backstage.io/v1alpha1',
+          kind: 'Component',
+          metadata: {
+            name: 'a',
+            tags: [],
+            annotations: {
+              'ansible.io/scm-host-name': null as unknown as string,
+            },
+          },
+          spec: {},
+        },
+      ];
+      const { sources } = getUniqueFilters(entities);
+      expect(sources).toHaveLength(0);
     });
 
     it('sorts sources and tags', () => {
