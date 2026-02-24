@@ -284,6 +284,22 @@ describe('pahCollectionParser', () => {
       expect(entity.spec!.collection_dependencies).toBeNull();
     });
 
+    it('should include collection tags in spec (unsanitized)', () => {
+      const tags = ['Linux', 'POSIX', 'System-Admin'];
+      const collection = createMockCollection({ tags });
+      const entity = pahCollectionParser({ collection, baseUrl, sourceId });
+
+      // spec.collection_tags should have unsanitized original tags
+      expect(entity.spec!.collection_tags).toEqual(tags);
+    });
+
+    it('should use empty array for collection_tags when null', () => {
+      const collection = createMockCollection({ tags: null });
+      const entity = pahCollectionParser({ collection, baseUrl, sourceId });
+
+      expect(entity.spec!.collection_tags).toEqual([]);
+    });
+
     it('should include collection authors in spec', () => {
       const authors = ['John Doe', 'Jane Smith'];
       const collection = createMockCollection({ authors });

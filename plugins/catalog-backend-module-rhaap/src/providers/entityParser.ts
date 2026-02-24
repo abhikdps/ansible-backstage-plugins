@@ -228,6 +228,7 @@ export const pahCollectionParser = (options: {
       collection_name: options.collection.name,
       collection_version: options.collection.version || '',
       collection_full_name: `${options.collection.namespace}.${options.collection.name}`,
+      collection_tags: options.collection.tags || [],
       collection_dependencies: options.collection.dependencies,
       collection_description:
         options.collection.description ??
