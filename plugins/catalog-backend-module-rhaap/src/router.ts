@@ -88,7 +88,7 @@ export async function createRouter(options: {
             lastFailedSyncTime: string | null;
             lastSyncStatus: 'success' | 'failure' | null;
             collectionsFound: number;
-            newCollections: number;
+            collectionsDelta: number;
           }>;
         };
       } = {};
@@ -117,8 +117,8 @@ export async function createRouter(options: {
           lastSyncTime: provider.getLastSyncTime(),
           lastFailedSyncTime: provider.getLastFailedSyncTime(),
           lastSyncStatus: provider.getLastSyncStatus(),
-          collectionsFound: provider.getLastCollectionsCount(),
-          newCollections: provider.getNewCollectionsCount(),
+          collectionsFound: provider.getCurrentCollectionsCount(),
+          collectionsDelta: provider.getCollectionsDelta(),
         }));
 
         const anySyncInProgress = providers.some(p => p.syncInProgress);

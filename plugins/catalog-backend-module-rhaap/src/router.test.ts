@@ -69,8 +69,8 @@ describe('createRouter', () => {
       getLastSyncTime: jest.fn().mockReturnValue(null),
       getLastFailedSyncTime: jest.fn().mockReturnValue(null),
       getLastSyncStatus: jest.fn().mockReturnValue(null),
-      getLastCollectionsCount: jest.fn().mockReturnValue(0),
-      getNewCollectionsCount: jest.fn().mockReturnValue(0),
+      getCurrentCollectionsCount: jest.fn().mockReturnValue(0),
+      getCollectionsDelta: jest.fn().mockReturnValue(0),
       getIsSyncing: jest.fn().mockReturnValue(false),
       getSourceId: jest.fn().mockReturnValue('test:pah:validated'),
       isEnabled: jest.fn().mockReturnValue(true),
@@ -690,8 +690,8 @@ describe('createRouter', () => {
       );
       mockPAHCollectionProvider.getLastFailedSyncTime.mockReturnValue(null);
       mockPAHCollectionProvider.getLastSyncStatus.mockReturnValue('success');
-      mockPAHCollectionProvider.getLastCollectionsCount.mockReturnValue(25);
-      mockPAHCollectionProvider.getNewCollectionsCount.mockReturnValue(5);
+      mockPAHCollectionProvider.getCurrentCollectionsCount.mockReturnValue(25);
+      mockPAHCollectionProvider.getCollectionsDelta.mockReturnValue(5);
       mockPAHCollectionProvider.getIsSyncing.mockReturnValue(false);
 
       const response = await request(app).get('/aap/sync_status');
@@ -715,7 +715,7 @@ describe('createRouter', () => {
               lastFailedSyncTime: null,
               lastSyncStatus: 'success',
               collectionsFound: 25,
-              newCollections: 5,
+              collectionsDelta: 5,
             },
           ],
         },
@@ -752,8 +752,8 @@ describe('createRouter', () => {
         '2024-01-15T13:00:00Z',
       );
       mockPAHCollectionProvider.getLastSyncStatus.mockReturnValue('failure');
-      mockPAHCollectionProvider.getLastCollectionsCount.mockReturnValue(0);
-      mockPAHCollectionProvider.getNewCollectionsCount.mockReturnValue(0);
+      mockPAHCollectionProvider.getCurrentCollectionsCount.mockReturnValue(0);
+      mockPAHCollectionProvider.getCollectionsDelta.mockReturnValue(0);
       mockPAHCollectionProvider.getIsSyncing.mockReturnValue(true);
 
       const response = await request(app).get(
@@ -775,7 +775,7 @@ describe('createRouter', () => {
               lastFailedSyncTime: '2024-01-15T13:00:00Z',
               lastSyncStatus: 'failure',
               collectionsFound: 0,
-              newCollections: 0,
+              collectionsDelta: 0,
             },
           ],
         },
@@ -794,8 +794,8 @@ describe('createRouter', () => {
       );
       mockPAHCollectionProvider.getLastFailedSyncTime.mockReturnValue(null);
       mockPAHCollectionProvider.getLastSyncStatus.mockReturnValue('success');
-      mockPAHCollectionProvider.getLastCollectionsCount.mockReturnValue(10);
-      mockPAHCollectionProvider.getNewCollectionsCount.mockReturnValue(2);
+      mockPAHCollectionProvider.getCurrentCollectionsCount.mockReturnValue(10);
+      mockPAHCollectionProvider.getCollectionsDelta.mockReturnValue(2);
       mockPAHCollectionProvider.getIsSyncing.mockReturnValue(false);
 
       const response = await request(app).get(
@@ -821,7 +821,7 @@ describe('createRouter', () => {
               lastFailedSyncTime: null,
               lastSyncStatus: 'success',
               collectionsFound: 10,
-              newCollections: 2,
+              collectionsDelta: 2,
             },
           ],
         },
@@ -1210,8 +1210,8 @@ describe('createRouter', () => {
         getLastSyncTime: jest.fn().mockReturnValue(null),
         getLastFailedSyncTime: jest.fn().mockReturnValue(null),
         getLastSyncStatus: jest.fn().mockReturnValue(null),
-        getLastCollectionsCount: jest.fn().mockReturnValue(0),
-        getNewCollectionsCount: jest.fn().mockReturnValue(0),
+        getCurrentCollectionsCount: jest.fn().mockReturnValue(0),
+        getCollectionsDelta: jest.fn().mockReturnValue(0),
         getIsSyncing: jest.fn().mockReturnValue(false),
         getSourceId: jest.fn().mockReturnValue('test:pah:repo1'),
         isEnabled: jest.fn().mockReturnValue(true),
@@ -1228,8 +1228,8 @@ describe('createRouter', () => {
         getLastSyncTime: jest.fn().mockReturnValue(null),
         getLastFailedSyncTime: jest.fn().mockReturnValue(null),
         getLastSyncStatus: jest.fn().mockReturnValue(null),
-        getLastCollectionsCount: jest.fn().mockReturnValue(0),
-        getNewCollectionsCount: jest.fn().mockReturnValue(0),
+        getCurrentCollectionsCount: jest.fn().mockReturnValue(0),
+        getCollectionsDelta: jest.fn().mockReturnValue(0),
         getIsSyncing: jest.fn().mockReturnValue(false),
         getSourceId: jest.fn().mockReturnValue('test:pah:repo2'),
         isEnabled: jest.fn().mockReturnValue(true),

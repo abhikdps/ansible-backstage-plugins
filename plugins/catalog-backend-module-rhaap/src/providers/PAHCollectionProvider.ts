@@ -28,7 +28,7 @@ export class PAHCollectionProvider implements EntityProvider {
   private lastSyncTime: string | null = null;
   private lastFailedSyncTime: string | null = null;
   private lastSyncStatus: 'success' | 'failure' | null = null;
-  private lastCollectionsCount: number = 0;
+  private currentCollectionsCount: number = 0;
   private previousCollectionsCount: number = 0;
   private isSyncing: boolean = false;
   private enabled: boolean = true;
@@ -136,15 +136,12 @@ export class PAHCollectionProvider implements EntityProvider {
     return this.lastSyncStatus;
   }
 
-  getLastCollectionsCount(): number {
-    return this.lastCollectionsCount;
+  getCurrentCollectionsCount(): number {
+    return this.currentCollectionsCount;
   }
 
-  getNewCollectionsCount(): number {
-    return Math.max(
-      0,
-      this.lastCollectionsCount - this.previousCollectionsCount,
-    );
+  getCollectionsDelta(): number {
+    return this.currentCollectionsCount - this.previousCollectionsCount;
   }
 
   getIsSyncing(): boolean {
@@ -266,8 +263,8 @@ export class PAHCollectionProvider implements EntityProvider {
 
       this.lastSyncTime = new Date().toISOString();
       this.lastSyncStatus = 'success';
-      this.previousCollectionsCount = this.lastCollectionsCount;
-      this.lastCollectionsCount = collectionsCount;
+      this.previousCollectionsCount = this.currentCollectionsCount;
+      this.currentCollectionsCount = collectionsCount;
 
       return { success: true, collectionsCount };
     } catch (e: any) {

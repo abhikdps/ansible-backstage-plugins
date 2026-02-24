@@ -1222,7 +1222,7 @@ describe('PAHCollectionProvider', () => {
 
       expect(provider.getLastSyncStatus()).toBe('success');
       expect(provider.getLastSyncTime()).not.toBeNull();
-      expect(provider.getLastCollectionsCount()).toBe(1);
+      expect(provider.getCurrentCollectionsCount()).toBe(1);
     });
 
     it('should handle collections with missing optional fields', async () => {
@@ -1526,7 +1526,7 @@ describe('PAHCollectionProvider', () => {
     });
   });
 
-  describe('getLastCollectionsCount and getNewCollectionsCount', () => {
+  describe('getCurrentCollectionsCount and getCollectionsDelta', () => {
     it('should return 0 before any sync', () => {
       const config = new ConfigReader(MOCK_PAH_CONFIG);
       const logger = mockServices.logger.mock();
@@ -1540,8 +1540,8 @@ describe('PAHCollectionProvider', () => {
         },
       );
 
-      expect(providers[0].getLastCollectionsCount()).toBe(0);
-      expect(providers[0].getNewCollectionsCount()).toBe(0);
+      expect(providers[0].getCurrentCollectionsCount()).toBe(0);
+      expect(providers[0].getCollectionsDelta()).toBe(0);
     });
 
     it('should return correct count after sync', async () => {
@@ -1567,9 +1567,9 @@ describe('PAHCollectionProvider', () => {
 
       await provider.run();
 
-      expect(provider.getLastCollectionsCount()).toBe(2);
+      expect(provider.getCurrentCollectionsCount()).toBe(2);
       // First sync: new = 2 - 0 = 2
-      expect(provider.getNewCollectionsCount()).toBe(2);
+      expect(provider.getCollectionsDelta()).toBe(2);
     });
 
     it('should track new collections across multiple syncs', async () => {
@@ -1594,8 +1594,8 @@ describe('PAHCollectionProvider', () => {
         MOCK_COLLECTION_2,
       ]);
       await provider.run();
-      expect(provider.getLastCollectionsCount()).toBe(2);
-      expect(provider.getNewCollectionsCount()).toBe(2);
+      expect(provider.getCurrentCollectionsCount()).toBe(2);
+      expect(provider.getCollectionsDelta()).toBe(2);
 
       // Second sync: 3 collections (1 new)
       const MOCK_COLLECTION_3: Collection = {
@@ -1610,11 +1610,11 @@ describe('PAHCollectionProvider', () => {
         MOCK_COLLECTION_3,
       ]);
       await provider.run();
-      expect(provider.getLastCollectionsCount()).toBe(3);
-      expect(provider.getNewCollectionsCount()).toBe(1);
+      expect(provider.getCurrentCollectionsCount()).toBe(3);
+      expect(provider.getCollectionsDelta()).toBe(1);
     });
 
-    it('should return 0 for newCollections when count decreases', async () => {
+    it('should return negative delta when collections are removed', async () => {
       const config = new ConfigReader(MOCK_PAH_CONFIG);
       const logger = mockServices.logger.mock();
 
@@ -1637,15 +1637,15 @@ describe('PAHCollectionProvider', () => {
       ]);
       await provider.run();
 
-      // Second sync: 1 collection (collections decreased)
+      // Second sync: 1 collection (1 collection removed)
       mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue([
         MOCK_COLLECTION,
       ]);
       await provider.run();
 
-      expect(provider.getLastCollectionsCount()).toBe(1);
-      // Should be 0, not negative
-      expect(provider.getNewCollectionsCount()).toBe(0);
+      expect(provider.getCurrentCollectionsCount()).toBe(1);
+      // Delta should be -1 (1 - 2 = -1)
+      expect(provider.getCollectionsDelta()).toBe(-1);
     });
   });
 
