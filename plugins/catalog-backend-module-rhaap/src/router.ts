@@ -193,7 +193,7 @@ export async function createRouter(options: {
   });
 
   router.post(
-    '/collections/sync/from-pah',
+    '/ansible/sync/from-aap/content',
     express.json(),
     async (request, response) => {
       // Extract repository names from request body

@@ -938,7 +938,7 @@ describe('createRouter', () => {
     });
   });
 
-  describe('POST /collections/sync/from-pah', () => {
+  describe('POST /ansible/sync/from-aap/content', () => {
     it('should return 202 when sync starts for all providers', async () => {
       mockPAHCollectionProvider.startSync.mockReturnValue({
         started: true,
@@ -946,7 +946,7 @@ describe('createRouter', () => {
       });
 
       const response = await request(app)
-        .post('/collections/sync/from-pah')
+        .post('/ansible/sync/from-aap/content')
         .send({});
 
       expect(response.status).toBe(202);
@@ -978,7 +978,7 @@ describe('createRouter', () => {
       });
 
       const response = await request(app)
-        .post('/collections/sync/from-pah')
+        .post('/ansible/sync/from-aap/content')
         .send({ filters: [] });
 
       expect(response.status).toBe(202);
@@ -994,7 +994,7 @@ describe('createRouter', () => {
       });
 
       const response = await request(app)
-        .post('/collections/sync/from-pah')
+        .post('/ansible/sync/from-aap/content')
         .send({ filters: [{ repository_name: 'validated' }] });
 
       expect(response.status).toBe(202);
@@ -1021,7 +1021,7 @@ describe('createRouter', () => {
 
     it('should return 400 when all requested repositories are invalid', async () => {
       const response = await request(app)
-        .post('/collections/sync/from-pah')
+        .post('/ansible/sync/from-aap/content')
         .send({ filters: [{ repository_name: 'nonexistent' }] });
 
       expect(response.status).toBe(400);
@@ -1055,7 +1055,7 @@ describe('createRouter', () => {
       });
 
       const response = await request(app)
-        .post('/collections/sync/from-pah')
+        .post('/ansible/sync/from-aap/content')
         .send({});
 
       expect(response.status).toBe(500);
@@ -1075,7 +1075,7 @@ describe('createRouter', () => {
       });
 
       const response = await request(app)
-        .post('/collections/sync/from-pah')
+        .post('/ansible/sync/from-aap/content')
         .send({
           filters: [
             { repository_name: 'validated' },
@@ -1096,7 +1096,7 @@ describe('createRouter', () => {
       });
 
       const response = await request(app)
-        .post('/collections/sync/from-pah')
+        .post('/ansible/sync/from-aap/content')
         .send({ filters: [{ repository_name: 'validated' }] });
 
       expect(response.status).toBe(200);
@@ -1129,7 +1129,7 @@ describe('createRouter', () => {
       });
 
       const response = await request(app)
-        .post('/collections/sync/from-pah')
+        .post('/ansible/sync/from-aap/content')
         .send({
           filters: [
             { repository_name: 'validated' },
@@ -1176,7 +1176,7 @@ describe('createRouter', () => {
       const appWithNoProviders = express().use(routerWithNoProviders);
 
       const response = await request(appWithNoProviders)
-        .post('/collections/sync/from-pah')
+        .post('/ansible/sync/from-aap/content')
         .send({});
 
       expect(response.status).toBe(400);
@@ -1193,7 +1193,7 @@ describe('createRouter', () => {
     });
   });
 
-  describe('POST /collections/sync/from-pah with multiple providers', () => {
+  describe('POST /ansible/sync/from-aap/content with multiple providers', () => {
     let appWithMultipleProviders: express.Express;
     let mockProvider1: jest.Mocked<PAHCollectionProvider>;
     let mockProvider2: jest.Mocked<PAHCollectionProvider>;
@@ -1257,7 +1257,7 @@ describe('createRouter', () => {
       });
 
       const response = await request(appWithMultipleProviders)
-        .post('/collections/sync/from-pah')
+        .post('/ansible/sync/from-aap/content')
         .send({});
 
       expect(response.status).toBe(202);
@@ -1282,7 +1282,7 @@ describe('createRouter', () => {
       });
 
       const response = await request(appWithMultipleProviders)
-        .post('/collections/sync/from-pah')
+        .post('/ansible/sync/from-aap/content')
         .send({});
 
       expect(response.status).toBe(200);
@@ -1307,7 +1307,7 @@ describe('createRouter', () => {
       });
 
       const response = await request(appWithMultipleProviders)
-        .post('/collections/sync/from-pah')
+        .post('/ansible/sync/from-aap/content')
         .send({});
 
       expect(response.status).toBe(207);
@@ -1331,7 +1331,7 @@ describe('createRouter', () => {
       });
 
       const response = await request(appWithMultipleProviders)
-        .post('/collections/sync/from-pah')
+        .post('/ansible/sync/from-aap/content')
         .send({});
 
       expect(response.status).toBe(207);
@@ -1357,7 +1357,7 @@ describe('createRouter', () => {
       });
 
       const response = await request(appWithMultipleProviders)
-        .post('/collections/sync/from-pah')
+        .post('/ansible/sync/from-aap/content')
         .send({});
 
       expect(response.status).toBe(500);
@@ -1379,7 +1379,7 @@ describe('createRouter', () => {
       });
 
       const response = await request(appWithMultipleProviders)
-        .post('/collections/sync/from-pah')
+        .post('/ansible/sync/from-aap/content')
         .send({
           filters: [
             { repository_name: 'repo1' },
@@ -1400,7 +1400,7 @@ describe('createRouter', () => {
       });
 
       const response = await request(appWithMultipleProviders)
-        .post('/collections/sync/from-pah')
+        .post('/ansible/sync/from-aap/content')
         .send({
           filters: [
             { repository_name: 'repo1' },
