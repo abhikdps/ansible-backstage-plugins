@@ -244,7 +244,11 @@ export class PAHCollectionProvider implements EntityProvider {
 
       for (const collection of collections) {
         entities.push(
-          pahCollectionParser({ baseUrl: this.baseUrl, collection }),
+          pahCollectionParser({
+            baseUrl: this.baseUrl,
+            collection,
+            sourceId: this.getSourceId(),
+          }),
         );
         collectionsCount++;
       }

@@ -134,6 +134,7 @@ export const aapJobTemplateParser = (options: {
 export const pahCollectionParser = (options: {
   collection: Collection;
   baseUrl: string;
+  sourceId: string;
 }): Entity => {
   const collectionBaseUrl =
     `${options.baseUrl}/content/collections/` +
@@ -214,6 +215,7 @@ export const pahCollectionParser = (options: {
           options.collection.repository_name,
         'ansible.io/collection-install-url': `${collectionBaseUrl}/install?version=${options.collection.version}`,
         'ansible.io/collection-readme-format': 'html',
+        'ansible.io/discovery-source-id': options.sourceId,
       },
     },
     spec: {
