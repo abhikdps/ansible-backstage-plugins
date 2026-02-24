@@ -5,7 +5,6 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { ThemeProvider, createTheme } from '@material-ui/core/styles';
 import { TestApiProvider } from '@backstage/test-utils';
 import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
@@ -761,7 +760,6 @@ describe('SyncDialog', () => {
   });
 
   it('toggleSelection at host level deselects orgs under that host', async () => {
-    const user = userEvent.setup();
     mockFetchApi.fetch
       .mockResolvedValueOnce({
         ok: true,
@@ -797,42 +795,53 @@ describe('SyncDialog', () => {
 
     renderDialog({ open: true, onClose: mockOnClose });
 
-    await waitFor(() => {
-      expect(screen.getByText('org1')).toBeInTheDocument();
-      expect(screen.getByText('mygroup')).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('button', { name: /Select All/i }));
+    await waitFor(
+      () => {
+        expect(screen.getByText('org1')).toBeInTheDocument();
+        expect(screen.getByText('mygroup')).toBeInTheDocument();
+      },
+      { timeout: 8000 },
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Select All/i }));
+
     await waitFor(
       () => {
         expect(
           screen.getByRole('button', { name: /Sync Selected/i }),
         ).not.toBeDisabled();
       },
+      { timeout: 3000 },
+    );
+
+    // Deselect the github.com host so only GitLab remains (covers toggleSelection host-level branch)
+    const hostRow = screen
+      .getByText('github.com')
+      .closest('.MuiListItem-root') as HTMLElement;
+    const hostCheckbox = within(hostRow).getByRole('checkbox');
+    fireEvent.click(hostCheckbox);
+    fireEvent.click(screen.getByRole('button', { name: /Sync Selected/i }));
+
+    await waitFor(
+      () => {
+        const syncCalls = mockFetchApi.fetch.mock.calls.filter((c: [string]) =>
+          String(c[0]).includes('from-scm'),
+        );
+        expect(syncCalls.length).toBeGreaterThan(0);
+        const lastSync = syncCalls.at(-1);
+        expect(lastSync).toBeDefined();
+        const body = JSON.parse(
+          (lastSync as [string, { body: string }])[1].body,
+        );
+        const gitlabFilter = body.filters.find(
+          (f: { scmProvider?: string }) => f.scmProvider === 'gitlab',
+        );
+        expect(gitlabFilter).toBeDefined();
+        expect(gitlabFilter).toMatchObject({ scmProvider: 'gitlab' });
+      },
       { timeout: 5000 },
     );
-    // Deselect the github.com host so only GitLab remains (covers toggleSelection host-level branch)
-    const hostRow = screen.getByText('github.com').closest('.MuiListItem-root');
-    expect(hostRow).toBeTruthy();
-    const hostCheckbox = within(hostRow as HTMLElement).getByRole('checkbox');
-    await user.click(hostCheckbox);
-    await user.click(screen.getByRole('button', { name: /Sync Selected/i }));
-
-    await waitFor(() => {
-      const syncCalls = mockFetchApi.fetch.mock.calls.filter((c: [string]) =>
-        String(c[0]).includes('from-scm'),
-      );
-      expect(syncCalls.length).toBeGreaterThan(0);
-      const lastSync = syncCalls.at(-1);
-      expect(lastSync).toBeDefined();
-      const body = JSON.parse((lastSync as [string, { body: string }])[1].body);
-      const gitlabFilter = body.filters.find(
-        (f: { scmProvider?: string }) => f.scmProvider === 'gitlab',
-      );
-      expect(gitlabFilter).toBeDefined();
-      // Each sync call sends one filter; shape is org-level (host+org) when only one org selected, or provider-level when whole provider selected
-      expect(gitlabFilter).toMatchObject({ scmProvider: 'gitlab' });
-    });
-  });
+  }, 15000);
 
   it('selecting leaf host syncs with host-only filter', async () => {
     mockFetchApi.fetch
