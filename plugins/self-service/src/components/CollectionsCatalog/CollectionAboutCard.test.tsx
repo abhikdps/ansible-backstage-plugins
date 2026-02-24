@@ -168,15 +168,15 @@ describe('CollectionAboutCard', () => {
     expect(screen.getByText('Last Sync')).toBeInTheDocument();
   });
 
-  it('renders tags excluding ansible-collection and scm tags', () => {
+  it('renders tags from spec.collection_tags', () => {
     renderWithTheme(
       <CollectionAboutCard
         entity={{
           ...mockEntity,
-          metadata: {
-            ...mockEntity.metadata,
-            tags: ['tag1', 'ansible-collection', 'github'],
-          },
+          spec: {
+            ...mockEntity.spec,
+            collection_tags: ['tag1', 'other-tag'],
+          } as any,
         }}
         lastSync={null}
         lastFailedSync={null}
@@ -186,6 +186,7 @@ describe('CollectionAboutCard', () => {
 
     expect(screen.getByText('Tags')).toBeInTheDocument();
     expect(screen.getByText('tag1')).toBeInTheDocument();
+    expect(screen.getByText('other-tag')).toBeInTheDocument();
   });
 
   it('shows "No tags" when no displayable tags', () => {
