@@ -1241,13 +1241,17 @@ describe('PAHCollectionProvider', () => {
       const provider = providers[0];
       await provider.connect(mockConnection);
 
-      // Collection with minimal required fields
+      // Collection with empty/default values for optional-like fields
       const minimalCollection: Collection = {
         namespace: 'test',
         name: 'minimal',
         version: '1.0.0',
         repository_name: 'validated',
-        // Missing optional fields: dependencies, description, tags, etc.
+        dependencies: {},
+        description: '',
+        tags: [],
+        collection_readme_html: '',
+        authors: [],
       };
 
       mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue([
@@ -1284,6 +1288,11 @@ describe('PAHCollectionProvider', () => {
           name: `collection-${i}`,
           version: '1.0.0',
           repository_name: 'validated',
+          dependencies: {},
+          description: `Test collection ${i}`,
+          tags: [],
+          collection_readme_html: '',
+          authors: [],
         }),
       );
 
