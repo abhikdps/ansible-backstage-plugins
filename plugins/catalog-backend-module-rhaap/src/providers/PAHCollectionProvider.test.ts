@@ -9,6 +9,16 @@ import { PAHCollectionProvider } from './PAHCollectionProvider';
 import { mockAnsibleService } from '../mock/mockIAAPService';
 import { Collection } from '@ansible/backstage-rhaap-common';
 
+// Mock the entityParser module for testing parser errors
+jest.mock('./entityParser', () => {
+  const actual = jest.requireActual('./entityParser');
+  return {
+    ...actual,
+    pahCollectionParser: jest.fn(actual.pahCollectionParser),
+  };
+});
+import { pahCollectionParser } from './entityParser';
+
 // Mock config for PAH collection provider
 const MOCK_PAH_CONFIG = {
   catalog: {
@@ -330,6 +340,153 @@ describe('PAHCollectionProvider', () => {
         'No schedule provided via config for PAH Collection Provider: validated.',
       );
     });
+
+    it('should return empty array when pahCollections is disabled', () => {
+      const disabledConfig = {
+        catalog: {
+          providers: {
+            rhaap: {
+              development: {
+                orgs: 'Default',
+                sync: {
+                  pahCollections: {
+                    enabled: false,
+                    repositories: [{ name: 'validated' }],
+                  },
+                },
+              },
+            },
+          },
+        },
+        ansible: {
+          rhaap: {
+            baseUrl: 'https://pah.test',
+            token: 'testtoken',
+            checkSSL: false,
+          },
+        },
+      };
+
+      const config = new ConfigReader(disabledConfig);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      expect(providers).toHaveLength(0);
+    });
+
+    it('should return empty array when no rhaap config exists', () => {
+      const emptyConfig = {
+        catalog: {
+          providers: {},
+        },
+        ansible: {
+          rhaap: {
+            baseUrl: 'https://pah.test',
+            token: 'testtoken',
+            checkSSL: false,
+          },
+        },
+      };
+
+      const config = new ConfigReader(emptyConfig);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      expect(providers).toHaveLength(0);
+    });
+
+    it('should return empty array when repositories array is empty', () => {
+      const emptyReposConfig = {
+        catalog: {
+          providers: {
+            rhaap: {
+              development: {
+                orgs: 'Default',
+                sync: {
+                  pahCollections: {
+                    enabled: true,
+                    repositories: [],
+                  },
+                },
+              },
+            },
+          },
+        },
+        ansible: {
+          rhaap: {
+            baseUrl: 'https://pah.test',
+            token: 'testtoken',
+            checkSSL: false,
+          },
+        },
+      };
+
+      const config = new ConfigReader(emptyReposConfig);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      expect(providers).toHaveLength(0);
+    });
+
+    it('should return empty array when pahCollections sync config is missing', () => {
+      const noSyncConfig = {
+        catalog: {
+          providers: {
+            rhaap: {
+              development: {
+                orgs: 'Default',
+                // No sync config at all
+              },
+            },
+          },
+        },
+        ansible: {
+          rhaap: {
+            baseUrl: 'https://pah.test',
+            token: 'testtoken',
+            checkSSL: false,
+          },
+        },
+      };
+
+      const config = new ConfigReader(noSyncConfig);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      expect(providers).toHaveLength(0);
+    });
   });
 
   describe('getProviderName', () => {
@@ -584,6 +741,240 @@ describe('PAHCollectionProvider', () => {
       expect(provider.getLastSyncTime()).toBeNull();
     });
 
+    it('should set lastSyncStatus to failure when fetching collections fails', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      mockAnsibleService.syncCollectionsByRepositories.mockRejectedValue(
+        new Error('Network error while fetching collections'),
+      );
+
+      const result = await provider.run();
+
+      expect(result.success).toBe(false);
+      expect(provider.getLastSyncStatus()).toBe('failure');
+      expect(provider.getLastFailedSyncTime()).not.toBeNull();
+    });
+
+    it('should set lastSyncStatus to failure when applyMutation fails', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue([
+        MOCK_COLLECTION,
+      ]);
+      mockConnection.applyMutation.mockRejectedValue(
+        new Error('Catalog mutation failed'),
+      );
+
+      const result = await provider.run();
+
+      expect(result.success).toBe(false);
+      expect(result.collectionsCount).toBe(0);
+      expect(provider.getLastSyncStatus()).toBe('failure');
+      expect(provider.getLastFailedSyncTime()).not.toBeNull();
+      expect(provider.getLastSyncTime()).toBeNull();
+    });
+
+    it('should reset isSyncing to false after fetch error', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      mockAnsibleService.syncCollectionsByRepositories.mockRejectedValue(
+        new Error('Fetch failed'),
+      );
+
+      expect(provider.getIsSyncing()).toBe(false);
+      const runPromise = provider.run();
+      // Note: isSyncing is set synchronously at start of run()
+      await runPromise;
+      expect(provider.getIsSyncing()).toBe(false);
+    });
+
+    it('should reset isSyncing to false after mutation error', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue([
+        MOCK_COLLECTION,
+      ]);
+      mockConnection.applyMutation.mockRejectedValue(
+        new Error('Mutation failed'),
+      );
+
+      await provider.run();
+
+      expect(provider.getIsSyncing()).toBe(false);
+    });
+
+    it('should return failure result when sync fails during fetch', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      mockAnsibleService.syncCollectionsByRepositories.mockRejectedValue(
+        new Error('Connection timeout'),
+      );
+
+      const result = await provider.run();
+
+      expect(result.success).toBe(false);
+      expect(result.collectionsCount).toBe(0);
+      expect(provider.getLastSyncStatus()).toBe('failure');
+    });
+
+    it('should return failure result when sync fails during mutation', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue([
+        MOCK_COLLECTION,
+      ]);
+      mockConnection.applyMutation.mockRejectedValue(
+        new Error('Database write failed'),
+      );
+
+      const result = await provider.run();
+
+      expect(result.success).toBe(false);
+      expect(result.collectionsCount).toBe(0);
+      expect(provider.getLastSyncStatus()).toBe('failure');
+    });
+
+    it('should handle error without message gracefully', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      // Throw an error without a message
+      mockAnsibleService.syncCollectionsByRepositories.mockRejectedValue({});
+
+      const result = await provider.run();
+
+      expect(result.success).toBe(false);
+      expect(provider.getLastSyncStatus()).toBe('failure');
+    });
+
+    it('should set failure status when pahCollectionParser throws during normalization', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue([
+        MOCK_COLLECTION,
+      ]);
+
+      // Mock pahCollectionParser to throw an error
+      const mockedParser = pahCollectionParser as jest.MockedFunction<
+        typeof pahCollectionParser
+      >;
+      mockedParser.mockImplementationOnce(() => {
+        throw new Error('Invalid collection data: missing required field');
+      });
+
+      const result = await provider.run();
+
+      expect(result.success).toBe(false);
+      expect(result.collectionsCount).toBe(0);
+      expect(provider.getLastSyncStatus()).toBe('failure');
+      expect(provider.getLastFailedSyncTime()).not.toBeNull();
+      expect(provider.getIsSyncing()).toBe(false);
+      expect(mockConnection.applyMutation).not.toHaveBeenCalled();
+    });
+
     it('should create entities with correct locationKey', async () => {
       const config = new ConfigReader(MOCK_PAH_CONFIG);
       const logger = mockServices.logger.mock();
@@ -613,6 +1004,304 @@ describe('PAHCollectionProvider', () => {
               locationKey: 'PAHCollectionProvider:development:validated',
             }),
           ],
+        }),
+      );
+    });
+
+    it('should handle null response from syncCollectionsByRepositories', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      // Return null/undefined from the API
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue(
+        null as any,
+      );
+
+      // Should handle gracefully (will likely throw when iterating)
+      const result = await provider.run();
+
+      expect(result.success).toBe(false);
+      expect(provider.getLastSyncStatus()).toBe('failure');
+    });
+
+    it('should handle timeout errors from syncCollectionsByRepositories', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      const timeoutError = new Error('Request timeout after 30000ms');
+      timeoutError.name = 'TimeoutError';
+      mockAnsibleService.syncCollectionsByRepositories.mockRejectedValue(
+        timeoutError,
+      );
+
+      const result = await provider.run();
+
+      expect(result.success).toBe(false);
+      expect(result.collectionsCount).toBe(0);
+      expect(provider.getLastSyncStatus()).toBe('failure');
+      expect(provider.getLastFailedSyncTime()).not.toBeNull();
+    });
+
+    it('should handle network errors from syncCollectionsByRepositories', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      const networkError = new Error('ECONNREFUSED');
+      networkError.name = 'NetworkError';
+      mockAnsibleService.syncCollectionsByRepositories.mockRejectedValue(
+        networkError,
+      );
+
+      const result = await provider.run();
+
+      expect(result.success).toBe(false);
+      expect(provider.getLastSyncStatus()).toBe('failure');
+    });
+
+    it('should handle 401 unauthorized errors', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      const authError = new Error('Unauthorized: Invalid token');
+      (authError as any).status = 401;
+      mockAnsibleService.syncCollectionsByRepositories.mockRejectedValue(
+        authError,
+      );
+
+      const result = await provider.run();
+
+      expect(result.success).toBe(false);
+      expect(provider.getLastSyncStatus()).toBe('failure');
+    });
+
+    it('should handle 500 server errors', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      const serverError = new Error('Internal Server Error');
+      (serverError as any).status = 500;
+      mockAnsibleService.syncCollectionsByRepositories.mockRejectedValue(
+        serverError,
+      );
+
+      const result = await provider.run();
+
+      expect(result.success).toBe(false);
+      expect(provider.getLastSyncStatus()).toBe('failure');
+    });
+
+    it('should not modify state on consecutive failures', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      // First failure
+      mockAnsibleService.syncCollectionsByRepositories.mockRejectedValue(
+        new Error('First error'),
+      );
+      await provider.run();
+      const firstFailedTime = provider.getLastFailedSyncTime();
+
+      // Small delay to ensure different timestamp
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Second failure
+      mockAnsibleService.syncCollectionsByRepositories.mockRejectedValue(
+        new Error('Second error'),
+      );
+      await provider.run();
+      const secondFailedTime = provider.getLastFailedSyncTime();
+
+      expect(provider.getLastSyncStatus()).toBe('failure');
+      expect(provider.getLastSyncTime()).toBeNull();
+      // Second failure should have updated the timestamp
+      expect(secondFailedTime).not.toBe(firstFailedTime);
+    });
+
+    it('should recover from failure on subsequent successful sync', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      // First: failure
+      mockAnsibleService.syncCollectionsByRepositories.mockRejectedValue(
+        new Error('API Error'),
+      );
+      await provider.run();
+      expect(provider.getLastSyncStatus()).toBe('failure');
+      expect(provider.getLastFailedSyncTime()).not.toBeNull();
+      expect(provider.getLastSyncTime()).toBeNull();
+
+      // Second: success
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue([
+        MOCK_COLLECTION,
+      ]);
+      await provider.run();
+
+      expect(provider.getLastSyncStatus()).toBe('success');
+      expect(provider.getLastSyncTime()).not.toBeNull();
+      expect(provider.getLastCollectionsCount()).toBe(1);
+    });
+
+    it('should handle collections with missing optional fields', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      // Collection with minimal required fields
+      const minimalCollection: Collection = {
+        namespace: 'test',
+        name: 'minimal',
+        version: '1.0.0',
+        repository_name: 'validated',
+        // Missing optional fields: dependencies, description, tags, etc.
+      };
+
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue([
+        minimalCollection,
+      ]);
+
+      const result = await provider.run();
+
+      expect(result.success).toBe(true);
+      expect(result.collectionsCount).toBe(1);
+    });
+
+    it('should handle very large collection arrays', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      // Create array with many collections
+      const largeCollectionArray: Collection[] = Array.from(
+        { length: 100 },
+        (_, i) => ({
+          namespace: 'test',
+          name: `collection-${i}`,
+          version: '1.0.0',
+          repository_name: 'validated',
+        }),
+      );
+
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue(
+        largeCollectionArray,
+      );
+
+      const result = await provider.run();
+
+      expect(result.success).toBe(true);
+      expect(result.collectionsCount).toBe(100);
+      expect(mockConnection.applyMutation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entities: expect.arrayContaining([
+            expect.objectContaining({
+              locationKey: 'PAHCollectionProvider:development:validated',
+            }),
+          ]),
         }),
       );
     });
@@ -711,6 +1400,428 @@ describe('PAHCollectionProvider', () => {
       expect(entity.metadata.title).toBe('ansible.posix v1.5.4');
       expect(entity.spec.collection_namespace).toBe('ansible');
       expect(entity.spec.collection_name).toBe('posix');
+    });
+  });
+
+  describe('getLastFailedSyncTime', () => {
+    it('should return null before any sync', () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      expect(providers[0].getLastFailedSyncTime()).toBeNull();
+    });
+
+    it('should return timestamp after a failed sync', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      mockAnsibleService.syncCollectionsByRepositories.mockRejectedValue(
+        new Error('API Error'),
+      );
+
+      await provider.run();
+
+      expect(provider.getLastFailedSyncTime()).not.toBeNull();
+      expect(
+        new Date(provider.getLastFailedSyncTime()!).getTime(),
+      ).toBeLessThanOrEqual(Date.now());
+    });
+  });
+
+  describe('getLastSyncStatus', () => {
+    it('should return null before any sync', () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      expect(providers[0].getLastSyncStatus()).toBeNull();
+    });
+
+    it('should return success after successful sync', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue([
+        MOCK_COLLECTION,
+      ]);
+
+      await provider.run();
+
+      expect(provider.getLastSyncStatus()).toBe('success');
+    });
+
+    it('should return failure after failed sync', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      mockAnsibleService.syncCollectionsByRepositories.mockRejectedValue(
+        new Error('API Error'),
+      );
+
+      await provider.run();
+
+      expect(provider.getLastSyncStatus()).toBe('failure');
+    });
+  });
+
+  describe('getLastCollectionsCount and getNewCollectionsCount', () => {
+    it('should return 0 before any sync', () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      expect(providers[0].getLastCollectionsCount()).toBe(0);
+      expect(providers[0].getNewCollectionsCount()).toBe(0);
+    });
+
+    it('should return correct count after sync', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue([
+        MOCK_COLLECTION,
+        MOCK_COLLECTION_2,
+      ]);
+
+      await provider.run();
+
+      expect(provider.getLastCollectionsCount()).toBe(2);
+      // First sync: new = 2 - 0 = 2
+      expect(provider.getNewCollectionsCount()).toBe(2);
+    });
+
+    it('should track new collections across multiple syncs', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      // First sync: 2 collections
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue([
+        MOCK_COLLECTION,
+        MOCK_COLLECTION_2,
+      ]);
+      await provider.run();
+      expect(provider.getLastCollectionsCount()).toBe(2);
+      expect(provider.getNewCollectionsCount()).toBe(2);
+
+      // Second sync: 3 collections (1 new)
+      const MOCK_COLLECTION_3: Collection = {
+        ...MOCK_COLLECTION,
+        namespace: 'amazon',
+        name: 'aws',
+        version: '5.0.0',
+      };
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue([
+        MOCK_COLLECTION,
+        MOCK_COLLECTION_2,
+        MOCK_COLLECTION_3,
+      ]);
+      await provider.run();
+      expect(provider.getLastCollectionsCount()).toBe(3);
+      expect(provider.getNewCollectionsCount()).toBe(1);
+    });
+
+    it('should return 0 for newCollections when count decreases', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      // First sync: 2 collections
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue([
+        MOCK_COLLECTION,
+        MOCK_COLLECTION_2,
+      ]);
+      await provider.run();
+
+      // Second sync: 1 collection (collections decreased)
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue([
+        MOCK_COLLECTION,
+      ]);
+      await provider.run();
+
+      expect(provider.getLastCollectionsCount()).toBe(1);
+      // Should be 0, not negative
+      expect(provider.getNewCollectionsCount()).toBe(0);
+    });
+  });
+
+  describe('getSourceId', () => {
+    it('should return correct source ID format', () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      expect(providers[0].getSourceId()).toBe('development:pah:validated');
+    });
+
+    it('should include repository name in source ID', () => {
+      const config = new ConfigReader(MOCK_MULTI_REPO_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      expect(providers[0].getSourceId()).toBe('development:pah:validated');
+      expect(providers[1].getSourceId()).toBe('development:pah:rh-certified');
+    });
+  });
+
+  describe('isEnabled', () => {
+    it('should return true when pahCollections is enabled in config', () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      expect(providers[0].isEnabled()).toBe(true);
+    });
+  });
+
+  describe('getIsSyncing', () => {
+    it('should return false when not syncing', () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      expect(providers[0].getIsSyncing()).toBe(false);
+    });
+
+    it('should return false after sync completes', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue([
+        MOCK_COLLECTION,
+      ]);
+
+      await provider.run();
+
+      expect(provider.getIsSyncing()).toBe(false);
+    });
+  });
+
+  describe('startSync', () => {
+    it('should return started true when sync starts successfully', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      mockAnsibleService.syncCollectionsByRepositories.mockResolvedValue([
+        MOCK_COLLECTION,
+      ]);
+
+      const result = provider.startSync();
+
+      expect(result.started).toBe(true);
+      expect(result.skipped).toBe(false);
+      expect(result.error).toBeUndefined();
+    });
+
+    it('should return skipped true when sync is already in progress', async () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      const provider = providers[0];
+      await provider.connect(mockConnection);
+
+      // Create a promise that won't resolve immediately
+      let resolveSync: () => void;
+      const syncPromise = new Promise<Collection[]>(resolve => {
+        resolveSync = () => resolve([MOCK_COLLECTION]);
+      });
+      mockAnsibleService.syncCollectionsByRepositories.mockReturnValue(
+        syncPromise,
+      );
+
+      // Start first sync
+      provider.startSync();
+
+      // Try to start another sync while first is in progress
+      const result = provider.startSync();
+
+      expect(result.started).toBe(false);
+      expect(result.skipped).toBe(true);
+      expect(result.error).toBeUndefined();
+
+      // Cleanup: resolve the pending sync
+      resolveSync!();
+    });
+
+    it('should return error when provider is not connected', () => {
+      const config = new ConfigReader(MOCK_PAH_CONFIG);
+      const logger = mockServices.logger.mock();
+
+      const providers = PAHCollectionProvider.fromConfig(
+        config,
+        mockAnsibleService,
+        {
+          logger,
+          schedule: mockTaskRunner,
+        },
+      );
+
+      // Don't call connect()
+      const result = providers[0].startSync();
+
+      expect(result.started).toBe(false);
+      expect(result.skipped).toBe(false);
+      expect(result.error).toBe('Provider not connected');
     });
   });
 });

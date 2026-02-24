@@ -13,7 +13,7 @@ import type { Config } from '@backstage/config';
 import { readAapApiEntityConfigs } from './config';
 import { InputError, isError } from '@backstage/errors';
 import { AapConfig, type PAHRepositoryConfig } from './types';
-import { IAAPService, Collection } from '@ansible/backstage-rhaap-common';
+import { IAAPService } from '@ansible/backstage-rhaap-common';
 import { pahCollectionParser } from './entityParser';
 import { Entity } from '@backstage/catalog-model';
 
@@ -174,7 +174,9 @@ export class PAHCollectionProvider implements EntityProvider {
     // Fire and forget - don't await
     this.run().catch(err => {
       this.logger.error(
-        `[${this.getProviderName()}]: Background sync failed: ${err?.message ?? err}`,
+        `[${this.getProviderName()}]: Background sync failed: ${
+          err?.message ?? err
+        }`,
       );
     });
     return { started: true, skipped: false };
@@ -231,57 +233,52 @@ export class PAHCollectionProvider implements EntityProvider {
       );
 
       let collectionsCount = 0;
-      let collections: Collection[] = [];
-      let error: boolean = false;
       const entities: Entity[] = [];
-      try {
-        collections =
-          await this.ansibleServiceRef.syncCollectionsByRepositories([
-            this.pahRepositoryName,
-          ]);
-        this.logger.info(
-          `[${this.getProviderName()}]: Fetched ${
-            collections.length
-          } collections from repository: ${this.pahRepositoryName}`,
+
+      const collections =
+        await this.ansibleServiceRef.syncCollectionsByRepositories([
+          this.pahRepositoryName,
+        ]);
+      this.logger.info(
+        `[${this.getProviderName()}]: Fetched ${
+          collections.length
+        } collections from repository: ${this.pahRepositoryName}`,
+      );
+
+      for (const collection of collections) {
+        entities.push(
+          pahCollectionParser({ baseUrl: this.baseUrl, collection }),
         );
-      } catch (e: any) {
-        this.logger.error(
-          `[${this.getProviderName()}]: Error while fetching collections from repository: ${
-            this.pahRepositoryName
-          }. ${e?.message ?? ''}`,
-        );
-        error = true;
+        collectionsCount++;
       }
 
-      if (!error) {
-        for (const collection of collections) {
-          entities.push(
-            pahCollectionParser({ baseUrl: this.baseUrl, collection }),
-          );
-          collectionsCount++;
-        }
+      await this.connection.applyMutation({
+        type: 'full',
+        entities: entities.map(entity => ({
+          entity,
+          locationKey: this.getProviderName(),
+        })),
+      });
 
-        await this.connection.applyMutation({
-          type: 'full',
-          entities: entities.map(entity => ({
-            entity,
-            locationKey: this.getProviderName(),
-          })),
-        });
+      this.logger.info(
+        `[${this.getProviderName()}]: Refreshed ${this.getProviderName()}: ${collectionsCount} collections added.`,
+      );
 
-        this.logger.info(
-          `[${this.getProviderName()}]: Refreshed ${this.getProviderName()}: ${collectionsCount} collections added.`,
-        );
+      this.lastSyncTime = new Date().toISOString();
+      this.lastSyncStatus = 'success';
+      this.previousCollectionsCount = this.lastCollectionsCount;
+      this.lastCollectionsCount = collectionsCount;
 
-        this.lastSyncTime = new Date().toISOString();
-        this.lastSyncStatus = 'success';
-        this.previousCollectionsCount = this.lastCollectionsCount;
-        this.lastCollectionsCount = collectionsCount;
-      } else {
-        this.lastFailedSyncTime = new Date().toISOString();
-        this.lastSyncStatus = 'failure';
-      }
-      return { success: !error, collectionsCount };
+      return { success: true, collectionsCount };
+    } catch (e: any) {
+      this.logger.error(
+        `[${this.getProviderName()}]: Sync failed for repository: ${
+          this.pahRepositoryName
+        }. ${e?.message ?? ''}`,
+      );
+      this.lastFailedSyncTime = new Date().toISOString();
+      this.lastSyncStatus = 'failure';
+      return { success: false, collectionsCount: 0 };
     } finally {
       this.isSyncing = false;
     }

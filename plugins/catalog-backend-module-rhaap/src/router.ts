@@ -21,6 +21,7 @@ import { AAPEntityProvider } from './providers/AAPEntityProvider';
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { EEEntityProvider } from './providers/EEEntityProvider';
 import { PAHCollectionProvider } from './providers/PAHCollectionProvider';
+import { SyncStatus } from './helpers';
 
 export async function createRouter(options: {
   logger: LoggerService;
@@ -236,10 +237,14 @@ export async function createRouter(options: {
       }
 
       logger.info(
-        `Starting PAH collections sync for repository name(s): ${providersToRun.length > 0 ? providersToRun.map(p => p.getPahRepositoryName()).join(', ') : 'none'}`,
+        `Starting PAH collections sync for repository name(s): ${
+          providersToRun.length > 0
+            ? providersToRun.map(p => p.getPahRepositoryName()).join(', ')
+            : 'none'
+        }`,
       );
 
-      type SyncStatus =
+      type SyncResultStatus =
         | 'sync_started'
         | 'already_syncing'
         | 'failed'
@@ -247,7 +252,7 @@ export async function createRouter(options: {
       interface SyncResult {
         repositoryName: string;
         providerName?: string;
-        status: SyncStatus;
+        status: SyncResultStatus;
         error?: { code: string; message: string };
       }
 
@@ -264,18 +269,20 @@ export async function createRouter(options: {
           return {
             repositoryName,
             providerName,
-            status: 'already_syncing' as SyncStatus,
+            status: 'already_syncing' as SyncResultStatus,
           };
         }
 
         if (!started) {
           logger.error(
-            `Failed to start sync for ${repositoryName}: ${error ?? 'unknown error'}`,
+            `Failed to start sync for ${repositoryName}: ${
+              error ?? 'unknown error'
+            }`,
           );
           return {
             repositoryName,
             providerName,
-            status: 'failed' as SyncStatus,
+            status: 'failed' as SyncResultStatus,
             error: {
               code: 'SYNC_START_FAILED',
               message: error ?? 'Failed to initiate sync for provider',
@@ -286,14 +293,14 @@ export async function createRouter(options: {
         return {
           repositoryName,
           providerName,
-          status: 'sync_started' as SyncStatus,
+          status: 'sync_started' as SyncResultStatus,
         };
       });
 
       for (const invalidRepo of invalidRepositories) {
         results.push({
           repositoryName: invalidRepo,
-          status: 'invalid' as SyncStatus,
+          status: 'invalid' as SyncResultStatus,
           error: {
             code: 'INVALID_REPOSITORY',
             message: `Repository '${invalidRepo}' not found in configured providers`,
@@ -301,7 +308,7 @@ export async function createRouter(options: {
         });
       }
 
-      const summary = {
+      const summary: SyncStatus & { total: number } = {
         total: results.length,
         sync_started: results.filter(r => r.status === 'sync_started').length,
         already_syncing: results.filter(r => r.status === 'already_syncing')
@@ -311,7 +318,6 @@ export async function createRouter(options: {
       };
 
       const hasFailures = results.some(r => r.status === 'failed');
-      const hasSkipped = results.some(r => r.status === 'already_syncing');
       const hasStarted = results.some(r => r.status === 'sync_started');
       const hasInvalid = results.some(r => r.status === 'invalid');
       const allStarted =
@@ -339,12 +345,9 @@ export async function createRouter(options: {
         statusCode = 202;
       } else if (allSkipped) {
         statusCode = 200;
-      } else if ((hasSkipped || hasFailures || hasInvalid) && hasStarted) {
-        statusCode = 207;
-      } else if (hasSkipped && hasInvalid) {
-        statusCode = 207;
       } else {
-        statusCode = 200;
+        // Mixed results (e.g., some started + some skipped/failed/invalid)
+        statusCode = 207;
       }
 
       response.status(statusCode).json({
