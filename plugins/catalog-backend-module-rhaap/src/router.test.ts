@@ -708,6 +708,7 @@ describe('createRouter', () => {
           orgsUsersTeams: null,
           jobTemplates: null,
         },
+        content: null,
       });
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Failed to get sync status: Failed to get sync time',
@@ -731,6 +732,7 @@ describe('createRouter', () => {
           orgsUsersTeams: null,
           jobTemplates: null,
         },
+        content: null,
       });
     });
   });

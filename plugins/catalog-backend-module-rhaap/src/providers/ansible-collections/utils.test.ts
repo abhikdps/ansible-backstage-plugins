@@ -15,7 +15,7 @@ import type {
   DiscoveredGalaxyFile,
   AnsibleGitContentsSourceConfig,
   RepositoryInfo,
-} from './types';
+} from '../types';
 
 describe('utils', () => {
   const mockSourceConfig: AnsibleGitContentsSourceConfig = {

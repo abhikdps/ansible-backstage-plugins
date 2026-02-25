@@ -1,5 +1,5 @@
 import { ConfigReader } from '@backstage/config';
-import { readAnsibleGitContentsConfigs, getDefaultHost } from './config';
+import { readAnsibleGitContentsConfigs, getDefaultHost } from '../config';
 
 describe('config', () => {
   // Suppress console.log during tests
