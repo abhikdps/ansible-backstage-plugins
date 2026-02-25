@@ -8,6 +8,12 @@ export interface PAHHelperContext {
   isValidPAHRepository: (repositoryName: string) => Promise<boolean>;
 }
 
+/**
+ * Type guard that validates repositories input.
+ * @returns boolean - true if repositories is a non-empty string array, false otherwise.
+ * The return type `repositories is string[]` is a TypeScript type predicate that
+ * enables type narrowing when this function returns true.
+ */
 export function validateRepositoriesInput(
   repositories: unknown,
   context: PAHHelperContext,
