@@ -19,9 +19,6 @@ export function validateRepositoriesInput(
     return false;
   }
   if (repositories.length === 0) {
-    context.logger.info(
-      `[${context.pluginLogName}]: No repositories provided. Returning empty collection list.`,
-    );
     return false;
   }
   return true;

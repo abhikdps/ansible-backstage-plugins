@@ -1370,6 +1370,11 @@ export class AAPClient implements IAAPService {
     };
 
     if (!validateRepositoriesInput(repositories, context)) {
+      if (Array.isArray(repositories) && repositories.length === 0) {
+        this.logger.info(
+          `[${this.pluginLogName}]: No repositories provided. Returning empty collection list.`,
+        );
+      }
       return collections;
     }
 

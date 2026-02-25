@@ -59,9 +59,8 @@ describe('PAH Helpers', () => {
     it('should return false for empty array', () => {
       const result = validateRepositoriesInput([], mockContext);
       expect(result).toBe(false);
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining('No repositories provided'),
-      );
+      // Logging for empty array is handled by the caller (syncCollectionsByRepositories)
+      expect(mockLogger.info).not.toHaveBeenCalled();
     });
 
     it('should return true for valid non-empty array', () => {
