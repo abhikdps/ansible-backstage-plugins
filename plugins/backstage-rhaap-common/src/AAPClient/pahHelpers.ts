@@ -8,10 +8,6 @@ export interface PAHHelperContext {
   isValidPAHRepository: (repositoryName: string) => Promise<boolean>;
 }
 
-export function validateRepositoriesInput(repositories: string[]): boolean {
-  return repositories.length > 0;
-}
-
 export function sanitizePAHLimit(
   limit: number,
   context: PAHHelperContext,

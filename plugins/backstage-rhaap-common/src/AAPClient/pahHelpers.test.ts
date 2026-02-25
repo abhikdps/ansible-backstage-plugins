@@ -1,6 +1,5 @@
 import {
   PAHHelperContext,
-  validateRepositoriesInput,
   sanitizePAHLimit,
   validateAndFilterRepositories,
   fetchCollectionDetails,
@@ -31,23 +30,6 @@ describe('PAH Helpers', () => {
       executeGetRequest: mockExecuteGetRequest,
       isValidPAHRepository: mockIsValidPAHRepository,
     };
-  });
-
-  describe('validateRepositoriesInput', () => {
-    it('should return false for empty array', () => {
-      const result = validateRepositoriesInput([]);
-      expect(result).toBe(false);
-    });
-
-    it('should return true for non-empty array', () => {
-      const result = validateRepositoriesInput(['repo1', 'repo2']);
-      expect(result).toBe(true);
-    });
-
-    it('should return true for single-item array', () => {
-      const result = validateRepositoriesInput(['repo1']);
-      expect(result).toBe(true);
-    });
   });
 
   describe('sanitizePAHLimit', () => {
