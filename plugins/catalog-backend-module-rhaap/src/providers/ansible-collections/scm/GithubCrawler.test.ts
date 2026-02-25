@@ -1,5 +1,9 @@
 import type { LoggerService } from '@backstage/backend-plugin-api';
-import type { ScmClient, RepositoryInfo, DirectoryEntry } from '@ansible/backstage-rhaap-common';
+import type {
+  ScmClient,
+  RepositoryInfo,
+  DirectoryEntry,
+} from '@ansible/backstage-rhaap-common';
 
 import { GithubCrawler } from './GithubCrawler';
 import type { AnsibleGitContentsSourceConfig } from '../../types';
@@ -59,7 +63,9 @@ version: 1.0.0
       getTags: jest.fn().mockResolvedValue(['v1.0.0', 'v1.1.0', 'v2.0.0']),
       getContents: jest.fn().mockResolvedValue([]),
       getFileContent: jest.fn().mockResolvedValue(validGalaxyYaml),
-      buildSourceLocation: jest.fn().mockReturnValue('url:https://github.com/test-org/test-repo'),
+      buildSourceLocation: jest
+        .fn()
+        .mockReturnValue('url:https://github.com/test-org/test-repo'),
     } as unknown as jest.Mocked<ScmClient>;
 
     (galaxySchema.validateGalaxyContent as jest.Mock).mockReturnValue({
@@ -94,7 +100,9 @@ version: 1.0.0
       await crawler.discoverGalaxyFiles({ crawlDepth: 3 });
 
       expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringContaining('Starting galaxy.yml discovery in 1 repositories'),
+        expect.stringContaining(
+          'Starting galaxy.yml discovery in 1 repositories',
+        ),
       );
     });
   });
@@ -337,7 +345,9 @@ version: 1.0.0
         type: 'file',
       };
       mockScmClient.getContents.mockResolvedValue([galaxyFileEntry]);
-      mockScmClient.getFileContent.mockResolvedValue('invalid: yaml: content: [');
+      mockScmClient.getFileContent.mockResolvedValue(
+        'invalid: yaml: content: [',
+      );
 
       const result = await crawler.discoverGalaxyFilesInRepos([mockRepo], {
         crawlDepth: 3,
@@ -378,7 +388,9 @@ version: 1.0.0
         type: 'file',
       };
       mockScmClient.getContents.mockResolvedValue([galaxyFileEntry]);
-      mockScmClient.getFileContent.mockRejectedValue(new Error('File not found'));
+      mockScmClient.getFileContent.mockRejectedValue(
+        new Error('File not found'),
+      );
 
       const result = await crawler.discoverGalaxyFilesInRepos([mockRepo], {
         crawlDepth: 3,
@@ -462,7 +474,11 @@ version: 1.0.0
     });
 
     it('should add configured branches that exist', async () => {
-      mockScmClient.getBranches.mockResolvedValue(['main', 'develop', 'feature']);
+      mockScmClient.getBranches.mockResolvedValue([
+        'main',
+        'develop',
+        'feature',
+      ]);
       const galaxyFileEntry: DirectoryEntry = {
         name: 'galaxy.yml',
         path: 'galaxy.yml',

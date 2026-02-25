@@ -1,5 +1,9 @@
 import type { LoggerService } from '@backstage/backend-plugin-api';
-import type { ScmClient, RepositoryInfo, DirectoryEntry } from '@ansible/backstage-rhaap-common';
+import type {
+  ScmClient,
+  RepositoryInfo,
+  DirectoryEntry,
+} from '@ansible/backstage-rhaap-common';
 
 import { GitlabCrawler } from './GitlabCrawler';
 import type { AnsibleGitContentsSourceConfig } from '../../types';
@@ -53,13 +57,17 @@ version: 1.0.0
     } as unknown as jest.Mocked<LoggerService>;
 
     mockScmClient = {
-      getSourceId: jest.fn().mockReturnValue('dev:gitlab:gitlab.com:test-group'),
+      getSourceId: jest
+        .fn()
+        .mockReturnValue('dev:gitlab:gitlab.com:test-group'),
       getRepositories: jest.fn().mockResolvedValue([mockRepo]),
       getBranches: jest.fn().mockResolvedValue(['main', 'develop']),
       getTags: jest.fn().mockResolvedValue(['v1.0.0', 'v2.0.0']),
       getContents: jest.fn().mockResolvedValue([]),
       getFileContent: jest.fn().mockResolvedValue(validGalaxyYaml),
-      buildSourceLocation: jest.fn().mockReturnValue('url:https://gitlab.com/test-group/test-project'),
+      buildSourceLocation: jest
+        .fn()
+        .mockReturnValue('url:https://gitlab.com/test-group/test-project'),
     } as unknown as jest.Mocked<ScmClient>;
 
     (galaxySchema.validateGalaxyContent as jest.Mock).mockReturnValue({

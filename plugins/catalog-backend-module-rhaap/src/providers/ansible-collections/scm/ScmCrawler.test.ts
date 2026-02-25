@@ -1,8 +1,14 @@
 import type { LoggerService } from '@backstage/backend-plugin-api';
-import type { ScmClient, RepositoryInfo } from '@ansible/backstage-rhaap-common';
+import type {
+  ScmClient,
+  RepositoryInfo,
+} from '@ansible/backstage-rhaap-common';
 
 import { BaseScmCrawler, DiscoveryOptions } from './ScmCrawler';
-import type { DiscoveredGalaxyFile, AnsibleGitContentsSourceConfig } from '../../types';
+import type {
+  DiscoveredGalaxyFile,
+  AnsibleGitContentsSourceConfig,
+} from '../../types';
 
 class TestScmCrawler extends BaseScmCrawler {
   async discoverGalaxyFiles(
@@ -128,7 +134,11 @@ describe('BaseScmCrawler', () => {
 
   describe('getFileContent', () => {
     it('should delegate to scmClient', async () => {
-      const content = await crawler.getFileContent(mockRepo, 'main', 'file.txt');
+      const content = await crawler.getFileContent(
+        mockRepo,
+        'main',
+        'file.txt',
+      );
       expect(content).toBe('content');
       expect(mockScmClient.getFileContent).toHaveBeenCalledWith(
         mockRepo,
@@ -183,9 +193,9 @@ describe('BaseScmCrawler', () => {
     it('should match wildcard patterns with *', () => {
       expect(crawler.testMatchesTagPattern('v1.0.0', ['v*'])).toBe(true);
       expect(crawler.testMatchesTagPattern('v1.2.3', ['v1.*'])).toBe(true);
-      expect(crawler.testMatchesTagPattern('release-1.0.0', ['release-*'])).toBe(
-        true,
-      );
+      expect(
+        crawler.testMatchesTagPattern('release-1.0.0', ['release-*']),
+      ).toBe(true);
     });
 
     it('should match wildcard patterns with ?', () => {
@@ -206,12 +216,10 @@ describe('BaseScmCrawler', () => {
 
     it('should handle special regex characters in patterns', () => {
       expect(crawler.testMatchesTagPattern('v1.0.0', ['v1.0.0'])).toBe(true);
-      expect(crawler.testMatchesTagPattern('tag+special', ['tag+special'])).toBe(
-        true,
-      );
       expect(
-        crawler.testMatchesTagPattern('test[1]', ['test[1]']),
+        crawler.testMatchesTagPattern('tag+special', ['tag+special']),
       ).toBe(true);
+      expect(crawler.testMatchesTagPattern('test[1]', ['test[1]'])).toBe(true);
     });
   });
 

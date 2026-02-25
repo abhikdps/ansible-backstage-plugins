@@ -1,11 +1,18 @@
-import type { LoggerService, SchedulerServiceTaskRunner, SchedulerService } from '@backstage/backend-plugin-api';
+import type {
+  LoggerService,
+  SchedulerServiceTaskRunner,
+  SchedulerService,
+} from '@backstage/backend-plugin-api';
 import type { EntityProviderConnection } from '@backstage/plugin-catalog-node';
 import { ConfigReader } from '@backstage/config';
 import type { RepositoryInfo } from '@ansible/backstage-rhaap-common';
 
 import { AnsibleGitContentsProvider } from './AnsibleGitContentsProvider';
 import type { ScmCrawler } from './ansible-collections/scm';
-import type { DiscoveredGalaxyFile, AnsibleGitContentsSourceConfig } from './types';
+import type {
+  DiscoveredGalaxyFile,
+  AnsibleGitContentsSourceConfig,
+} from './types';
 
 const createMockCrawler = (): jest.Mocked<ScmCrawler> => ({
   getRepositories: jest.fn().mockResolvedValue([]),
@@ -141,7 +148,9 @@ describe('AnsibleGitContentsProvider', () => {
       const providers = await createProviderFromConfig([mockSourceConfig]);
 
       expect(providers).toHaveLength(1);
-      expect(providers[0].getProviderName()).toContain('AnsibleGitContentsProvider');
+      expect(providers[0].getProviderName()).toContain(
+        'AnsibleGitContentsProvider',
+      );
     });
 
     it('should log initialization info', async () => {
@@ -164,7 +173,9 @@ describe('AnsibleGitContentsProvider', () => {
       const providers = await createProviderFromConfig([mockSourceConfig]);
       const provider = providers[0];
 
-      expect(provider.getProviderName()).toContain('AnsibleGitContentsProvider');
+      expect(provider.getProviderName()).toContain(
+        'AnsibleGitContentsProvider',
+      );
     });
 
     it('should return source ID', async () => {
@@ -273,7 +284,9 @@ describe('AnsibleGitContentsProvider', () => {
 
       await provider.connect(mockConnection);
       mockCrawlerInstance.getRepositories.mockResolvedValue([mockRepo]);
-      mockCrawlerInstance.discoverGalaxyFilesInRepos.mockResolvedValue([mockGalaxyFile]);
+      mockCrawlerInstance.discoverGalaxyFilesInRepos.mockResolvedValue([
+        mockGalaxyFile,
+      ]);
 
       await provider.run();
 
@@ -289,7 +302,9 @@ describe('AnsibleGitContentsProvider', () => {
 
       await provider.connect(mockConnection);
       mockCrawlerInstance.getRepositories.mockResolvedValue([mockRepo]);
-      mockCrawlerInstance.discoverGalaxyFilesInRepos.mockResolvedValue([mockGalaxyFile]);
+      mockCrawlerInstance.discoverGalaxyFilesInRepos.mockResolvedValue([
+        mockGalaxyFile,
+      ]);
 
       await provider.run();
 
@@ -304,7 +319,9 @@ describe('AnsibleGitContentsProvider', () => {
       const provider = providers[0];
 
       await provider.connect(mockConnection);
-      mockCrawlerInstance.getRepositories.mockRejectedValue(new Error('API Error'));
+      mockCrawlerInstance.getRepositories.mockRejectedValue(
+        new Error('API Error'),
+      );
 
       const result = await provider.run();
 
@@ -321,7 +338,9 @@ describe('AnsibleGitContentsProvider', () => {
 
       await provider.connect(mockConnection);
       mockCrawlerInstance.getRepositories.mockResolvedValue([mockRepo]);
-      mockCrawlerInstance.discoverGalaxyFilesInRepos.mockResolvedValue([mockGalaxyFile]);
+      mockCrawlerInstance.discoverGalaxyFilesInRepos.mockResolvedValue([
+        mockGalaxyFile,
+      ]);
 
       await provider.run();
 
@@ -358,7 +377,9 @@ describe('AnsibleGitContentsProvider', () => {
 
       await provider.run();
 
-      expect(mockCrawlerInstance.discoverGalaxyFilesInRepos).toHaveBeenCalledTimes(3);
+      expect(
+        mockCrawlerInstance.discoverGalaxyFilesInRepos,
+      ).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -385,8 +406,12 @@ describe('AnsibleGitContentsProvider', () => {
 
       await provider.connect(mockConnection);
       mockCrawlerInstance.getRepositories.mockResolvedValue([mockRepo]);
-      mockCrawlerInstance.discoverGalaxyFilesInRepos.mockResolvedValue([mockGalaxyFile]);
-      mockConnection.applyMutation.mockRejectedValue(new Error('Mutation failed'));
+      mockCrawlerInstance.discoverGalaxyFilesInRepos.mockResolvedValue([
+        mockGalaxyFile,
+      ]);
+      mockConnection.applyMutation.mockRejectedValue(
+        new Error('Mutation failed'),
+      );
 
       const result = await provider.run();
 
@@ -407,7 +432,9 @@ describe('AnsibleGitContentsProvider', () => {
         { ...mockGalaxyFile, path: 'other/galaxy.yml' },
       ];
       mockCrawlerInstance.getRepositories.mockResolvedValue([mockRepo]);
-      mockCrawlerInstance.discoverGalaxyFilesInRepos.mockResolvedValue(duplicateFiles);
+      mockCrawlerInstance.discoverGalaxyFilesInRepos.mockResolvedValue(
+        duplicateFiles,
+      );
 
       await provider.run();
 
@@ -428,7 +455,9 @@ describe('AnsibleGitContentsProvider', () => {
         },
       ];
       mockCrawlerInstance.getRepositories.mockResolvedValue([mockRepo]);
-      mockCrawlerInstance.discoverGalaxyFilesInRepos.mockResolvedValue(differentVersionFiles);
+      mockCrawlerInstance.discoverGalaxyFilesInRepos.mockResolvedValue(
+        differentVersionFiles,
+      );
 
       await provider.run();
 
@@ -444,7 +473,9 @@ describe('AnsibleGitContentsProvider', () => {
 
       await provider.connect(mockConnection);
       mockCrawlerInstance.getRepositories.mockResolvedValue([mockRepo]);
-      mockCrawlerInstance.discoverGalaxyFilesInRepos.mockResolvedValue([mockGalaxyFile]);
+      mockCrawlerInstance.discoverGalaxyFilesInRepos.mockResolvedValue([
+        mockGalaxyFile,
+      ]);
 
       await provider.run();
 
@@ -462,7 +493,9 @@ describe('AnsibleGitContentsProvider', () => {
 
       await provider.connect(mockConnection);
       mockCrawlerInstance.getRepositories.mockResolvedValue([mockRepo]);
-      mockCrawlerInstance.discoverGalaxyFilesInRepos.mockResolvedValue([mockGalaxyFile]);
+      mockCrawlerInstance.discoverGalaxyFilesInRepos.mockResolvedValue([
+        mockGalaxyFile,
+      ]);
 
       await provider.run();
 
