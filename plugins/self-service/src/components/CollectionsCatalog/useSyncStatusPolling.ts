@@ -83,7 +83,7 @@ export function useSyncStatusPolling() {
     try {
       const baseUrl = await discoveryApi.getBaseUrl('catalog');
       const response = await fetchApi.fetch(
-        `${baseUrl}/aap/sync_status?ansible_contents=true`,
+        `${baseUrl}/ansible/sync/status?ansible_contents=true`,
       );
 
       if (!response.ok) {

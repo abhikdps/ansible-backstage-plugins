@@ -114,7 +114,7 @@ describe('useSyncStatusPolling', () => {
       expect(mockDiscoveryApi.getBaseUrl).toHaveBeenCalledWith('catalog');
     });
     expect(mockFetchApi.fetch).toHaveBeenCalledWith(
-      'http://localhost:7007/api/catalog/aap/sync_status?ansible_contents=true',
+      'http://localhost:7007/api/catalog/ansible/sync/status?ansible_contents=true',
     );
   });
 

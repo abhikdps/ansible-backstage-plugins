@@ -227,7 +227,7 @@ describe('CollectionDetailsPage', () => {
 
     await waitFor(() => {
       expect(mockFetchApi.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('aap/sync_status'),
+        expect.stringContaining('ansible/sync/status'),
       );
     });
   });
@@ -252,7 +252,7 @@ describe('CollectionDetailsPage', () => {
       expect(screen.getByText('About')).toBeInTheDocument();
     });
     const syncStatusCalls = mockFetchApi.fetch.mock.calls.filter(
-      (c: [string]) => String(c[0]).includes('sync_status'),
+      (c: [string]) => String(c[0]).includes('ansible/sync/status'),
     );
     expect(syncStatusCalls.length).toBe(0);
   });
@@ -368,7 +368,7 @@ describe('CollectionDetailsPage', () => {
       expect(screen.getByText('About')).toBeInTheDocument();
     });
     expect(mockFetchApi.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('aap/sync_status'),
+      expect.stringContaining('ansible/sync/status'),
     );
   });
 
@@ -397,7 +397,7 @@ describe('CollectionDetailsPage', () => {
       items: [entityWithScmReadme],
     });
     mockFetchApi.fetch.mockImplementation((url: string) => {
-      if (url.includes('sync_status')) {
+      if (url.includes('ansible/sync/status')) {
         return Promise.resolve({
           ok: true,
           json: async () => ({
@@ -451,7 +451,7 @@ describe('CollectionDetailsPage', () => {
       items: [entityWithNestedPath],
     });
     mockFetchApi.fetch.mockImplementation((url: string) => {
-      if (url.includes('sync_status')) {
+      if (url.includes('ansible/sync/status')) {
         return Promise.resolve({
           ok: true,
           json: async () => ({
@@ -502,7 +502,7 @@ describe('CollectionDetailsPage', () => {
       items: [entityWithScmReadme],
     });
     mockFetchApi.fetch.mockImplementation((url: string) => {
-      if (url.includes('sync_status')) {
+      if (url.includes('ansible/sync/status')) {
         return Promise.resolve({
           ok: true,
           json: async () => ({ content: { providers: [] } }),
@@ -550,7 +550,7 @@ describe('CollectionDetailsPage', () => {
       items: [entityWithScmReadme],
     });
     mockFetchApi.fetch.mockImplementation((url: string) => {
-      if (url.includes('sync_status')) {
+      if (url.includes('ansible/sync/status')) {
         return Promise.resolve({
           ok: true,
           json: async () => ({ content: { providers: [] } }),
