@@ -3449,30 +3449,6 @@ describe('AAPClient', () => {
     });
 
     describe('syncCollectionsByRepositories', () => {
-      it('should return empty array for null repositories', async () => {
-        const result = await client.syncCollectionsByRepositories(
-          null as unknown as string[],
-          100,
-        );
-
-        expect(result).toEqual([]);
-        expect(mockLogger.warn).toHaveBeenCalledWith(
-          expect.stringContaining('Invalid repositories parameter'),
-        );
-      });
-
-      it('should return empty array for non-array repositories', async () => {
-        const result = await client.syncCollectionsByRepositories(
-          'not-an-array' as unknown as string[],
-          100,
-        );
-
-        expect(result).toEqual([]);
-        expect(mockLogger.warn).toHaveBeenCalledWith(
-          expect.stringContaining('Invalid repositories parameter'),
-        );
-      });
-
       it('should return empty array for empty repositories array', async () => {
         const result = await client.syncCollectionsByRepositories([], 100);
 

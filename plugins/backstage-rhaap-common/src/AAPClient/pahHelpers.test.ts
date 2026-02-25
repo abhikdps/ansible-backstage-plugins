@@ -34,39 +34,19 @@ describe('PAH Helpers', () => {
   });
 
   describe('validateRepositoriesInput', () => {
-    it('should return false for null repositories', () => {
-      const result = validateRepositoriesInput(null, mockContext);
-      expect(result).toBe(false);
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Invalid repositories parameter'),
-      );
-    });
-
-    it('should return false for undefined repositories', () => {
-      const result = validateRepositoriesInput(undefined, mockContext);
-      expect(result).toBe(false);
-      expect(mockLogger.warn).toHaveBeenCalled();
-    });
-
-    it('should return false for non-array repositories', () => {
-      const result = validateRepositoriesInput('not-an-array', mockContext);
-      expect(result).toBe(false);
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Expected an array'),
-      );
-    });
-
     it('should return false for empty array', () => {
-      const result = validateRepositoriesInput([], mockContext);
+      const result = validateRepositoriesInput([]);
       expect(result).toBe(false);
-      // Logging for empty array is handled by the caller (syncCollectionsByRepositories)
-      expect(mockLogger.info).not.toHaveBeenCalled();
     });
 
-    it('should return true for valid non-empty array', () => {
-      const result = validateRepositoriesInput(['repo1', 'repo2'], mockContext);
+    it('should return true for non-empty array', () => {
+      const result = validateRepositoriesInput(['repo1', 'repo2']);
       expect(result).toBe(true);
-      expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+
+    it('should return true for single-item array', () => {
+      const result = validateRepositoriesInput(['repo1']);
+      expect(result).toBe(true);
     });
   });
 

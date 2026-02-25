@@ -1369,15 +1369,10 @@ export class AAPClient implements IAAPService {
       isValidPAHRepository: this.isValidPAHRepository.bind(this),
     };
 
-    const isEmptyArray =
-      Array.isArray(repositories) && repositories.length === 0;
-
-    if (!validateRepositoriesInput(repositories, context)) {
-      if (isEmptyArray) {
-        this.logger.info(
-          `[${this.pluginLogName}]: No repositories provided. Returning empty collection list.`,
-        );
-      }
+    if (!validateRepositoriesInput(repositories)) {
+      this.logger.info(
+        `[${this.pluginLogName}]: No repositories provided. Returning empty collection list.`,
+      );
       return collections;
     }
 
