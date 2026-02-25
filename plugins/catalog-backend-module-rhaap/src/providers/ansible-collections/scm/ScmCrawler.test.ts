@@ -11,6 +11,10 @@ import type {
 } from '../../types';
 
 class TestScmCrawler extends BaseScmCrawler {
+  protected getCrawlerName(): string {
+    return 'TestScmCrawler';
+  }
+
   async discoverGalaxyFiles(
     _options: DiscoveryOptions,
   ): Promise<DiscoveredGalaxyFile[]> {

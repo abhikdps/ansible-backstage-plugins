@@ -344,7 +344,7 @@ version: 1.0.0
 
       await crawler.discoverGalaxyFilesInRepos([mockRepo], { crawlDepth: 3 });
 
-      expect(mockLogger.info).toHaveBeenCalledWith(
+      expect(mockLogger.debug).toHaveBeenCalledWith(
         expect.stringContaining('Found galaxy file'),
       );
     });

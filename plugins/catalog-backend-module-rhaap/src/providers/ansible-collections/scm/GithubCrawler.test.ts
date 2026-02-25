@@ -313,6 +313,23 @@ version: 1.0.0
       expect(result).toHaveLength(0);
       expect(mockLogger.warn).toHaveBeenCalled();
     });
+
+    it('should log and skip repo when getRefsToSearch throws (e.g. getBranches fails)', async () => {
+      mockScmClient.getBranches.mockRejectedValue(new Error('API rate limit'));
+
+      const result = await crawler.discoverGalaxyFilesInRepos([mockRepo], {
+        crawlDepth: 3,
+        branches: ['develop'],
+      });
+
+      expect(result).toHaveLength(0);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Error discovering collections'),
+      );
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining(mockRepo.fullPath),
+      );
+    });
   });
 
   describe('galaxy file processing', () => {
