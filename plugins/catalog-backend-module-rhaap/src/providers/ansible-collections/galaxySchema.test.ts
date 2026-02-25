@@ -41,36 +41,36 @@ describe('galaxySchema', () => {
       const content = { ...validContent, version: null };
       const result = galaxySchema.safeParse(content);
       expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.version).toBe('N/A');
-      }
+      expect(
+        (result as { success: true; data: { version: string } }).data.version,
+      ).toBe('N/A');
     });
 
     it('should transform missing readme to default value', () => {
       const content = { ...validContent, readme: undefined };
       const result = galaxySchema.safeParse(content);
       expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.readme).toBe('Not Available.');
-      }
+      expect(
+        (result as { success: true; data: { readme: string } }).data.readme,
+      ).toBe('Not Available.');
     });
 
     it('should handle string authors', () => {
       const content = { ...validContent, authors: 'Single Author' };
       const result = galaxySchema.safeParse(content);
       expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.authors).toEqual(['Single Author']);
-      }
+      expect(
+        (result as { success: true; data: { authors: string[] } }).data.authors,
+      ).toEqual(['Single Author']);
     });
 
     it('should transform null authors to N/A array', () => {
       const content = { ...validContent, authors: null };
       const result = galaxySchema.safeParse(content);
       expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.authors).toEqual(['N/A']);
-      }
+      expect(
+        (result as { success: true; data: { authors: string[] } }).data.authors,
+      ).toEqual(['N/A']);
     });
 
     it('should handle optional fields', () => {
@@ -87,20 +87,20 @@ describe('galaxySchema', () => {
       };
       const result = galaxySchema.safeParse(content);
       expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.description).toBe('A test collection');
-        expect(result.data.license).toBe('MIT');
-        expect(result.data.tags).toEqual(['linux', 'posix']);
-      }
+      const data = (result as { success: true; data: Record<string, unknown> })
+        .data;
+      expect(data.description).toBe('A test collection');
+      expect(data.license).toBe('MIT');
+      expect(data.tags).toEqual(['linux', 'posix']);
     });
 
     it('should handle license as array', () => {
       const content = { ...validContent, license: ['MIT', 'Apache-2.0'] };
       const result = galaxySchema.safeParse(content);
       expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.license).toEqual(['MIT', 'Apache-2.0']);
-      }
+      expect(
+        (result as { success: true; data: { license: string[] } }).data.license,
+      ).toEqual(['MIT', 'Apache-2.0']);
     });
 
     it('should transform null optional fields to undefined', () => {
@@ -112,11 +112,11 @@ describe('galaxySchema', () => {
       };
       const result = galaxySchema.safeParse(content);
       expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.description).toBeUndefined();
-        expect(result.data.tags).toBeUndefined();
-        expect(result.data.dependencies).toBeUndefined();
-      }
+      const data = (result as { success: true; data: Record<string, unknown> })
+        .data;
+      expect(data.description).toBeUndefined();
+      expect(data.tags).toBeUndefined();
+      expect(data.dependencies).toBeUndefined();
     });
   });
 
