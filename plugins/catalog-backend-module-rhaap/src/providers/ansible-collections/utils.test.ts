@@ -5,6 +5,7 @@ import {
   getDefaultHost,
   generateSourceId,
   sanitizeEntityName,
+  sanitizeTagForBackstage,
   generateCollectionEntityName,
   generateRepositoryEntityName,
   createRepositoryKey,
@@ -187,6 +188,21 @@ describe('utils', () => {
     it('should truncate to 63 characters', () => {
       const longName = 'a'.repeat(100);
       expect(sanitizeEntityName(longName).length).toBe(63);
+    });
+  });
+
+  describe('sanitizeTagForBackstage', () => {
+    it('should convert underscores to hyphens for Backstage tag policy', () => {
+      expect(sanitizeTagForBackstage('ee_utilities')).toBe('ee-utilities');
+    });
+
+    it('should accept object with name property', () => {
+      expect(sanitizeTagForBackstage({ name: 'my_tag' })).toBe('my-tag');
+    });
+
+    it('should allow only [a-z0-9+#] and hyphens', () => {
+      expect(sanitizeTagForBackstage('cloud')).toBe('cloud');
+      expect(sanitizeTagForBackstage('networking')).toBe('networking');
     });
   });
 

@@ -36,7 +36,11 @@ export const CollectionAboutCard = ({
 
   const rawAuthors = spec.collection_authors;
   const authors: string[] = Array.isArray(rawAuthors)
-    ? rawAuthors.filter((a): a is string => typeof a === 'string')
+    ? rawAuthors
+        .map((a: unknown) =>
+          typeof a === 'string' ? a : ((a as { name?: string })?.name ?? ''),
+        )
+        .filter(Boolean)
     : [];
 
   const license =
@@ -45,8 +49,14 @@ export const CollectionAboutCard = ({
   const sourceUrl = getSourceUrl(entity);
   const sourceString = buildSourceString(entity);
 
-  const collectionTags = spec.collection_tags as string[] | undefined;
-  const tags: string[] = Array.isArray(collectionTags) ? collectionTags : [];
+  const rawTags = spec.collection_tags;
+  const tags: string[] = Array.isArray(rawTags)
+    ? rawTags
+        .map((t: unknown) =>
+          typeof t === 'string' ? t : ((t as { name?: string })?.name ?? ''),
+        )
+        .filter(Boolean)
+    : [];
 
   let lastSyncFormatted: string;
   if (lastSync) {

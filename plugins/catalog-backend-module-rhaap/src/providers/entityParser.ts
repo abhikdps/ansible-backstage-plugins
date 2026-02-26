@@ -24,6 +24,7 @@ import {
   generateRepositoryEntityName,
   getDefaultHost,
   sanitizeEntityName,
+  sanitizeTagForBackstage,
   sanitizeHostName,
 } from './ansible-collections/utils';
 import type {
@@ -168,7 +169,7 @@ export const pahCollectionParser = (options: {
   sourceId: string;
 }): Entity => {
   const collectionBaseUrl =
-    `${options.baseUrl}/content/collections/` +
+    `${options.baseUrl}content/collections/` +
     `${options.collection.repository_name}/` +
     `${options.collection.namespace}/` +
     `${options.collection.name}`;
@@ -222,12 +223,14 @@ export const pahCollectionParser = (options: {
         options.collection.description ??
         `Ansible Collection: ${options.collection.namespace}.${options.collection.name}`,
 
-      // Tags displayed in the Backstage UI tags column (deduplicated, filtered to strings only)
+      // Tags displayed in the Backstage UI (must match Backstage policy: [a-z0-9+#] and [-], max 63 chars)
       tags: [
         ...new Set(
-          (options.collection.tags || []).filter(
-            (tag): tag is string => typeof tag === 'string' && tag.length > 0,
-          ),
+          (options.collection.tags || [])
+            .map((tag: string | { name?: string }) =>
+              sanitizeTagForBackstage(tag),
+            )
+            .filter((s): s is string => s.length > 0),
         ),
       ],
 
@@ -282,9 +285,7 @@ export function scmCollectionParser(options: CollectionParserOptions): Entity {
   const sourceId = generateSourceId(sourceConfig);
 
   const sanitizedGalaxyTags = metadata.tags
-    ? metadata.tags.map((t: string) =>
-        t.toLowerCase().replaceAll(/[^a-z0-9\-:+#]/g, '-'),
-      )
+    ? metadata.tags.map((t: string) => sanitizeTagForBackstage(t))
     : [];
   const tags: string[] = [
     ...sanitizedGalaxyTags,
