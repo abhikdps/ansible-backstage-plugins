@@ -776,7 +776,7 @@ describe('createRouter', () => {
     });
   });
 
-  describe('GET /aap/sync_status with ansible_contents', () => {
+  describe('GET /ansible/sync/status with ansible_contents', () => {
     it('should register providers in map and return content.providers when ansible_contents=true', async () => {
       const mockGitProvider = createMockGitContentsProvider({
         sourceId: 'dev:github:github.com:my-org',
@@ -796,7 +796,7 @@ describe('createRouter', () => {
       );
 
       const response = await request(testApp).get(
-        '/aap/sync_status?ansible_contents=true',
+        '/ansible/sync/status?ansible_contents=true',
       );
 
       expect(response.status).toBe(200);
@@ -831,7 +831,7 @@ describe('createRouter', () => {
       );
 
       const response = await request(testApp).get(
-        '/aap/sync_status?ansible_contents=true',
+        '/ansible/sync/status?ansible_contents=true',
       );
 
       expect(response.status).toBe(200);
