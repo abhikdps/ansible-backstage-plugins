@@ -67,6 +67,19 @@ export function sanitizeEntityName(value: string): string {
     .substring(0, 63);
 }
 
+export function sanitizeTagForBackstage(
+  tag: string | { name?: string },
+): string {
+  const s = typeof tag === 'string' ? tag : (tag?.name ?? '');
+  return s
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9+#-]/g, '-')
+    .replaceAll(/-+/g, '-')
+    .replaceAll(/^-+/g, '')
+    .replaceAll(/-+$/g, '')
+    .substring(0, 63);
+}
+
 export function generateCollectionEntityName(
   galaxyFile: DiscoveredGalaxyFile,
   sourceConfig: AnsibleGitContentsSourceConfig,

@@ -23,6 +23,7 @@ import {
   generateRepositoryEntityName,
   getDefaultHost,
   sanitizeEntityName,
+  sanitizeTagForBackstage,
   sanitizeHostName,
 } from './ansible-collections/utils';
 import type {
@@ -174,9 +175,7 @@ export function scmCollectionParser(options: CollectionParserOptions): Entity {
   const sourceId = generateSourceId(sourceConfig);
 
   const sanitizedGalaxyTags = metadata.tags
-    ? metadata.tags.map((t: string) =>
-        t.toLowerCase().replaceAll(/[^a-z0-9\-:+#]/g, '-'),
-      )
+    ? metadata.tags.map((t: string) => sanitizeTagForBackstage(t))
     : [];
   const tags: string[] = [
     ...sanitizedGalaxyTags,
