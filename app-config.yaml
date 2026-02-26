@@ -154,7 +154,29 @@ catalog:
                 schedule:
                   frequency: { minutes: 60 }
                   timeout: { minutes: 15 }
-            
+          # Ansible content discovery from SCM (optional)
+          # ansibleGitContents:
+          #   enabled: true
+          #   schedule:
+          #     frequency: { minutes: 60 }
+          #     timeout: { minutes: 30 }
+          #   providers:
+          #     github:
+          #       - name: github-public
+          #         host: github.com
+          #         orgs:
+          #           - name: ansible-collections
+          #             schedule:
+          #               frequency: { minutes: 60 }
+          #               timeout: { minutes: 30 }
+          #     gitlab:
+          #       - name: gitlab-public
+          #         host: gitlab.com
+          #         orgs:
+          #           - name: ansible-team
+          #             schedule:
+          #               frequency: { minutes: 120 }
+          #               timeout: { minutes: 15 }
 ansible:
   devSpaces:
     baseUrl: https://devspaces.apps.ansible-rhdh.testing.ansible.com/

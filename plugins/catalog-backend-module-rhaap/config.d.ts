@@ -6,12 +6,12 @@ export interface Config {
       /** @visibility frontend */
       rhaap?: {
         [authEnv: string]: {
-          orgs: string;
-          sync: {
-            orgsUsersTeams: {
+          orgs?: string;
+          sync?: {
+            orgsUsersTeams?: {
               schedule: SchedulerServiceTaskScheduleDefinitionConfig;
             };
-            jobTemplates: {
+            jobTemplates?: {
               enabled: boolean;
               labels?: Array<string>;
               excludeLabels?: Array<string>;
@@ -28,6 +28,37 @@ export interface Config {
               }>;
               /** Default schedule for all repositories that don't have their own schedule */
               schedule?: SchedulerServiceTaskScheduleDefinitionConfig;
+            };
+            ansibleGitContents?: {
+              /** @default true */
+              enabled?: boolean;
+              schedule?: SchedulerServiceTaskScheduleDefinitionConfig;
+              providers?: {
+                github?: Array<{
+                  name: string;
+                  host?: string;
+                  orgs: Array<{
+                    name: string;
+                    branches?: Array<string>;
+                    tags?: Array<string>;
+                    galaxyFilePaths?: Array<string>;
+                    crawlDepth?: number;
+                    schedule?: SchedulerServiceTaskScheduleDefinitionConfig;
+                  }>;
+                }>;
+                gitlab?: Array<{
+                  name: string;
+                  host?: string;
+                  orgs: Array<{
+                    name: string;
+                    branches?: Array<string>;
+                    tags?: Array<string>;
+                    galaxyFilePaths?: Array<string>;
+                    crawlDepth?: number;
+                    schedule?: SchedulerServiceTaskScheduleDefinitionConfig;
+                  }>;
+                }>;
+              };
             };
           };
         };
