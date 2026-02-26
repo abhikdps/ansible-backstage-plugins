@@ -75,8 +75,7 @@ export function sanitizeTagForBackstage(
     .toLowerCase()
     .replaceAll(/[^a-z0-9+#-]/g, '-')
     .replaceAll(/-+/g, '-')
-    .replaceAll(/^-+/g, '')
-    .replaceAll(/-+$/g, '')
+    .replaceAll(/^-|-$/g, '')
     .substring(0, 63);
 }
 
