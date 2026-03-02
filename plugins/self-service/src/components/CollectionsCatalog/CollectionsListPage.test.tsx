@@ -3,7 +3,9 @@ import { ThemeProvider, createTheme } from '@material-ui/core/styles';
 import { TestApiProvider, mockApis } from '@backstage/test-utils';
 import {
   catalogApiRef,
+  EntityKindFilter,
   EntityListProvider,
+  EntityTypeFilter,
   MockStarredEntitiesApi,
   starredEntitiesApiRef,
 } from '@backstage/plugin-catalog-react';
@@ -385,7 +387,11 @@ describe('CollectionsListPage', () => {
     const catalogReact = require('@backstage/plugin-catalog-react');
     const useEntityListSpy = jest
       .spyOn(catalogReact, 'useEntityList')
-      .mockReturnValue({ filters: { user: { value: 'starred' } } } as any);
+      .mockReturnValue({
+        filters: { user: { value: 'starred' } },
+        updateFilters: jest.fn(),
+        queryParameters: {},
+      } as any);
 
     const starredApi = new MockStarredEntitiesApi();
     starredApi.toggleStarred('component:default/test-collection');
@@ -423,7 +429,11 @@ describe('CollectionsListPage', () => {
     const catalogReact = require('@backstage/plugin-catalog-react');
     const useEntityListSpy = jest
       .spyOn(catalogReact, 'useEntityList')
-      .mockReturnValue({ filters: { user: { value: 'all' } } } as any);
+      .mockReturnValue({
+        filters: { user: { value: 'all' } },
+        updateFilters: jest.fn(),
+        queryParameters: {},
+      } as any);
 
     const entities = [
       mockEntity,
@@ -448,6 +458,91 @@ describe('CollectionsListPage', () => {
     });
 
     useEntityListSpy.mockRestore();
+  });
+});
+
+describe('CollectionsTypeFilter', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockCatalogApi.getEntities.mockResolvedValue({ items: [mockEntity] });
+    mockFetchApi.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        content: {
+          providers: [
+            {
+              sourceId: 'src-1',
+              lastSyncTime: null,
+              lastFailedSyncTime: null,
+            },
+          ],
+        },
+      }),
+    });
+  });
+
+  it('calls updateFilters with kind and type when filters are missing', async () => {
+    const updateFiltersMock = jest.fn();
+    const catalogReact = require('@backstage/plugin-catalog-react');
+    const useEntityListSpy = jest
+      .spyOn(catalogReact, 'useEntityList')
+      .mockReturnValue({
+        filters: {},
+        updateFilters: updateFiltersMock,
+        queryParameters: {},
+      } as any);
+
+    renderListPage();
+
+    await waitFor(() => {
+      expect(updateFiltersMock).toHaveBeenCalled();
+    });
+
+    expect(updateFiltersMock).toHaveBeenCalledWith(expect.any(Function));
+    const updater = updateFiltersMock.mock.calls[0][0];
+    const result = updater({});
+    expect(result.kind).toBeInstanceOf(EntityKindFilter);
+    expect(result.kind.value).toBe('Component');
+    expect(result.type).toBeInstanceOf(EntityTypeFilter);
+    expect(result.type.getTypes()).toEqual(['ansible-collection']);
+
+    useEntityListSpy.mockRestore();
+  });
+
+  it('does not call updateFilters when kind and type are already set', async () => {
+    const updateFiltersMock = jest.fn();
+    const catalogReact = require('@backstage/plugin-catalog-react');
+    const useEntityListSpy = jest
+      .spyOn(catalogReact, 'useEntityList')
+      .mockReturnValue({
+        filters: {
+          kind: new EntityKindFilter('Component', 'Component'),
+          type: new EntityTypeFilter('ansible-collection'),
+          user: { value: 'all' },
+        },
+        updateFilters: updateFiltersMock,
+        queryParameters: {},
+      } as any);
+
+    renderListPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('ns.collection')).toBeInTheDocument();
+    });
+
+    expect(updateFiltersMock).not.toHaveBeenCalled();
+
+    useEntityListSpy.mockRestore();
+  });
+
+  it('is rendered when CollectionsListPage renders with entities', async () => {
+    renderListPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('ns.collection')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('catalog-filter-layout')).toBeInTheDocument();
   });
 });
 

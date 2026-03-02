@@ -17,7 +17,9 @@ import NavigateBeforeIcon from '@material-ui/icons/NavigateBefore';
 import NavigateNextIcon from '@material-ui/icons/NavigateNext';
 import {
   CatalogFilterLayout,
+  EntityKindFilter,
   EntityListProvider,
+  EntityTypeFilter,
   UserListPicker,
   catalogApiRef,
   useEntityList,
@@ -37,6 +39,20 @@ import { PAGE_SIZE } from './constants';
 import { sortEntities, filterLatestVersions, getUniqueFilters } from './utils';
 import { CollectionCard } from './CollectionCard';
 import { EmptyState } from './EmptyState';
+
+export const CollectionsTypeFilter = () => {
+  const { filters, updateFilters } = useEntityList();
+  useEffect(() => {
+    if (!filters.kind || !filters.type) {
+      updateFilters(prev => ({
+        ...prev,
+        kind: new EntityKindFilter('Component', 'Component'),
+        type: new EntityTypeFilter('ansible-collection'),
+      }));
+    }
+  }, [filters.kind, filters.type, updateFilters]);
+  return null;
+};
 
 interface CollectionsListPageProps {
   onSyncClick?: () => void;
@@ -238,6 +254,7 @@ export const CollectionsListPage = ({
 
   return (
     <div style={{ flexDirection: 'column', width: '100%' }}>
+      <CollectionsTypeFilter />
       {allEntities.length === 0 ? (
         <EmptyState
           onSyncClick={onSyncClick}
