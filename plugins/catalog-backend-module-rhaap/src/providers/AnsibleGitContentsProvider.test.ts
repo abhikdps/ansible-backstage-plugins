@@ -289,8 +289,8 @@ describe('AnsibleGitContentsProvider', () => {
       controller.abort();
 
       const result = await provider.run(controller.signal);
-      expect(result).toBe(false);
-      expect(mockLogger.error).toHaveBeenCalledWith(
+      expect(result).toBe(true);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.stringContaining('SCM sync aborted'),
       );
     });

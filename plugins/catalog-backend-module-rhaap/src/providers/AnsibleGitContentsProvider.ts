@@ -156,9 +156,9 @@ export class AnsibleGitContentsProvider implements EntityProvider {
 
       return taskRunner.run({
         id: taskId,
-        fn: async (ctx?: { signal?: AbortSignal }) => {
+        fn: async (signal?: AbortSignal) => {
           try {
-            await this.run(ctx?.signal);
+            await this.run(signal);
           } catch (error) {
             if (isError(error)) {
               this.logger.error(
@@ -273,7 +273,7 @@ export class AnsibleGitContentsProvider implements EntityProvider {
       for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
         if (signal?.aborted) {
           this.logger.info(
-            `[${AnsibleGitContentsProvider.pluginLogName}]: SCM sync aborted, stopping after batch ${batchIndex}`,
+            `[${AnsibleGitContentsProvider.pluginLogName}]: SCM sync aborted (timeout or cancel), stopping after batch ${batchIndex}`,
           );
           throw new Error(
             `SCM sync aborted, stopping after ${batchIndex} batch(es)`,
@@ -409,13 +409,20 @@ export class AnsibleGitContentsProvider implements EntityProvider {
         `[${AnsibleGitContentsProvider.pluginLogName}]: Successfully synced ${this.lastSyncCollections} collections (${deltaStr} new) and ${repositoryEntities.length} repositories from ${this.sourceId} in ${duration}ms`,
       );
     } catch (e: unknown) {
-      success = false;
       const errorMessage = e instanceof Error ? e.message : String(e);
-      this.lastSyncStatus = 'failure';
-      this.lastFailedSyncTime = new Date().toISOString();
-      this.logger.error(
-        `[${AnsibleGitContentsProvider.pluginLogName}]: Error during collection discovery: ${errorMessage}`,
-      );
+      const isAbort = errorMessage.startsWith('SCM sync aborted');
+      if (isAbort) {
+        this.logger.warn(
+          `[${AnsibleGitContentsProvider.pluginLogName}]: Collection discovery stopped (timeout or cancel): ${errorMessage}`,
+        );
+      } else {
+        success = false;
+        this.lastSyncStatus = 'failure';
+        this.lastFailedSyncTime = new Date().toISOString();
+        this.logger.error(
+          `[${AnsibleGitContentsProvider.pluginLogName}]: Error during collection discovery: ${errorMessage}`,
+        );
+      }
     } finally {
       this.isSyncing = false;
     }
