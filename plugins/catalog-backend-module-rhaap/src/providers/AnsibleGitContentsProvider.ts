@@ -411,14 +411,14 @@ export class AnsibleGitContentsProvider implements EntityProvider {
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : String(e);
       const isAbort = errorMessage.startsWith('SCM sync aborted');
+      success = false;
+      this.lastSyncStatus = 'failure';
+      this.lastFailedSyncTime = new Date().toISOString();
       if (isAbort) {
-        this.logger.warn(
+        this.logger.error(
           `[${AnsibleGitContentsProvider.pluginLogName}]: Collection discovery stopped (timeout or cancel): ${errorMessage}`,
         );
       } else {
-        success = false;
-        this.lastSyncStatus = 'failure';
-        this.lastFailedSyncTime = new Date().toISOString();
         this.logger.error(
           `[${AnsibleGitContentsProvider.pluginLogName}]: Error during collection discovery: ${errorMessage}`,
         );

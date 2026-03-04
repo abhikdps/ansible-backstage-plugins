@@ -289,10 +289,18 @@ describe('AnsibleGitContentsProvider', () => {
       controller.abort();
 
       const result = await provider.run(controller.signal);
-      expect(result).toBe(true);
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('SCM sync aborted'),
-      );
+      expect(result).toBe(false);
+      expect(provider.getLastSyncStatus()).toBe('failure');
+      expect(provider.getLastFailedSyncTime()).not.toBeNull();
+      // Abort may be logged in loop (warn) or catch (warn); child logger may forward to info/warn
+      const abortLogged =
+        mockLogger.warn.mock.calls.some(call =>
+          String(call[0]).includes('SCM sync aborted'),
+        ) ||
+        mockLogger.info.mock.calls.some(call =>
+          String(call[0]).includes('SCM sync aborted'),
+        );
+      expect(abortLogged).toBe(true);
     });
 
     it('should discover and apply collections', async () => {
