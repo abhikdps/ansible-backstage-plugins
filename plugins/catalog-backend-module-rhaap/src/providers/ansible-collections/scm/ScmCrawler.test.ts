@@ -24,6 +24,7 @@ class TestScmCrawler extends BaseScmCrawler {
   async discoverGalaxyFilesInRepos(
     _repos: RepositoryInfo[],
     _options: DiscoveryOptions,
+    _signal?: AbortSignal,
   ): Promise<DiscoveredGalaxyFile[]> {
     return [];
   }
@@ -42,6 +43,13 @@ class TestScmCrawler extends BaseScmCrawler {
 
   public testGetSourceId(): string {
     return this.getSourceId();
+  }
+}
+
+/** Used for abort-signal test so base discoverGalaxyFilesInRepos runs and checks signal. */
+class AbortTestScmCrawler extends BaseScmCrawler {
+  protected getCrawlerName(): string {
+    return 'AbortTestScmCrawler';
   }
 }
 
@@ -112,7 +120,10 @@ describe('BaseScmCrawler', () => {
     it('should delegate to scmClient', async () => {
       const branches = await crawler.getBranches(mockRepo);
       expect(branches).toEqual(['main', 'develop']);
-      expect(mockScmClient.getBranches).toHaveBeenCalledWith(mockRepo);
+      expect(mockScmClient.getBranches).toHaveBeenCalledWith(
+        mockRepo,
+        undefined,
+      );
     });
   });
 
@@ -120,7 +131,7 @@ describe('BaseScmCrawler', () => {
     it('should delegate to scmClient', async () => {
       const tags = await crawler.getTags(mockRepo);
       expect(tags).toEqual(['v1.0.0', 'v1.1.0', 'v2.0.0']);
-      expect(mockScmClient.getTags).toHaveBeenCalledWith(mockRepo);
+      expect(mockScmClient.getTags).toHaveBeenCalledWith(mockRepo, undefined);
     });
   });
 
@@ -132,6 +143,7 @@ describe('BaseScmCrawler', () => {
         mockRepo,
         'main',
         'path',
+        undefined,
       );
     });
   });
@@ -148,7 +160,28 @@ describe('BaseScmCrawler', () => {
         mockRepo,
         'main',
         'file.txt',
+        undefined,
       );
+    });
+  });
+
+  describe('abort signal', () => {
+    it('should throw when AbortSignal is aborted during discoverGalaxyFilesInRepos', async () => {
+      const abortCrawler = new AbortTestScmCrawler({
+        sourceConfig: mockSourceConfig,
+        logger: mockLogger,
+        scmClient: mockScmClient,
+      });
+      const controller = new AbortController();
+      controller.abort();
+
+      await expect(
+        abortCrawler.discoverGalaxyFilesInRepos(
+          [mockRepo],
+          { crawlDepth: 3 },
+          controller.signal,
+        ),
+      ).rejects.toThrow('SCM sync aborted, stopping galaxy file discovery');
     });
   });
 

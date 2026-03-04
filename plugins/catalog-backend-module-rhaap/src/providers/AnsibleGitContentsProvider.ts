@@ -156,9 +156,9 @@ export class AnsibleGitContentsProvider implements EntityProvider {
 
       return taskRunner.run({
         id: taskId,
-        fn: async () => {
+        fn: async (ctx?: { signal?: AbortSignal }) => {
           try {
-            await this.run();
+            await this.run(ctx?.signal);
           } catch (error) {
             if (isError(error)) {
               this.logger.error(
@@ -238,7 +238,7 @@ export class AnsibleGitContentsProvider implements EntityProvider {
     await this.scheduleFn();
   }
 
-  async run(): Promise<boolean> {
+  async run(signal?: AbortSignal): Promise<boolean> {
     if (!this.connection) {
       throw new NotFoundError('Provider not initialized - not connected');
     }
@@ -262,7 +262,7 @@ export class AnsibleGitContentsProvider implements EntityProvider {
     >();
 
     try {
-      const repos = await this.crawler.getRepositories();
+      const repos = await this.crawler.getRepositories(signal);
       this.logger.info(
         `[${AnsibleGitContentsProvider.pluginLogName}]: Found ${repos.length} repositories in ${this.sourceId}`,
       );
@@ -271,6 +271,14 @@ export class AnsibleGitContentsProvider implements EntityProvider {
       const totalBatches = Math.ceil(repos.length / batchSize);
 
       for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+        if (signal?.aborted) {
+          this.logger.info(
+            `[${AnsibleGitContentsProvider.pluginLogName}]: SCM sync aborted, stopping after batch ${batchIndex}`,
+          );
+          throw new Error(
+            `SCM sync aborted, stopping after ${batchIndex} batch(es)`,
+          );
+        }
         const batchStart = batchIndex * batchSize;
         const batchEnd = Math.min(batchStart + batchSize, repos.length);
         const batchRepos = repos.slice(batchStart, batchEnd);
@@ -294,6 +302,7 @@ export class AnsibleGitContentsProvider implements EntityProvider {
               galaxyFilePaths: this.sourceConfig.galaxyFilePaths,
               crawlDepth: this.sourceConfig.crawlDepth || DEFAULT_CRAWL_DEPTH,
             },
+            signal,
           );
 
           const uniqueInBatch = this.deduplicateCollectionsWithSet(

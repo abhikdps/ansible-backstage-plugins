@@ -169,7 +169,7 @@ version: 1.0.0
         tags: ['v*'],
       });
 
-      expect(mockScmClient.getTags).toHaveBeenCalledWith(mockRepo);
+      expect(mockScmClient.getTags).toHaveBeenCalledWith(mockRepo, undefined);
       expect(result.length).toBeGreaterThanOrEqual(1);
     });
   });
@@ -368,6 +368,7 @@ version: 1.0.0
         mockRepo,
         'main',
         'custom/path',
+        undefined,
       );
     });
 
@@ -388,11 +389,13 @@ version: 1.0.0
         mockRepo,
         'main',
         'path1',
+        undefined,
       );
       expect(mockScmClient.getContents).toHaveBeenCalledWith(
         mockRepo,
         'main',
         'path2',
+        undefined,
       );
     });
   });

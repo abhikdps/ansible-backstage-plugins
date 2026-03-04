@@ -144,7 +144,10 @@ version: 1.0.0
         branches: ['develop'],
       });
 
-      expect(mockScmClient.getBranches).toHaveBeenCalledWith(mockRepo);
+      expect(mockScmClient.getBranches).toHaveBeenCalledWith(
+        mockRepo,
+        undefined,
+      );
       expect(result.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -161,7 +164,7 @@ version: 1.0.0
         tags: ['v1.*'],
       });
 
-      expect(mockScmClient.getTags).toHaveBeenCalledWith(mockRepo);
+      expect(mockScmClient.getTags).toHaveBeenCalledWith(mockRepo, undefined);
       expect(result.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -289,6 +292,7 @@ version: 1.0.0
         mockRepo,
         'main',
         'collections',
+        undefined,
       );
       expect(result.length).toBeGreaterThanOrEqual(0);
     });
@@ -512,6 +516,7 @@ version: 1.0.0
         mockRepo,
         'develop',
         '',
+        undefined,
       );
     });
 
@@ -533,6 +538,7 @@ version: 1.0.0
         mockRepo,
         'nonexistent',
         '',
+        undefined,
       );
     });
   });

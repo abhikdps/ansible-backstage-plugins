@@ -325,6 +325,15 @@ describe('GitlabClient', () => {
         expect.any(Object),
       );
     });
+
+    it('should throw when AbortSignal is aborted during getRepositories', async () => {
+      const controller = new AbortController();
+      controller.abort();
+
+      await expect(client.getRepositories(controller.signal)).rejects.toThrow(
+        'SCM sync aborted, stopping repository pagination',
+      );
+    });
   });
 
   describe('getBranches', () => {

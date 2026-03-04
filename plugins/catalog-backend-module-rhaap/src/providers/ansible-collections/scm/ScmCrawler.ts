@@ -24,26 +24,30 @@ export interface DiscoveryOptions {
 }
 
 export interface ScmCrawler {
-  getRepositories(): Promise<RepositoryInfo[]>;
-  getBranches(repo: RepositoryInfo): Promise<string[]>;
-  getTags(repo: RepositoryInfo): Promise<string[]>;
+  getRepositories(signal?: AbortSignal): Promise<RepositoryInfo[]>;
+  getBranches(repo: RepositoryInfo, signal?: AbortSignal): Promise<string[]>;
+  getTags(repo: RepositoryInfo, signal?: AbortSignal): Promise<string[]>;
   getContents(
     repo: RepositoryInfo,
     ref: string,
     path: string,
+    signal?: AbortSignal,
   ): Promise<DirectoryEntry[]>;
   getFileContent(
     repo: RepositoryInfo,
     ref: string,
     path: string,
+    signal?: AbortSignal,
   ): Promise<string>;
   buildSourceLocation(repo: RepositoryInfo, ref: string, path: string): string;
   discoverGalaxyFiles(
     options: DiscoveryOptions,
+    signal?: AbortSignal,
   ): Promise<DiscoveredGalaxyFile[]>;
   discoverGalaxyFilesInRepos(
     repos: RepositoryInfo[],
     options: DiscoveryOptions,
+    signal?: AbortSignal,
   ): Promise<DiscoveredGalaxyFile[]>;
 }
 
@@ -93,32 +97,37 @@ export abstract class BaseScmCrawler implements ScmCrawler {
     return 'repositories';
   }
 
-  async getRepositories(): Promise<RepositoryInfo[]> {
-    return this.client.getRepositories();
+  async getRepositories(signal?: AbortSignal): Promise<RepositoryInfo[]> {
+    return this.client.getRepositories(signal);
   }
 
-  async getBranches(repo: RepositoryInfo): Promise<string[]> {
-    return this.client.getBranches(repo);
+  async getBranches(
+    repo: RepositoryInfo,
+    signal?: AbortSignal,
+  ): Promise<string[]> {
+    return this.client.getBranches(repo, signal);
   }
 
-  async getTags(repo: RepositoryInfo): Promise<string[]> {
-    return this.client.getTags(repo);
+  async getTags(repo: RepositoryInfo, signal?: AbortSignal): Promise<string[]> {
+    return this.client.getTags(repo, signal);
   }
 
   async getContents(
     repo: RepositoryInfo,
     ref: string,
     path: string,
+    signal?: AbortSignal,
   ): Promise<DirectoryEntry[]> {
-    return this.client.getContents(repo, ref, path);
+    return this.client.getContents(repo, ref, path, signal);
   }
 
   async getFileContent(
     repo: RepositoryInfo,
     ref: string,
     path: string,
+    signal?: AbortSignal,
   ): Promise<string> {
-    return this.client.getFileContent(repo, ref, path);
+    return this.client.getFileContent(repo, ref, path, signal);
   }
 
   buildSourceLocation(repo: RepositoryInfo, ref: string, path: string): string {
@@ -127,33 +136,42 @@ export abstract class BaseScmCrawler implements ScmCrawler {
 
   async discoverGalaxyFiles(
     options: DiscoveryOptions,
+    signal?: AbortSignal,
   ): Promise<DiscoveredGalaxyFile[]> {
-    const repos = await this.getRepositories();
+    const repos = await this.getRepositories(signal);
     this.logger.info(
       `[${this.getCrawlerName()}] Starting galaxy.yml discovery in ${repos.length} ${this.getRepoLabel()}`,
     );
-    return this.discoverGalaxyFilesInRepos(repos, options);
+    return this.discoverGalaxyFilesInRepos(repos, options, signal);
   }
 
   async discoverGalaxyFilesInRepos(
     repos: RepositoryInfo[],
     options: DiscoveryOptions,
+    signal?: AbortSignal,
   ): Promise<DiscoveredGalaxyFile[]> {
     const discovered: DiscoveredGalaxyFile[] = [];
     const skippedRepos: Array<{ repo: string; reason: string }> = [];
     const crawlerName = this.getCrawlerName();
 
     for (const repo of repos) {
+      if (signal?.aborted) {
+        throw new Error('SCM sync aborted, stopping galaxy file discovery');
+      }
       try {
-        const refsToSearch = await this.getRefsToSearch(repo, options);
+        const refsToSearch = await this.getRefsToSearch(repo, options, signal);
         let repoCollectionCount = 0;
 
         for (const { ref, refType } of refsToSearch) {
+          if (signal?.aborted) {
+            throw new Error('SCM sync aborted, stopping galaxy file discovery');
+          }
           const galaxyFiles = await this.findGalaxyFilesInRepo(
             repo,
             ref,
             refType,
             options,
+            signal,
           );
           repoCollectionCount += galaxyFiles.length;
           discovered.push(...galaxyFiles);
@@ -195,6 +213,7 @@ export abstract class BaseScmCrawler implements ScmCrawler {
   protected async getRefsToSearch(
     repo: RepositoryInfo,
     options: DiscoveryOptions,
+    signal?: AbortSignal,
   ): Promise<Array<{ ref: string; refType: 'branch' | 'tag' }>> {
     const refs: Array<{ ref: string; refType: 'branch' | 'tag' }> = [];
     const searchedBranches = new Set<string>();
@@ -206,7 +225,7 @@ export abstract class BaseScmCrawler implements ScmCrawler {
     searchedBranches.add(repo.defaultBranch);
 
     if (options.branches && options.branches.length > 0) {
-      const allBranches = await this.getBranches(repo);
+      const allBranches = await this.getBranches(repo, signal);
       this.logger.debug(
         `[${repo.fullPath}] Available branches: ${allBranches.join(', ') || 'none'}`,
       );
@@ -237,7 +256,7 @@ export abstract class BaseScmCrawler implements ScmCrawler {
     );
 
     if (options.tags && options.tags.length > 0) {
-      const allTags = await this.getTags(repo);
+      const allTags = await this.getTags(repo, signal);
       const matchingTags = this.filterTags(allTags, options.tags);
       refs.push(
         ...matchingTags.map(t => ({ ref: t, refType: 'tag' as const })),
@@ -252,6 +271,7 @@ export abstract class BaseScmCrawler implements ScmCrawler {
     ref: string,
     refType: 'branch' | 'tag',
     options: DiscoveryOptions,
+    signal?: AbortSignal,
   ): Promise<DiscoveredGalaxyFile[]> {
     const discovered: DiscoveredGalaxyFile[] = [];
     const crawlerName = this.getCrawlerName();
@@ -262,11 +282,15 @@ export abstract class BaseScmCrawler implements ScmCrawler {
 
     if (options.galaxyFilePaths && options.galaxyFilePaths.length > 0) {
       for (const basePath of options.galaxyFilePaths) {
+        if (signal?.aborted) {
+          throw new Error('SCM sync aborted, stopping galaxy file discovery');
+        }
         const files = await this.crawlDirectory(
           repo,
           ref,
           basePath,
           options.crawlDepth,
+          signal,
         );
         for (const filePath of files) {
           const galaxyFile = await this.processGalaxyFile(
@@ -274,6 +298,7 @@ export abstract class BaseScmCrawler implements ScmCrawler {
             ref,
             refType,
             filePath,
+            signal,
           );
           if (galaxyFile) {
             discovered.push(galaxyFile);
@@ -286,6 +311,7 @@ export abstract class BaseScmCrawler implements ScmCrawler {
         ref,
         '',
         options.crawlDepth,
+        signal,
       );
 
       if (files.length === 0) {
@@ -295,11 +321,15 @@ export abstract class BaseScmCrawler implements ScmCrawler {
       }
 
       for (const filePath of files) {
+        if (signal?.aborted) {
+          throw new Error('SCM sync aborted, stopping galaxy file discovery');
+        }
         const galaxyFile = await this.processGalaxyFile(
           repo,
           ref,
           refType,
           filePath,
+          signal,
         );
         if (galaxyFile) {
           discovered.push(galaxyFile);
@@ -315,6 +345,7 @@ export abstract class BaseScmCrawler implements ScmCrawler {
     ref: string,
     path: string,
     depth: number,
+    signal?: AbortSignal,
   ): Promise<string[]> {
     if (depth <= 0) {
       return [];
@@ -324,7 +355,7 @@ export abstract class BaseScmCrawler implements ScmCrawler {
     const crawlerName = this.getCrawlerName();
 
     try {
-      const contents = await this.getContents(repo, ref, path);
+      const contents = await this.getContents(repo, ref, path, signal);
 
       if (path === '' && contents.length === 0) {
         this.logger.warn(
@@ -333,6 +364,9 @@ export abstract class BaseScmCrawler implements ScmCrawler {
       }
 
       for (const entry of contents) {
+        if (signal?.aborted) {
+          throw new Error('SCM sync aborted, stopping directory crawl');
+        }
         if (entry.type === 'file' && this.isGalaxyFile(entry.name)) {
           this.logger.debug(
             `[${crawlerName}] Found galaxy file: ${repo.fullPath}/${entry.path}@${ref}`,
@@ -347,6 +381,7 @@ export abstract class BaseScmCrawler implements ScmCrawler {
             ref,
             entry.path,
             depth - 1,
+            signal,
           );
           galaxyFiles.push(...subFiles);
         }
@@ -376,10 +411,11 @@ export abstract class BaseScmCrawler implements ScmCrawler {
     ref: string,
     refType: 'branch' | 'tag',
     path: string,
+    signal?: AbortSignal,
   ): Promise<DiscoveredGalaxyFile | null> {
     const crawlerName = this.getCrawlerName();
     try {
-      const content = await this.getFileContent(repo, ref, path);
+      const content = await this.getFileContent(repo, ref, path, signal);
 
       let parsed: unknown;
       try {

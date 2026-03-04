@@ -277,6 +277,24 @@ describe('AnsibleGitContentsProvider', () => {
       await expect(provider.run()).rejects.toThrow('Provider not initialized');
     });
 
+    it('should return false and log when AbortSignal is aborted during run', async () => {
+      mockTaskRunner.run.mockResolvedValue(undefined);
+      const providers = await createProviderFromConfig([mockSourceConfig]);
+      const provider = providers[0];
+
+      await provider.connect(mockConnection);
+      mockCrawlerInstance.getRepositories.mockResolvedValue([mockRepo]);
+
+      const controller = new AbortController();
+      controller.abort();
+
+      const result = await provider.run(controller.signal);
+      expect(result).toBe(false);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('SCM sync aborted'),
+      );
+    });
+
     it('should discover and apply collections', async () => {
       mockTaskRunner.run.mockResolvedValue(undefined);
       const providers = await createProviderFromConfig([mockSourceConfig]);

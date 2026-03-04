@@ -13,8 +13,12 @@ export class GitlabClient extends BaseScmClient {
     return 'gitlab.com';
   }
 
-  private async fetchRest<T>(endpoint: string): Promise<T> {
+  private async fetchRest<T>(
+    endpoint: string,
+    signal?: AbortSignal,
+  ): Promise<T> {
     const response = await fetch(`${this.apiUrl}${endpoint}`, {
+      signal,
       headers: {
         'PRIVATE-TOKEN': this.config.token,
         Accept: 'application/json',
@@ -29,8 +33,12 @@ export class GitlabClient extends BaseScmClient {
     return response.json() as Promise<T>;
   }
 
-  private async fetchRawFile(endpoint: string): Promise<string> {
+  private async fetchRawFile(
+    endpoint: string,
+    signal?: AbortSignal,
+  ): Promise<string> {
     const response = await fetch(`${this.apiUrl}${endpoint}`, {
+      signal,
       headers: {
         'PRIVATE-TOKEN': this.config.token,
       },
@@ -45,7 +53,7 @@ export class GitlabClient extends BaseScmClient {
     return response.text();
   }
 
-  async getRepositories(): Promise<RepositoryInfo[]> {
+  async getRepositories(signal?: AbortSignal): Promise<RepositoryInfo[]> {
     const repos: RepositoryInfo[] = [];
     let page = 1;
     const perPage = 100;
@@ -69,9 +77,12 @@ export class GitlabClient extends BaseScmClient {
     }
 
     while (hasMore) {
+      if (signal?.aborted) {
+        throw new Error('SCM sync aborted, stopping repository pagination');
+      }
       try {
         const endpoint = `/groups/${encodedGroup}/projects?include_subgroups=true&per_page=${perPage}&page=${page}`;
-        const data = await this.fetchRest<ProjectResponse[]>(endpoint);
+        const data = await this.fetchRest<ProjectResponse[]>(endpoint, signal);
 
         for (const project of data) {
           // skip archived repos
@@ -118,7 +129,10 @@ export class GitlabClient extends BaseScmClient {
     return repos;
   }
 
-  async getBranches(repo: RepositoryInfo): Promise<string[]> {
+  async getBranches(
+    repo: RepositoryInfo,
+    signal?: AbortSignal,
+  ): Promise<string[]> {
     const branches: string[] = [];
     let page = 1;
     const perPage = 100;
@@ -130,8 +144,12 @@ export class GitlabClient extends BaseScmClient {
     }
 
     while (hasMore) {
+      if (signal?.aborted) {
+        throw new Error('SCM sync aborted, stopping branch fetch');
+      }
       const data = await this.fetchRest<BranchResponse[]>(
         `/projects/${encodedPath}/repository/branches?per_page=${perPage}&page=${page}`,
+        signal,
       );
 
       branches.push(...data.map(b => b.name));
@@ -146,7 +164,7 @@ export class GitlabClient extends BaseScmClient {
     return branches;
   }
 
-  async getTags(repo: RepositoryInfo): Promise<string[]> {
+  async getTags(repo: RepositoryInfo, signal?: AbortSignal): Promise<string[]> {
     const tags: string[] = [];
     let page = 1;
     const perPage = 100;
@@ -158,8 +176,12 @@ export class GitlabClient extends BaseScmClient {
     }
 
     while (hasMore) {
+      if (signal?.aborted) {
+        throw new Error('SCM sync aborted, stopping tag fetch');
+      }
       const data = await this.fetchRest<TagResponse[]>(
         `/projects/${encodedPath}/repository/tags?per_page=${perPage}&page=${page}`,
+        signal,
       );
 
       tags.push(...data.map(t => t.name));
@@ -178,6 +200,7 @@ export class GitlabClient extends BaseScmClient {
     repo: RepositoryInfo,
     ref: string,
     path: string,
+    signal?: AbortSignal,
   ): Promise<DirectoryEntry[]> {
     const allEntries: DirectoryEntry[] = [];
     let page = 1;
@@ -196,11 +219,14 @@ export class GitlabClient extends BaseScmClient {
       }
 
       while (hasMore) {
+        if (signal?.aborted) {
+          throw new Error('SCM sync aborted, stopping contents fetch');
+        }
         const endpoint = encodedFilePath
           ? `/projects/${encodedPath}/repository/tree?ref=${encodedRef}&path=${encodedFilePath}&per_page=${perPage}&page=${page}`
           : `/projects/${encodedPath}/repository/tree?ref=${encodedRef}&per_page=${perPage}&page=${page}`;
 
-        const data = await this.fetchRest<TreeResponse[]>(endpoint);
+        const data = await this.fetchRest<TreeResponse[]>(endpoint, signal);
 
         const galaxyFiles = data.filter(
           item =>
@@ -241,6 +267,7 @@ export class GitlabClient extends BaseScmClient {
     repo: RepositoryInfo,
     ref: string,
     path: string,
+    signal?: AbortSignal,
   ): Promise<string> {
     const encodedPath = encodeURIComponent(repo.fullPath);
     const encodedRef = encodeURIComponent(ref);
@@ -248,6 +275,7 @@ export class GitlabClient extends BaseScmClient {
 
     return this.fetchRawFile(
       `/projects/${encodedPath}/repository/files/${encodedFilePath}/raw?ref=${encodedRef}`,
+      signal,
     );
   }
 
