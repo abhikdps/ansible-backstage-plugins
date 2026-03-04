@@ -28,8 +28,12 @@ export class GithubClient extends BaseScmClient {
   }
 
   // fetch data from github REST API
-  private async fetchRest<T>(endpoint: string): Promise<T> {
+  private async fetchRest<T>(
+    endpoint: string,
+    signal?: AbortSignal,
+  ): Promise<T> {
     const response = await fetch(`${this.apiUrl}${endpoint}`, {
+      signal,
       headers: {
         Authorization: `Bearer ${this.config.token}`,
         Accept: 'application/vnd.github.v3+json',
@@ -49,8 +53,10 @@ export class GithubClient extends BaseScmClient {
   private async fetchGraphQL<T>(
     query: string,
     variables: Record<string, unknown>,
+    signal?: AbortSignal,
   ): Promise<T> {
     const response = await fetch(this.graphqlUrl, {
+      signal,
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.config.token}`,
@@ -77,7 +83,7 @@ export class GithubClient extends BaseScmClient {
     return result.data as T;
   }
 
-  async getRepositories(): Promise<RepositoryInfo[]> {
+  async getRepositories(signal?: AbortSignal): Promise<RepositoryInfo[]> {
     const repos: RepositoryInfo[] = [];
     let hasNextPage = true;
     let cursor: string | null = null;
@@ -126,10 +132,17 @@ export class GithubClient extends BaseScmClient {
     }
 
     while (hasNextPage) {
-      const data: QueryResult = await this.fetchGraphQL<QueryResult>(query, {
-        org: this.config.organization,
-        cursor,
-      });
+      if (signal?.aborted) {
+        throw new Error('SCM sync aborted, stopping repository pagination');
+      }
+      const data: QueryResult = await this.fetchGraphQL<QueryResult>(
+        query,
+        {
+          org: this.config.organization,
+          cursor,
+        },
+        signal,
+      );
 
       const repoData = data.organization.repositories;
 
@@ -158,7 +171,10 @@ export class GithubClient extends BaseScmClient {
     return repos;
   }
 
-  async getBranches(repo: RepositoryInfo): Promise<string[]> {
+  async getBranches(
+    repo: RepositoryInfo,
+    signal?: AbortSignal,
+  ): Promise<string[]> {
     const branches: string[] = [];
     let page = 1;
     const perPage = 100;
@@ -169,8 +185,12 @@ export class GithubClient extends BaseScmClient {
     }
 
     while (hasMore) {
+      if (signal?.aborted) {
+        throw new Error('SCM sync aborted, stopping branch fetch');
+      }
       const data = await this.fetchRest<BranchResponse[]>(
         `/repos/${repo.fullPath}/branches?per_page=${perPage}&page=${page}`,
+        signal,
       );
 
       branches.push(...data.map(b => b.name));
@@ -185,7 +205,7 @@ export class GithubClient extends BaseScmClient {
     return branches;
   }
 
-  async getTags(repo: RepositoryInfo): Promise<string[]> {
+  async getTags(repo: RepositoryInfo, signal?: AbortSignal): Promise<string[]> {
     const tags: string[] = [];
     let page = 1;
     const perPage = 100;
@@ -196,8 +216,12 @@ export class GithubClient extends BaseScmClient {
     }
 
     while (hasMore) {
+      if (signal?.aborted) {
+        throw new Error('SCM sync aborted, stopping tag fetch');
+      }
       const data = await this.fetchRest<TagResponse[]>(
         `/repos/${repo.fullPath}/tags?per_page=${perPage}&page=${page}`,
+        signal,
       );
 
       tags.push(...data.map(t => t.name));
@@ -216,6 +240,7 @@ export class GithubClient extends BaseScmClient {
     repo: RepositoryInfo,
     ref: string,
     path: string,
+    signal?: AbortSignal,
   ): Promise<DirectoryEntry[]> {
     try {
       interface ContentResponse {
@@ -231,7 +256,7 @@ export class GithubClient extends BaseScmClient {
           }/contents/${encodedPath}?ref=${encodeURIComponent(ref)}`
         : `/repos/${repo.fullPath}/contents?ref=${encodeURIComponent(ref)}`;
 
-      const data = await this.fetchRest<ContentResponse[]>(endpoint);
+      const data = await this.fetchRest<ContentResponse[]>(endpoint, signal);
 
       return data.map(item => ({
         name: item.name,
@@ -250,12 +275,14 @@ export class GithubClient extends BaseScmClient {
     repo: RepositoryInfo,
     ref: string,
     path: string,
+    signal?: AbortSignal,
   ): Promise<string> {
     const response = await fetch(
       `${this.apiUrl}/repos/${repo.fullPath}/contents/${encodeURIComponent(
         path,
       )}?ref=${encodeURIComponent(ref)}`,
       {
+        signal,
         headers: {
           Authorization: `Bearer ${this.config.token}`,
           Accept: 'application/vnd.github.v3.raw',

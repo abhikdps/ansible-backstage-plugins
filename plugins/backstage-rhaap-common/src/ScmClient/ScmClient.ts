@@ -7,18 +7,20 @@ import type {
 } from './types';
 
 export interface ScmClient {
-  getRepositories(): Promise<RepositoryInfo[]>;
-  getBranches(repo: RepositoryInfo): Promise<string[]>;
-  getTags(repo: RepositoryInfo): Promise<string[]>;
+  getRepositories(signal?: AbortSignal): Promise<RepositoryInfo[]>;
+  getBranches(repo: RepositoryInfo, signal?: AbortSignal): Promise<string[]>;
+  getTags(repo: RepositoryInfo, signal?: AbortSignal): Promise<string[]>;
   getContents(
     repo: RepositoryInfo,
     ref: string,
     path: string,
+    signal?: AbortSignal,
   ): Promise<DirectoryEntry[]>;
   getFileContent(
     repo: RepositoryInfo,
     ref: string,
     path: string,
+    signal?: AbortSignal,
   ): Promise<string>;
   buildUrl(options: UrlBuildOptions): string;
   buildSourceLocation(repo: RepositoryInfo, ref: string, path: string): string;
@@ -58,18 +60,26 @@ export abstract class BaseScmClient implements ScmClient {
   }
 
   // abstract methods implemented by subclasses
-  abstract getRepositories(): Promise<RepositoryInfo[]>;
-  abstract getBranches(repo: RepositoryInfo): Promise<string[]>;
-  abstract getTags(repo: RepositoryInfo): Promise<string[]>;
+  abstract getRepositories(signal?: AbortSignal): Promise<RepositoryInfo[]>;
+  abstract getBranches(
+    repo: RepositoryInfo,
+    signal?: AbortSignal,
+  ): Promise<string[]>;
+  abstract getTags(
+    repo: RepositoryInfo,
+    signal?: AbortSignal,
+  ): Promise<string[]>;
   abstract getContents(
     repo: RepositoryInfo,
     ref: string,
     path: string,
+    signal?: AbortSignal,
   ): Promise<DirectoryEntry[]>;
   abstract getFileContent(
     repo: RepositoryInfo,
     ref: string,
     path: string,
+    signal?: AbortSignal,
   ): Promise<string>;
   abstract buildUrl(options: UrlBuildOptions): string;
   abstract buildSourceLocation(
