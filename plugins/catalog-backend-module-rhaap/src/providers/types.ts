@@ -56,6 +56,8 @@ export interface AnsibleGitContentsSourceConfig {
   crawlDepth?: number;
   schedule: SchedulerServiceTaskScheduleDefinition;
   env: string;
+  /** When false, TLS verification is disabled for this host (e.g. self-signed or internal CA). Default true. */
+  checkSSL?: boolean;
 }
 
 export interface GalaxyMetadata {

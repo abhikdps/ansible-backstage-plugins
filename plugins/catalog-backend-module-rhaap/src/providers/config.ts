@@ -194,6 +194,7 @@ function processScmProviders(
     try {
       const hostName = hostConfig.getString('name');
       const host = hostConfig.getOptionalString('host');
+      const checkSSL = hostConfig.getOptionalBoolean('checkSSL');
 
       if (!hostConfig.has('orgs')) {
         console.log(`Host '${hostName}' has no orgs configured, skipping`);
@@ -208,6 +209,7 @@ function processScmProviders(
           scmProvider,
           hostName,
           host,
+          checkSSL,
           env,
           commonSchedule,
         });
@@ -232,6 +234,7 @@ function readOrgConfig(
     scmProvider: ScmProvider;
     hostName: string;
     host?: string;
+    checkSSL?: boolean;
     env: string;
     commonSchedule: ScheduleDefinition | null;
   },
@@ -275,6 +278,7 @@ function readOrgConfig(
       crawlDepth,
       schedule,
       env: context.env,
+      checkSSL: context.checkSSL,
     };
   } catch (error) {
     console.error(
