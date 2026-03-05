@@ -250,6 +250,24 @@ export class AnsibleGitContentsProvider implements EntityProvider {
 
     const startTime = Date.now();
     let success = true;
+
+    try {
+      const { collectionCount, repositoryCount } =
+        await this.discoverAndSyncCollections(signal);
+      this.updateSyncMetrics(collectionCount, startTime, repositoryCount);
+    } catch (e: unknown) {
+      success = false;
+      this.handleSyncError(e);
+    } finally {
+      this.isSyncing = false;
+    }
+
+    return success;
+  }
+
+  private async discoverAndSyncCollections(
+    signal?: AbortSignal,
+  ): Promise<{ collectionCount: number; repositoryCount: number }> {
     const allEntities: Entity[] = [];
     const seenCollectionKeys = new Set<string>();
     const repositoryData = new Map<
@@ -261,173 +279,261 @@ export class AnsibleGitContentsProvider implements EntityProvider {
       }
     >();
 
-    try {
-      const repos = await this.crawler.getRepositories(signal);
-      this.logger.info(
-        `[${AnsibleGitContentsProvider.pluginLogName}]: Found ${repos.length} repositories in ${this.sourceId}`,
-      );
+    const repos = await this.crawler.getRepositories(signal);
+    this.logger.info(
+      `[${AnsibleGitContentsProvider.pluginLogName}]: Found ${repos.length} repositories in ${this.sourceId}`,
+    );
 
-      const batchSize = DEFAULT_BATCH_SIZE;
-      const totalBatches = Math.ceil(repos.length / batchSize);
+    const batchSize = DEFAULT_BATCH_SIZE;
+    const totalBatches = Math.ceil(repos.length / batchSize);
 
-      for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
-        if (signal?.aborted) {
-          this.logger.info(
-            `[${AnsibleGitContentsProvider.pluginLogName}]: SCM sync aborted (timeout or cancel), stopping after batch ${batchIndex}`,
-          );
-          throw new Error(
-            `SCM sync aborted, stopping after ${batchIndex} batch(es)`,
-          );
-        }
-        const batchStart = batchIndex * batchSize;
-        const batchEnd = Math.min(batchStart + batchSize, repos.length);
-        const batchRepos = repos.slice(batchStart, batchEnd);
+    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+      this.checkAbortSignal(signal, batchIndex);
 
-        this.logger.info(
-          `[${AnsibleGitContentsProvider.pluginLogName}]: Processing batch ${batchIndex + 1}/${totalBatches} (repos ${batchStart + 1}-${batchEnd} of ${repos.length})`,
-        );
-
-        try {
-          if (batchIndex === 0) {
-            this.logger.info(
-              `[${AnsibleGitContentsProvider.pluginLogName}]: Discovery options: branches=${JSON.stringify(this.sourceConfig.branches)}, tags=${JSON.stringify(this.sourceConfig.tags)}, crawlDepth=${this.sourceConfig.crawlDepth || DEFAULT_CRAWL_DEPTH}`,
-            );
-          }
-
-          const galaxyFiles = await this.crawler.discoverGalaxyFilesInRepos(
-            batchRepos,
-            {
-              branches: this.sourceConfig.branches,
-              tags: this.sourceConfig.tags,
-              galaxyFilePaths: this.sourceConfig.galaxyFilePaths,
-              crawlDepth: this.sourceConfig.crawlDepth || DEFAULT_CRAWL_DEPTH,
-            },
-            signal,
-          );
-
-          const uniqueInBatch = this.deduplicateCollectionsWithSet(
-            galaxyFiles,
-            seenCollectionKeys,
-          );
-
-          for (const file of uniqueInBatch) {
-            const repoKey = createRepositoryKey(
-              file.repository,
-              this.sourceConfig,
-            );
-            const collectionEntityName = generateCollectionEntityName(
-              file,
-              this.sourceConfig,
-            );
-            const existing = repositoryData.get(repoKey);
-            if (existing) {
-              existing.count++;
-              existing.collectionEntityNames.push(collectionEntityName);
-            } else {
-              repositoryData.set(repoKey, {
-                repo: file.repository,
-                count: 1,
-                collectionEntityNames: [collectionEntityName],
-              });
-            }
-          }
-
-          if (uniqueInBatch.length > 0) {
-            const batchEntities = this.convertToEntities(uniqueInBatch);
-            allEntities.push(...batchEntities);
-
-            this.logger.info(
-              `[${AnsibleGitContentsProvider.pluginLogName}]: Batch ${batchIndex + 1} found ${galaxyFiles.length} galaxy files, ${uniqueInBatch.length} unique collections`,
-            );
-
-            await this.connection.applyMutation({
-              type: 'delta',
-              added: batchEntities.map(entity => ({
-                entity,
-                locationKey: this.getProviderName(),
-              })),
-              removed: [],
-            });
-
-            this.logger.info(
-              `[${AnsibleGitContentsProvider.pluginLogName}]: Added ${batchEntities.length} collections from batch ${batchIndex + 1}`,
-            );
-          } else {
-            this.logger.info(
-              `[${AnsibleGitContentsProvider.pluginLogName}]: Batch ${batchIndex + 1} found no unique collections`,
-            );
-          }
-        } catch (batchError) {
-          const batchErrorMessage =
-            batchError instanceof Error
-              ? batchError.message
-              : String(batchError);
-          this.logger.warn(
-            `[${AnsibleGitContentsProvider.pluginLogName}]: Error processing batch ${batchIndex + 1}: ${batchErrorMessage}`,
-          );
-        }
-      }
-
-      const repositoryEntities = this.createRepositoryEntities(repositoryData);
-      allEntities.push(...repositoryEntities);
-
-      this.logger.info(
-        `[${AnsibleGitContentsProvider.pluginLogName}]: Created ${repositoryEntities.length} repository entities`,
+      const { batchStart, batchEnd, batchRepos } = this.getBatchSlice(
+        repos,
+        batchIndex,
+        batchSize,
       );
 
       this.logger.info(
-        `[${AnsibleGitContentsProvider.pluginLogName}]: Applying final reconciliation with ${allEntities.length} total entities (${allEntities.length - repositoryEntities.length} collections + ${repositoryEntities.length} repositories)`,
+        `[${AnsibleGitContentsProvider.pluginLogName}]: Processing batch ${batchIndex + 1}/${totalBatches} (repos ${batchStart + 1}-${batchEnd} of ${repos.length})`,
       );
 
-      await this.connection.applyMutation({
-        type: 'full',
-        entities: allEntities.map(entity => ({
-          entity,
-          locationKey: this.getProviderName(),
-        })),
-      });
-
-      const currentCollectionCount =
-        allEntities.length - repositoryEntities.length;
-      const previousCollectionCount = this.lastSyncCollections;
-
-      this.lastSyncNewCollections =
-        previousCollectionCount === 0
-          ? currentCollectionCount
-          : currentCollectionCount - previousCollectionCount;
-
-      this.lastSyncTime = new Date().toISOString();
-      this.lastSyncCollections = currentCollectionCount;
-      this.lastSyncStatus = 'success';
-
-      const duration = Date.now() - startTime;
-      const deltaStr =
-        this.lastSyncNewCollections >= 0
-          ? `+${this.lastSyncNewCollections}`
-          : `${this.lastSyncNewCollections}`;
-      this.logger.info(
-        `[${AnsibleGitContentsProvider.pluginLogName}]: Successfully synced ${this.lastSyncCollections} collections (${deltaStr} new) and ${repositoryEntities.length} repositories from ${this.sourceId} in ${duration}ms`,
+      await this.processBatch(
+        batchRepos,
+        batchIndex,
+        seenCollectionKeys,
+        repositoryData,
+        allEntities,
+        signal,
       );
-    } catch (e: unknown) {
-      const errorMessage = e instanceof Error ? e.message : String(e);
-      const isAbort = errorMessage.startsWith('SCM sync aborted');
-      success = false;
-      this.lastSyncStatus = 'failure';
-      this.lastFailedSyncTime = new Date().toISOString();
-      if (isAbort) {
-        this.logger.error(
-          `[${AnsibleGitContentsProvider.pluginLogName}]: Collection discovery stopped (timeout or cancel): ${errorMessage}`,
-        );
-      } else {
-        this.logger.error(
-          `[${AnsibleGitContentsProvider.pluginLogName}]: Error during collection discovery: ${errorMessage}`,
-        );
-      }
-    } finally {
-      this.isSyncing = false;
     }
 
-    return success;
+    const repositoryEntities = this.createRepositoryEntities(repositoryData);
+    allEntities.push(...repositoryEntities);
+
+    this.logger.info(
+      `[${AnsibleGitContentsProvider.pluginLogName}]: Created ${repositoryEntities.length} repository entities`,
+    );
+
+    await this.applyFinalMutation(allEntities, repositoryEntities.length);
+
+    return {
+      collectionCount: allEntities.length - repositoryEntities.length,
+      repositoryCount: repositoryEntities.length,
+    };
+  }
+
+  private checkAbortSignal(
+    signal: AbortSignal | undefined,
+    batchIndex: number,
+  ): void {
+    if (signal?.aborted) {
+      this.logger.info(
+        `[${AnsibleGitContentsProvider.pluginLogName}]: SCM sync aborted (timeout or cancel), stopping after batch ${batchIndex}`,
+      );
+      throw new Error(
+        `SCM sync aborted, stopping after ${batchIndex} batch(es)`,
+      );
+    }
+  }
+
+  private getBatchSlice(
+    repos: Awaited<ReturnType<typeof this.crawler.getRepositories>>,
+    batchIndex: number,
+    batchSize: number,
+  ): { batchStart: number; batchEnd: number; batchRepos: typeof repos } {
+    const batchStart = batchIndex * batchSize;
+    const batchEnd = Math.min(batchStart + batchSize, repos.length);
+    const batchRepos = repos.slice(batchStart, batchEnd);
+    return { batchStart, batchEnd, batchRepos };
+  }
+
+  private async processBatch(
+    batchRepos: Awaited<ReturnType<typeof this.crawler.getRepositories>>,
+    batchIndex: number,
+    seenCollectionKeys: Set<string>,
+    repositoryData: Map<
+      string,
+      {
+        repo: DiscoveredGalaxyFile['repository'];
+        count: number;
+        collectionEntityNames: string[];
+      }
+    >,
+    allEntities: Entity[],
+    signal?: AbortSignal,
+  ): Promise<void> {
+    try {
+      if (batchIndex === 0) {
+        this.logger.info(
+          `[${AnsibleGitContentsProvider.pluginLogName}]: Discovery options: branches=${JSON.stringify(this.sourceConfig.branches)}, tags=${JSON.stringify(this.sourceConfig.tags)}, crawlDepth=${this.sourceConfig.crawlDepth || DEFAULT_CRAWL_DEPTH}`,
+        );
+      }
+
+      const galaxyFiles = await this.crawler.discoverGalaxyFilesInRepos(
+        batchRepos,
+        {
+          branches: this.sourceConfig.branches,
+          tags: this.sourceConfig.tags,
+          galaxyFilePaths: this.sourceConfig.galaxyFilePaths,
+          crawlDepth: this.sourceConfig.crawlDepth || DEFAULT_CRAWL_DEPTH,
+        },
+        signal,
+      );
+
+      const uniqueInBatch = this.deduplicateCollectionsWithSet(
+        galaxyFiles,
+        seenCollectionKeys,
+      );
+
+      this.updateRepositoryData(uniqueInBatch, repositoryData);
+
+      await this.applyBatchEntities(
+        uniqueInBatch,
+        galaxyFiles.length,
+        batchIndex,
+        allEntities,
+      );
+    } catch (batchError) {
+      const batchErrorMessage =
+        batchError instanceof Error ? batchError.message : String(batchError);
+      this.logger.warn(
+        `[${AnsibleGitContentsProvider.pluginLogName}]: Error processing batch ${batchIndex + 1}: ${batchErrorMessage}`,
+      );
+    }
+  }
+
+  private updateRepositoryData(
+    uniqueFiles: DiscoveredGalaxyFile[],
+    repositoryData: Map<
+      string,
+      {
+        repo: DiscoveredGalaxyFile['repository'];
+        count: number;
+        collectionEntityNames: string[];
+      }
+    >,
+  ): void {
+    for (const file of uniqueFiles) {
+      const repoKey = createRepositoryKey(file.repository, this.sourceConfig);
+      const collectionEntityName = generateCollectionEntityName(
+        file,
+        this.sourceConfig,
+      );
+      const existing = repositoryData.get(repoKey);
+      if (existing) {
+        existing.count++;
+        existing.collectionEntityNames.push(collectionEntityName);
+      } else {
+        repositoryData.set(repoKey, {
+          repo: file.repository,
+          count: 1,
+          collectionEntityNames: [collectionEntityName],
+        });
+      }
+    }
+  }
+
+  private async applyBatchEntities(
+    uniqueInBatch: DiscoveredGalaxyFile[],
+    totalGalaxyFiles: number,
+    batchIndex: number,
+    allEntities: Entity[],
+  ): Promise<void> {
+    if (uniqueInBatch.length === 0) {
+      this.logger.info(
+        `[${AnsibleGitContentsProvider.pluginLogName}]: Batch ${batchIndex + 1} found no unique collections`,
+      );
+      return;
+    }
+
+    const batchEntities = this.convertToEntities(uniqueInBatch);
+    allEntities.push(...batchEntities);
+
+    this.logger.info(
+      `[${AnsibleGitContentsProvider.pluginLogName}]: Batch ${batchIndex + 1} found ${totalGalaxyFiles} galaxy files, ${uniqueInBatch.length} unique collections`,
+    );
+
+    await this.connection!.applyMutation({
+      type: 'delta',
+      added: batchEntities.map(entity => ({
+        entity,
+        locationKey: this.getProviderName(),
+      })),
+      removed: [],
+    });
+
+    this.logger.info(
+      `[${AnsibleGitContentsProvider.pluginLogName}]: Added ${batchEntities.length} collections from batch ${batchIndex + 1}`,
+    );
+  }
+
+  private async applyFinalMutation(
+    allEntities: Entity[],
+    repositoryCount: number,
+  ): Promise<void> {
+    this.logger.info(
+      `[${AnsibleGitContentsProvider.pluginLogName}]: Applying final reconciliation with ${allEntities.length} total entities (${allEntities.length - repositoryCount} collections + ${repositoryCount} repositories)`,
+    );
+
+    await this.connection!.applyMutation({
+      type: 'full',
+      entities: allEntities.map(entity => ({
+        entity,
+        locationKey: this.getProviderName(),
+      })),
+    });
+  }
+
+  private updateSyncMetrics(
+    collectionCount: number,
+    startTime: number,
+    repositoryCount: number,
+  ): void {
+    const previousCollectionCount = this.lastSyncCollections;
+
+    this.lastSyncNewCollections =
+      previousCollectionCount === 0
+        ? collectionCount
+        : collectionCount - previousCollectionCount;
+
+    this.lastSyncTime = new Date().toISOString();
+    this.lastSyncCollections = collectionCount;
+    this.lastSyncStatus = 'success';
+
+    const duration = Date.now() - startTime;
+    const deltaStr =
+      this.lastSyncNewCollections >= 0
+        ? `+${this.lastSyncNewCollections}`
+        : `${this.lastSyncNewCollections}`;
+    this.logger.info(
+      `[${AnsibleGitContentsProvider.pluginLogName}]: Successfully synced ${this.lastSyncCollections} collections (${deltaStr} new) and ${repositoryCount} repositories from ${this.sourceId} in ${duration}ms`,
+    );
+  }
+
+  private handleSyncError(e: unknown): void {
+    let errorMessage: string;
+    if (e instanceof Error) {
+      errorMessage = e.message;
+    } else if (typeof e === 'object' && e !== null) {
+      errorMessage = JSON.stringify(e);
+    } else {
+      errorMessage = String(e);
+    }
+    const isAbort = errorMessage.startsWith('SCM sync aborted');
+
+    this.lastSyncStatus = 'failure';
+    this.lastFailedSyncTime = new Date().toISOString();
+
+    const logMessage = isAbort
+      ? `Collection discovery stopped (timeout or cancel): ${errorMessage}`
+      : `Error during collection discovery: ${errorMessage}`;
+
+    this.logger.error(
+      `[${AnsibleGitContentsProvider.pluginLogName}]: ${logMessage}`,
+    );
   }
 
   private deduplicateCollectionsWithSet(

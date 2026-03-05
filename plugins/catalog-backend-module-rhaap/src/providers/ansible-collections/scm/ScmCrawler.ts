@@ -152,62 +152,104 @@ export abstract class BaseScmCrawler implements ScmCrawler {
   ): Promise<DiscoveredGalaxyFile[]> {
     const discovered: DiscoveredGalaxyFile[] = [];
     const skippedRepos: Array<{ repo: string; reason: string }> = [];
-    const crawlerName = this.getCrawlerName();
 
     for (const repo of repos) {
-      if (signal?.aborted) {
-        throw new Error('SCM sync aborted, stopping galaxy file discovery');
-      }
-      try {
-        const refsToSearch = await this.getRefsToSearch(repo, options, signal);
-        let repoCollectionCount = 0;
-
-        for (const { ref, refType } of refsToSearch) {
-          if (signal?.aborted) {
-            throw new Error('SCM sync aborted, stopping galaxy file discovery');
-          }
-          const galaxyFiles = await this.findGalaxyFilesInRepo(
-            repo,
-            ref,
-            refType,
-            options,
-            signal,
-          );
-          repoCollectionCount += galaxyFiles.length;
-          discovered.push(...galaxyFiles);
-        }
-
-        if (repoCollectionCount === 0) {
-          skippedRepos.push({
-            repo: repo.fullPath,
-            reason: 'no valid galaxy.yml/yaml files found',
-          });
-        }
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        skippedRepos.push({
-          repo: repo.fullPath,
-          reason: `error: ${errorMsg}`,
-        });
-        this.logger.warn(
-          `[${crawlerName}] Error discovering collections in ${repo.fullPath}: ${error}`,
-        );
-      }
-    }
-
-    if (skippedRepos.length > 0) {
-      this.logger.info(
-        `[${crawlerName}] Skipped ${skippedRepos.length} ${this.getRepoLabel()} with no collections:`,
+      this.throwIfAborted(signal);
+      await this.processRepository(
+        repo,
+        options,
+        signal,
+        discovered,
+        skippedRepos,
       );
-      for (const { repo, reason } of skippedRepos) {
-        this.logger.info(`[${crawlerName}]   - ${repo}: ${reason}`);
-      }
     }
 
+    this.logSkippedRepos(skippedRepos);
     this.logger.info(
-      `[${crawlerName}] Discovered ${discovered.length} galaxy.yml files in ${repos.length} ${this.getRepoLabel()}`,
+      `[${this.getCrawlerName()}] Discovered ${discovered.length} galaxy.yml files in ${repos.length} ${this.getRepoLabel()}`,
     );
     return discovered;
+  }
+
+  private throwIfAborted(signal?: AbortSignal): void {
+    if (signal?.aborted) {
+      throw new Error('SCM sync aborted, stopping galaxy file discovery');
+    }
+  }
+
+  private async processRepository(
+    repo: RepositoryInfo,
+    options: DiscoveryOptions,
+    signal: AbortSignal | undefined,
+    discovered: DiscoveredGalaxyFile[],
+    skippedRepos: Array<{ repo: string; reason: string }>,
+  ): Promise<void> {
+    try {
+      const refsToSearch = await this.getRefsToSearch(repo, options, signal);
+      const repoCollectionCount = await this.discoverInRefs(
+        repo,
+        refsToSearch,
+        options,
+        signal,
+        discovered,
+      );
+
+      if (repoCollectionCount === 0) {
+        skippedRepos.push({
+          repo: repo.fullPath,
+          reason: 'no valid galaxy.yml/yaml files found',
+        });
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      skippedRepos.push({
+        repo: repo.fullPath,
+        reason: `error: ${errorMsg}`,
+      });
+      this.logger.warn(
+        `[${this.getCrawlerName()}] Error discovering collections in ${repo.fullPath}: ${error}`,
+      );
+    }
+  }
+
+  private async discoverInRefs(
+    repo: RepositoryInfo,
+    refsToSearch: Array<{ ref: string; refType: 'branch' | 'tag' }>,
+    options: DiscoveryOptions,
+    signal: AbortSignal | undefined,
+    discovered: DiscoveredGalaxyFile[],
+  ): Promise<number> {
+    let repoCollectionCount = 0;
+
+    for (const { ref, refType } of refsToSearch) {
+      this.throwIfAborted(signal);
+      const galaxyFiles = await this.findGalaxyFilesInRepo(
+        repo,
+        ref,
+        refType,
+        options,
+        signal,
+      );
+      repoCollectionCount += galaxyFiles.length;
+      discovered.push(...galaxyFiles);
+    }
+
+    return repoCollectionCount;
+  }
+
+  private logSkippedRepos(
+    skippedRepos: Array<{ repo: string; reason: string }>,
+  ): void {
+    if (skippedRepos.length === 0) {
+      return;
+    }
+    const crawlerName = this.getCrawlerName();
+    this.logger.info(
+      `[${crawlerName}] Skipped ${skippedRepos.length} ${this.getRepoLabel()} with no collections:`,
+    );
+    for (const { repo, reason } of skippedRepos) {
+      this.logger.info(`[${crawlerName}]   - ${repo}: ${reason}`);
+    }
   }
 
   protected async getRefsToSearch(
@@ -225,16 +267,17 @@ export abstract class BaseScmCrawler implements ScmCrawler {
     searchedBranches.add(repo.defaultBranch);
 
     if (options.branches && options.branches.length > 0) {
+      const configuredBranches = options.branches;
       const allBranches = await this.getBranches(repo, signal);
       this.logger.debug(
         `[${repo.fullPath}] Available branches: ${allBranches.join(', ') || 'none'}`,
       );
       this.logger.debug(
-        `[${repo.fullPath}] Configured additional branches: ${options.branches.join(', ')}`,
+        `[${repo.fullPath}] Configured additional branches: ${configuredBranches.join(', ')}`,
       );
 
       const additionalBranches = allBranches.filter(
-        b => options.branches!.includes(b) && !searchedBranches.has(b),
+        b => configuredBranches.includes(b) && !searchedBranches.has(b),
       );
 
       if (additionalBranches.length > 0) {
@@ -273,67 +316,103 @@ export abstract class BaseScmCrawler implements ScmCrawler {
     options: DiscoveryOptions,
     signal?: AbortSignal,
   ): Promise<DiscoveredGalaxyFile[]> {
-    const discovered: DiscoveredGalaxyFile[] = [];
-    const crawlerName = this.getCrawlerName();
-
     this.logger.debug(
-      `[${crawlerName}] Searching ${repo.fullPath} on ${refType} '${ref}' (default branch: ${repo.defaultBranch})`,
+      `[${this.getCrawlerName()}] Searching ${repo.fullPath} on ${refType} '${ref}' (default branch: ${repo.defaultBranch})`,
     );
 
-    if (options.galaxyFilePaths && options.galaxyFilePaths.length > 0) {
-      for (const basePath of options.galaxyFilePaths) {
-        if (signal?.aborted) {
-          throw new Error('SCM sync aborted, stopping galaxy file discovery');
-        }
-        const files = await this.crawlDirectory(
-          repo,
-          ref,
-          basePath,
-          options.crawlDepth,
-          signal,
-        );
-        for (const filePath of files) {
-          const galaxyFile = await this.processGalaxyFile(
-            repo,
-            ref,
-            refType,
-            filePath,
-            signal,
-          );
-          if (galaxyFile) {
-            discovered.push(galaxyFile);
-          }
-        }
-      }
-    } else {
-      const files = await this.crawlDirectory(
+    const hasConfiguredPaths =
+      options.galaxyFilePaths && options.galaxyFilePaths.length > 0;
+
+    if (hasConfiguredPaths) {
+      return this.discoverFromConfiguredPaths(
         repo,
         ref,
-        '',
+        refType,
+        options.galaxyFilePaths!,
         options.crawlDepth,
         signal,
       );
+    }
 
-      if (files.length === 0) {
-        this.logger.debug(
-          `[${crawlerName}] No galaxy.yml files found in ${repo.fullPath}@${ref} after crawling`,
-        );
-      }
+    return this.discoverFromRoot(
+      repo,
+      ref,
+      refType,
+      options.crawlDepth,
+      signal,
+    );
+  }
 
-      for (const filePath of files) {
-        if (signal?.aborted) {
-          throw new Error('SCM sync aborted, stopping galaxy file discovery');
-        }
-        const galaxyFile = await this.processGalaxyFile(
-          repo,
-          ref,
-          refType,
-          filePath,
-          signal,
-        );
-        if (galaxyFile) {
-          discovered.push(galaxyFile);
-        }
+  private async discoverFromConfiguredPaths(
+    repo: RepositoryInfo,
+    ref: string,
+    refType: 'branch' | 'tag',
+    galaxyFilePaths: string[],
+    crawlDepth: number,
+    signal?: AbortSignal,
+  ): Promise<DiscoveredGalaxyFile[]> {
+    const discovered: DiscoveredGalaxyFile[] = [];
+
+    for (const basePath of galaxyFilePaths) {
+      this.throwIfAborted(signal);
+      const files = await this.crawlDirectory(
+        repo,
+        ref,
+        basePath,
+        crawlDepth,
+        signal,
+      );
+      const galaxyFiles = await this.processGalaxyFiles(
+        repo,
+        ref,
+        refType,
+        files,
+        signal,
+      );
+      discovered.push(...galaxyFiles);
+    }
+
+    return discovered;
+  }
+
+  private async discoverFromRoot(
+    repo: RepositoryInfo,
+    ref: string,
+    refType: 'branch' | 'tag',
+    crawlDepth: number,
+    signal?: AbortSignal,
+  ): Promise<DiscoveredGalaxyFile[]> {
+    const files = await this.crawlDirectory(repo, ref, '', crawlDepth, signal);
+
+    if (files.length === 0) {
+      this.logger.debug(
+        `[${this.getCrawlerName()}] No galaxy.yml files found in ${repo.fullPath}@${ref} after crawling`,
+      );
+    }
+
+    return this.processGalaxyFiles(repo, ref, refType, files, signal);
+  }
+
+  private async processGalaxyFiles(
+    repo: RepositoryInfo,
+    ref: string,
+    refType: 'branch' | 'tag',
+    filePaths: string[],
+    signal?: AbortSignal,
+  ): Promise<DiscoveredGalaxyFile[]> {
+    const discovered: DiscoveredGalaxyFile[] = [];
+
+    for (const filePath of filePaths) {
+      this.throwIfAborted(signal);
+      const galaxyFile = await this.processGalaxyFile(
+        repo,
+        ref,
+        refType,
+        filePath,
+        signal,
+      );
+      if (galaxyFile) {
+        discovered.push(galaxyFile);
       }
     }
 
@@ -351,55 +430,92 @@ export abstract class BaseScmCrawler implements ScmCrawler {
       return [];
     }
 
-    const galaxyFiles: string[] = [];
-    const crawlerName = this.getCrawlerName();
-
     try {
       const contents = await this.getContents(repo, ref, path, signal);
-
-      if (path === '' && contents.length === 0) {
-        this.logger.warn(
-          `[${crawlerName}] Empty contents returned for ${repo.fullPath}@${ref} root directory`,
-        );
-      }
-
-      for (const entry of contents) {
-        if (signal?.aborted) {
-          throw new Error('SCM sync aborted, stopping directory crawl');
-        }
-        if (entry.type === 'file' && this.isGalaxyFile(entry.name)) {
-          this.logger.debug(
-            `[${crawlerName}] Found galaxy file: ${repo.fullPath}/${entry.path}@${ref}`,
-          );
-          galaxyFiles.push(entry.path);
-        } else if (entry.type === 'dir') {
-          if (this.shouldSkipDirectory(entry.name)) {
-            continue;
-          }
-          const subFiles = await this.crawlDirectory(
-            repo,
-            ref,
-            entry.path,
-            depth - 1,
-            signal,
-          );
-          galaxyFiles.push(...subFiles);
-        }
-      }
+      this.logEmptyRootDirectory(path, contents, repo, ref);
+      return this.processDirectoryContents(contents, repo, ref, depth, signal);
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      if (path === '') {
-        this.logger.warn(
-          `[${crawlerName}] Failed to fetch contents for ${repo.fullPath}@${ref}: ${errorMsg}`,
-        );
-      } else {
-        this.logger.debug(
-          `[${crawlerName}] Error crawling ${repo.fullPath}/${path}@${ref}: ${errorMsg}`,
-        );
-      }
+      this.logCrawlError(error, repo, ref, path);
+      return [];
+    }
+  }
+
+  private logEmptyRootDirectory(
+    path: string,
+    contents: Array<{ type: string; name: string; path: string }>,
+    repo: RepositoryInfo,
+    ref: string,
+  ): void {
+    if (path === '' && contents.length === 0) {
+      this.logger.warn(
+        `[${this.getCrawlerName()}] Empty contents returned for ${repo.fullPath}@${ref} root directory`,
+      );
+    }
+  }
+
+  private async processDirectoryContents(
+    contents: Array<{ type: string; name: string; path: string }>,
+    repo: RepositoryInfo,
+    ref: string,
+    depth: number,
+    signal?: AbortSignal,
+  ): Promise<string[]> {
+    const galaxyFiles: string[] = [];
+
+    for (const entry of contents) {
+      this.throwIfAborted(signal);
+      const files = await this.processDirectoryEntry(
+        entry,
+        repo,
+        ref,
+        depth,
+        signal,
+      );
+      galaxyFiles.push(...files);
     }
 
     return galaxyFiles;
+  }
+
+  private async processDirectoryEntry(
+    entry: { type: string; name: string; path: string },
+    repo: RepositoryInfo,
+    ref: string,
+    depth: number,
+    signal?: AbortSignal,
+  ): Promise<string[]> {
+    if (entry.type === 'file' && this.isGalaxyFile(entry.name)) {
+      this.logger.debug(
+        `[${this.getCrawlerName()}] Found galaxy file: ${repo.fullPath}/${entry.path}@${ref}`,
+      );
+      return [entry.path];
+    }
+
+    if (entry.type === 'dir' && !this.shouldSkipDirectory(entry.name)) {
+      return this.crawlDirectory(repo, ref, entry.path, depth - 1, signal);
+    }
+
+    return [];
+  }
+
+  private logCrawlError(
+    error: unknown,
+    repo: RepositoryInfo,
+    ref: string,
+    path: string,
+  ): void {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    const crawlerName = this.getCrawlerName();
+
+    if (path === '') {
+      this.logger.warn(
+        `[${crawlerName}] Failed to fetch contents for ${repo.fullPath}@${ref}: ${errorMsg}`,
+      );
+    } else {
+      this.logger.debug(
+        `[${crawlerName}] Error crawling ${repo.fullPath}/${path}@${ref}: ${errorMsg}`,
+      );
+    }
   }
 
   protected shouldSkipDirectory(name: string): boolean {
@@ -441,7 +557,7 @@ export abstract class BaseScmCrawler implements ScmCrawler {
         refType,
         path,
         content,
-        metadata: validation.data!,
+        metadata: validation.data,
       };
     } catch (error) {
       this.logger.warn(

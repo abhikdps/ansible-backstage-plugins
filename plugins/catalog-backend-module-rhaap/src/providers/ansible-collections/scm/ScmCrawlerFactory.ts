@@ -25,9 +25,9 @@ export class ScmCrawlerFactory {
       scmProvider,
       host,
       organization,
-      ...(sourceConfig.checkSSL !== undefined
-        ? { checkSSL: sourceConfig.checkSSL }
-        : {}),
+      ...(sourceConfig.checkSSL === undefined
+        ? {}
+        : { checkSSL: sourceConfig.checkSSL }),
     });
 
     if (scmProvider === 'github') {

@@ -31,6 +31,7 @@ import type {
   CollectionParserOptions,
   RepositoryParserOptions,
 } from './ansible-collections/utils';
+import type { AnsibleGitContentsSourceConfig, GalaxyMetadata } from './types';
 
 // Re export types and helpers for external use
 export type {
@@ -279,6 +280,80 @@ export const pahCollectionParser = (options: {
   };
 };
 
+function buildMetadataLinks(
+  metadata: GalaxyMetadata,
+): Array<{ url: string; title: string; icon?: string }> {
+  const linkConfigs: Array<{
+    url: string | undefined;
+    title: string;
+    icon: string;
+  }> = [
+    { url: metadata.repository, title: 'Repository', icon: 'github' },
+    { url: metadata.documentation, title: 'Documentation', icon: 'docs' },
+    { url: metadata.homepage, title: 'Homepage', icon: 'web' },
+    { url: metadata.issues, title: 'Issues', icon: 'bug' },
+  ];
+
+  return linkConfigs
+    .filter((config): config is { url: string; title: string; icon: string } =>
+      Boolean(config.url),
+    )
+    .map(({ url, title, icon }) => ({ url, title, icon }));
+}
+
+function buildReadmeUrl(
+  metadata: GalaxyMetadata,
+  sourceConfig: AnsibleGitContentsSourceConfig,
+  host: string,
+  repositoryFullPath: string,
+  ref: string,
+  galaxyFilePath: string,
+): string | undefined {
+  if (!metadata.readme) {
+    return undefined;
+  }
+
+  const directoryPath = getDirectoryFromPath(galaxyFilePath);
+  const readmePath = directoryPath
+    ? `${directoryPath}/${metadata.readme}`
+    : metadata.readme;
+
+  return buildFileUrl(
+    sourceConfig.scmProvider,
+    host,
+    repositoryFullPath,
+    ref,
+    readmePath,
+  );
+}
+
+function buildCollectionSpecExtras(
+  metadata: GalaxyMetadata,
+  readmeUrl: string | undefined,
+): Record<string, unknown> {
+  const extras: Record<string, unknown> = {};
+
+  if (metadata.tags && metadata.tags.length > 0) {
+    extras.collection_tags = metadata.tags;
+  }
+  if (metadata.dependencies && Object.keys(metadata.dependencies).length > 0) {
+    extras.collection_dependencies = metadata.dependencies;
+  }
+  if (metadata.authors && metadata.authors.length > 0) {
+    extras.collection_authors = metadata.authors;
+  }
+  if (metadata.license) {
+    extras.collection_license = Array.isArray(metadata.license)
+      ? metadata.license.join(', ')
+      : metadata.license;
+  }
+  if (readmeUrl) {
+    extras.collection_readme_url = readmeUrl;
+  }
+
+  return extras;
+}
+
 export function scmCollectionParser(options: CollectionParserOptions): Entity {
   const { galaxyFile, sourceConfig, sourceLocation } = options;
   const { metadata, repository, ref, refType, path } = galaxyFile;
@@ -300,36 +375,7 @@ export function scmCollectionParser(options: CollectionParserOptions): Entity {
     'ansible-collection',
   ];
 
-  const links: Array<{ url: string; title: string; icon?: string }> = [];
-
-  if (metadata.repository) {
-    links.push({
-      url: metadata.repository,
-      title: 'Repository',
-      icon: 'github',
-    });
-  }
-  if (metadata.documentation) {
-    links.push({
-      url: metadata.documentation,
-      title: 'Documentation',
-      icon: 'docs',
-    });
-  }
-  if (metadata.homepage) {
-    links.push({
-      url: metadata.homepage,
-      title: 'Homepage',
-      icon: 'web',
-    });
-  }
-  if (metadata.issues) {
-    links.push({
-      url: metadata.issues,
-      title: 'Issues',
-      icon: 'bug',
-    });
-  }
+  const links = buildMetadataLinks(metadata);
 
   const galaxyFileUrl = buildFileUrl(
     sourceConfig.scmProvider,
@@ -339,20 +385,14 @@ export function scmCollectionParser(options: CollectionParserOptions): Entity {
     path,
   );
 
-  let readmeUrl: string | undefined;
-  if (metadata.readme) {
-    const directoryPath = getDirectoryFromPath(path);
-    const readmePath = directoryPath
-      ? `${directoryPath}/${metadata.readme}`
-      : metadata.readme;
-    readmeUrl = buildFileUrl(
-      sourceConfig.scmProvider,
-      host,
-      repository.fullPath,
-      ref,
-      readmePath,
-    );
-  }
+  const readmeUrl = buildReadmeUrl(
+    metadata,
+    sourceConfig,
+    host,
+    repository.fullPath,
+    ref,
+    path,
+  );
 
   const title =
     metadata.version && metadata.version !== 'N/A'
@@ -393,29 +433,11 @@ export function scmCollectionParser(options: CollectionParserOptions): Entity {
       owner: metadata.namespace,
       system: `${metadata.namespace}-collections`,
       subcomponentOf: `component:default/${generateRepositoryEntityName(repository, sourceConfig)}`,
-
       collection_namespace: metadata.namespace,
       collection_name: metadata.name,
       collection_version: metadata.version,
       collection_full_name: `${metadata.namespace}.${metadata.name}`,
-      ...(metadata.tags &&
-        metadata.tags.length > 0 && {
-          collection_tags: metadata.tags,
-        }),
-      ...(metadata.dependencies &&
-        Object.keys(metadata.dependencies).length > 0 && {
-          collection_dependencies: metadata.dependencies,
-        }),
-      ...(metadata.authors &&
-        metadata.authors.length > 0 && {
-          collection_authors: metadata.authors,
-        }),
-      ...(metadata.license && {
-        collection_license: Array.isArray(metadata.license)
-          ? metadata.license.join(', ')
-          : metadata.license,
-      }),
-      ...(readmeUrl && { collection_readme_url: readmeUrl }),
+      ...buildCollectionSpecExtras(metadata, readmeUrl),
     },
   };
 

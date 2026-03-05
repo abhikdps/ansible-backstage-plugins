@@ -81,11 +81,9 @@ export const galaxySchema = z.object({
 
 export type GalaxySchemaType = z.infer<typeof galaxySchema>;
 
-export interface GalaxyValidationResult {
-  success: boolean;
-  data?: GalaxyMetadata;
-  errors?: string[];
-}
+export type GalaxyValidationResult =
+  | { success: true; data: GalaxyMetadata }
+  | { success: false; errors: string[] };
 
 export function validateGalaxyContent(
   content: unknown,
