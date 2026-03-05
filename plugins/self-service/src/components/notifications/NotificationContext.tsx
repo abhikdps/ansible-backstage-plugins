@@ -45,15 +45,28 @@ export const NotificationProvider = ({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const autoHideTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
-  const startExitAnimation = useCallback((id: string) => {
-    setNotifications(prev =>
-      prev.map(n => (n.id === id ? { ...n, isExiting: true } : n)),
-    );
-
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== id));
-    }, EXIT_ANIMATION_DURATION);
+  const removeNotificationById = useCallback((id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
   }, []);
+
+  const removeNotificationsByCategories = useCallback(
+    (categories: string[]) => {
+      setNotifications(prev =>
+        prev.filter(n => !n.category || !categories.includes(n.category)),
+      );
+    },
+    [],
+  );
+
+  const startExitAnimation = useCallback(
+    (id: string) => {
+      setNotifications(prev =>
+        prev.map(n => (n.id === id ? { ...n, isExiting: true } : n)),
+      );
+      setTimeout(() => removeNotificationById(id), EXIT_ANIMATION_DURATION);
+    },
+    [removeNotificationById],
+  );
 
   const showNotification = useCallback(
     (options: ShowNotificationOptions): string => {
@@ -77,12 +90,16 @@ export const NotificationProvider = ({
         isExiting: false,
       };
 
+      const categoriesToDismiss = options.dismissCategories ?? [];
+      const hasDismissCategories = categoriesToDismiss.length > 0;
+
       setNotifications(prev => {
-        if (options.dismissCategories && options.dismissCategories.length > 0) {
+        if (hasDismissCategories) {
           prev
             .filter(
               n =>
-                options.dismissCategories!.includes(n.category!) &&
+                n.category &&
+                categoriesToDismiss.includes(n.category) &&
                 !n.isExiting,
             )
             .forEach(n => {
@@ -94,24 +111,24 @@ export const NotificationProvider = ({
             });
         }
 
-        const updated =
-          options.dismissCategories && options.dismissCategories.length > 0
-            ? prev.map(n =>
-                options.dismissCategories!.includes(n.category!) && !n.isExiting
-                  ? { ...n, isExiting: true }
-                  : n,
-              )
-            : prev;
+        const updated = hasDismissCategories
+          ? prev.map(n =>
+              n.category &&
+              categoriesToDismiss.includes(n.category) &&
+              !n.isExiting
+                ? { ...n, isExiting: true }
+                : n,
+            )
+          : prev;
 
         return [...updated, newNotification];
       });
 
-      if (options.dismissCategories && options.dismissCategories.length > 0) {
-        setTimeout(() => {
-          setNotifications(prev =>
-            prev.filter(n => !options.dismissCategories!.includes(n.category!)),
-          );
-        }, EXIT_ANIMATION_DURATION);
+      if (hasDismissCategories) {
+        setTimeout(
+          () => removeNotificationsByCategories(categoriesToDismiss),
+          EXIT_ANIMATION_DURATION,
+        );
       }
 
       if (autoHideDuration > 0) {
@@ -124,7 +141,7 @@ export const NotificationProvider = ({
 
       return id;
     },
-    [startExitAnimation],
+    [startExitAnimation, removeNotificationsByCategories],
   );
 
   const removeNotification = useCallback(

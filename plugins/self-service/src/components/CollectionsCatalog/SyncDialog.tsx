@@ -72,6 +72,12 @@ export const SyncDialog = ({
 
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
+  const getHostKeysFromTree = (tree: SourcesTree): string[] => {
+    return Object.keys(tree).flatMap(provider =>
+      Object.keys(tree[provider] || {}).map(host => `${provider}:${host}`),
+    );
+  };
+
   const buildSourcesTreeFromProviders = (
     rawProviders: Array<{
       repository?: string;
@@ -133,15 +139,8 @@ export const SyncDialog = ({
         const builtTree = buildSourcesTreeFromProviders(rawProviders);
         setSourcesTree(builtTree);
 
-        const providerKeys = Object.keys(builtTree);
-        setExpandedProviders(new Set(providerKeys));
-        const hosts = new Set<string>();
-        providerKeys.forEach(provider => {
-          Object.keys(builtTree[provider] || {}).forEach(host => {
-            hosts.add(`${provider}:${host}`);
-          });
-        });
-        setExpandedHosts(hosts);
+        setExpandedProviders(new Set(Object.keys(builtTree)));
+        setExpandedHosts(new Set(getHostKeysFromTree(builtTree)));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load sources');
       } finally {
@@ -179,43 +178,49 @@ export const SyncDialog = ({
 
   const isSelected = (key: string) => selectedItems.has(key);
 
+  const getProviderChildKeys = (provider: string): string[] => {
+    const keys: string[] = [];
+    const hosts = Object.keys(sourcesTree[provider] || {});
+    for (const host of hosts) {
+      keys.push(`${provider}:${host}`);
+      const orgs = sourcesTree[provider][host] || [];
+      for (const org of orgs) {
+        keys.push(`${provider}:${host}:${org}`);
+      }
+    }
+    return keys;
+  };
+
+  const getHostChildKeys = (provider: string, host: string): string[] => {
+    const orgs = sourcesTree[provider]?.[host] || [];
+    return orgs.map(org => `${provider}:${host}:${org}`);
+  };
+
+  const getChildKeysForLevel = (
+    level: 'provider' | 'host' | 'org',
+    parts: string[],
+  ): string[] => {
+    if (level === 'provider') {
+      return getProviderChildKeys(parts[0]);
+    }
+    if (level === 'host') {
+      return getHostChildKeys(parts[0], parts[1]);
+    }
+    return [];
+  };
+
   const toggleSelection = (key: string, level: 'provider' | 'host' | 'org') => {
     setSelectedItems(prev => {
       const next = new Set(prev);
       const parts = key.split(':');
+      const childKeys = getChildKeysForLevel(level, parts);
 
       if (next.has(key)) {
         next.delete(key);
-        if (level === 'provider') {
-          const provider = parts[0];
-          Object.keys(sourcesTree[provider] || {}).forEach(host => {
-            next.delete(`${provider}:${host}`);
-            (sourcesTree[provider][host] || []).forEach(org => {
-              next.delete(`${provider}:${host}:${org}`);
-            });
-          });
-        } else if (level === 'host') {
-          const [provider, host] = parts;
-          (sourcesTree[provider]?.[host] || []).forEach(org => {
-            next.delete(`${provider}:${host}:${org}`);
-          });
-        }
+        childKeys.forEach(k => next.delete(k));
       } else {
         next.add(key);
-        if (level === 'provider') {
-          const provider = parts[0];
-          Object.keys(sourcesTree[provider] || {}).forEach(host => {
-            next.add(`${provider}:${host}`);
-            (sourcesTree[provider][host] || []).forEach(org => {
-              next.add(`${provider}:${host}:${org}`);
-            });
-          });
-        } else if (level === 'host') {
-          const [provider, host] = parts;
-          (sourcesTree[provider]?.[host] || []).forEach(org => {
-            next.add(`${provider}:${host}:${org}`);
-          });
-        }
+        childKeys.forEach(k => next.add(k));
       }
 
       return next;
@@ -284,101 +289,110 @@ export const SyncDialog = ({
   };
 
   const selectAll = () => {
-    const all = new Set<string>();
-    Object.keys(sourcesTree).forEach(provider => {
-      all.add(provider);
-      Object.keys(sourcesTree[provider]).forEach(host => {
-        all.add(`${provider}:${host}`);
-        const orgs = sourcesTree[provider][host];
-        if (orgs.length > 0) {
-          orgs.forEach(org => {
-            all.add(`${provider}:${host}:${org}`);
-          });
-        }
-      });
-    });
-    setSelectedItems(all);
+    const providerKeys = Object.keys(sourcesTree);
+    const allKeys = providerKeys.flatMap(provider => [
+      provider,
+      ...getProviderChildKeys(provider),
+    ]);
+    setSelectedItems(new Set(allKeys));
   };
 
   const deselectAll = () => {
     setSelectedItems(new Set());
   };
 
-  const buildFilters = (): SyncFilter[] => {
-    const filters: SyncFilter[] = [];
-    const processedProviders = new Set<string>();
-    const processedHosts = new Set<string>();
+  const isHostFullySelected = (provider: string, host: string): boolean => {
+    const orgs = sourcesTree[provider][host];
+    if (orgs.length === 0) {
+      return selectedItems.has(`${provider}:${host}`);
+    }
+    return orgs.every(org => selectedItems.has(`${provider}:${host}:${org}`));
+  };
 
-    Object.keys(sourcesTree).forEach(provider => {
-      if (selectedItems.has(provider)) {
-        const allHostsSelected = Object.keys(sourcesTree[provider]).every(
-          host => {
-            const orgs = sourcesTree[provider][host];
-            if (orgs.length === 0) {
-              return selectedItems.has(`${provider}:${host}`);
-            }
-            return orgs.every(org =>
-              selectedItems.has(`${provider}:${host}:${org}`),
-            );
-          },
-        );
-        if (allHostsSelected) {
-          filters.push({ scmProvider: provider });
-          processedProviders.add(provider);
+  const isProviderFullySelected = (provider: string): boolean => {
+    return Object.keys(sourcesTree[provider]).every(host =>
+      isHostFullySelected(provider, host),
+    );
+  };
+
+  const collectProviderFilters = (): {
+    filters: SyncFilter[];
+    processed: Set<string>;
+  } => {
+    const filters: SyncFilter[] = [];
+    const processed = new Set<string>();
+    for (const provider of Object.keys(sourcesTree)) {
+      if (selectedItems.has(provider) && isProviderFullySelected(provider)) {
+        filters.push({ scmProvider: provider });
+        processed.add(provider);
+      }
+    }
+    return { filters, processed };
+  };
+
+  const collectHostFilters = (
+    processedProviders: Set<string>,
+  ): { filters: SyncFilter[]; processed: Set<string> } => {
+    const filters: SyncFilter[] = [];
+    const processed = new Set<string>();
+
+    for (const provider of Object.keys(sourcesTree)) {
+      if (processedProviders.has(provider)) continue;
+      for (const host of Object.keys(sourcesTree[provider])) {
+        const hostKey = `${provider}:${host}`;
+        const orgs = sourcesTree[provider][host];
+
+        if (orgs.length === 0 && selectedItems.has(hostKey)) {
+          filters.push({
+            scmProvider: provider,
+            hostName: host,
+            organization: host,
+          });
+          processed.add(hostKey);
+        } else if (
+          selectedItems.has(hostKey) &&
+          isHostFullySelected(provider, host)
+        ) {
+          filters.push({ scmProvider: provider, hostName: host });
+          processed.add(hostKey);
         }
       }
-    });
+    }
+    return { filters, processed };
+  };
 
-    Object.keys(sourcesTree).forEach(provider => {
-      if (processedProviders.has(provider)) return;
-      Object.keys(sourcesTree[provider]).forEach(host => {
+  const collectOrgFilters = (
+    processedProviders: Set<string>,
+    processedHosts: Set<string>,
+  ): SyncFilter[] => {
+    const filters: SyncFilter[] = [];
+    for (const provider of Object.keys(sourcesTree)) {
+      if (processedProviders.has(provider)) continue;
+      for (const host of Object.keys(sourcesTree[provider])) {
         const hostKey = `${provider}:${host}`;
-        const orgs = sourcesTree[provider][host];
-
-        if (orgs.length === 0) {
-          if (selectedItems.has(hostKey)) {
-            filters.push({
-              scmProvider: provider,
-              hostName: host,
-              organization: host,
-            });
-            processedHosts.add(hostKey);
-          }
-          return;
-        }
-
-        if (selectedItems.has(hostKey)) {
-          const allOrgsSelected = orgs.every(org =>
-            selectedItems.has(`${provider}:${host}:${org}`),
-          );
-          if (allOrgsSelected) {
-            filters.push({ scmProvider: provider, hostName: host });
-            processedHosts.add(hostKey);
-          }
-        }
-      });
-    });
-
-    Object.keys(sourcesTree).forEach(provider => {
-      if (processedProviders.has(provider)) return;
-      Object.keys(sourcesTree[provider]).forEach(host => {
-        const hostKey = `${provider}:${host}`;
-        if (processedHosts.has(hostKey)) return;
-        const orgs = sourcesTree[provider][host];
-        orgs.forEach(org => {
-          const orgKey = `${provider}:${host}:${org}`;
-          if (selectedItems.has(orgKey)) {
+        if (processedHosts.has(hostKey)) continue;
+        for (const org of sourcesTree[provider][host]) {
+          if (selectedItems.has(`${provider}:${host}:${org}`)) {
             filters.push({
               scmProvider: provider,
               hostName: host,
               organization: org,
             });
           }
-        });
-      });
-    });
-
+        }
+      }
+    }
     return filters;
+  };
+
+  const buildFilters = (): SyncFilter[] => {
+    const { filters: providerFilters, processed: processedProviders } =
+      collectProviderFilters();
+    const { filters: hostFilters, processed: processedHosts } =
+      collectHostFilters(processedProviders);
+    const orgFilters = collectOrgFilters(processedProviders, processedHosts);
+
+    return [...providerFilters, ...hostFilters, ...orgFilters];
   };
 
   const handleClose = () => {
@@ -387,30 +401,40 @@ export const SyncDialog = ({
     onClose();
   };
 
+  const getHostDisplayName = (provider: string, host: string): string => {
+    return provider === 'pah' ? `PAH/${host}` : host;
+  };
+
+  const collectSelectedNamesForHost = (
+    provider: string,
+    host: string,
+  ): string[] => {
+    const orgs = sourcesTree[provider][host];
+    const names: string[] = [];
+
+    if (orgs.length === 0) {
+      const hostKey = `${provider}:${host}`;
+      if (selectedItems.has(hostKey)) {
+        names.push(getHostDisplayName(provider, host));
+      }
+      return names;
+    }
+
+    for (const org of orgs) {
+      if (selectedItems.has(`${provider}:${host}:${org}`)) {
+        names.push(`${host}/${org}`);
+      }
+    }
+    return names;
+  };
+
   const getSelectedSourceNames = (): string[] => {
     const sourceNames: string[] = [];
-
-    Object.keys(sourcesTree).forEach(provider => {
-      Object.keys(sourcesTree[provider]).forEach(host => {
-        const orgs = sourcesTree[provider][host];
-
-        if (orgs.length === 0) {
-          const hostKey = `${provider}:${host}`;
-          if (selectedItems.has(hostKey)) {
-            sourceNames.push(provider === 'pah' ? `PAH/${host}` : host);
-          }
-          return;
-        }
-
-        orgs.forEach(org => {
-          const orgKey = `${provider}:${host}:${org}`;
-          if (selectedItems.has(orgKey)) {
-            sourceNames.push(`${host}/${org}`);
-          }
-        });
-      });
-    });
-
+    for (const provider of Object.keys(sourcesTree)) {
+      for (const host of Object.keys(sourcesTree[provider])) {
+        sourceNames.push(...collectSelectedNamesForHost(provider, host));
+      }
+    }
     return sourceNames;
   };
 

@@ -134,7 +134,7 @@ export const CollectionAboutCard = ({
         <Box className={classes.aboutCardSection}>
           <Typography className={classes.aboutCardLabel}>Version</Typography>
           <Typography className={classes.aboutCardValue}>
-            {version !== 'N/A' ? `v${version}` : 'N/A'}
+            {version === 'N/A' ? 'N/A' : `v${version}`}
           </Typography>
         </Box>
 

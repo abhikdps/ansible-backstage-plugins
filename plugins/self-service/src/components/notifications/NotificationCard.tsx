@@ -269,8 +269,8 @@ export const NotificationCard = ({
           {hasExpandableContent && (
             <Collapse in={expanded} timeout="auto">
               <ul className={classes.itemsList}>
-                {notification.items!.map((item, index) => (
-                  <li key={index} className={classes.listItem}>
+                {notification.items?.map(item => (
+                  <li key={item} className={classes.listItem}>
                     {item}
                   </li>
                 ))}
