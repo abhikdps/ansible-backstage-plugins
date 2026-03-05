@@ -132,14 +132,15 @@ describe('galaxySchema', () => {
     it('should return success for valid content', () => {
       const result = validateGalaxyContent(validContent);
       expect(result.success).toBe(true);
-      expect(result.data).toBeDefined();
-      expect(result.errors).toBeUndefined();
+      const successResult = result as { success: true; data: unknown };
+      expect(successResult.data).toBeDefined();
     });
 
     it('should return error for null content', () => {
       const result = validateGalaxyContent(null);
       expect(result.success).toBe(false);
-      expect(result.errors).toContain(
+      const errorResult = result as { success: false; errors: string[] };
+      expect(errorResult.errors).toContain(
         'galaxy.yml content is empty or not a valid object',
       );
     });
@@ -147,7 +148,8 @@ describe('galaxySchema', () => {
     it('should return error for undefined content', () => {
       const result = validateGalaxyContent(undefined);
       expect(result.success).toBe(false);
-      expect(result.errors).toContain(
+      const errorResult = result as { success: false; errors: string[] };
+      expect(errorResult.errors).toContain(
         'galaxy.yml content is empty or not a valid object',
       );
     });
@@ -155,7 +157,8 @@ describe('galaxySchema', () => {
     it('should return error for non-object content', () => {
       const result = validateGalaxyContent('string content');
       expect(result.success).toBe(false);
-      expect(result.errors).toContain(
+      const errorResult = result as { success: false; errors: string[] };
+      expect(errorResult.errors).toContain(
         'galaxy.yml content is empty or not a valid object',
       );
     });
@@ -163,22 +166,25 @@ describe('galaxySchema', () => {
     it('should return error for empty object', () => {
       const result = validateGalaxyContent({});
       expect(result.success).toBe(false);
-      expect(result.errors).toContain('galaxy.yml content is empty');
+      const errorResult = result as { success: false; errors: string[] };
+      expect(errorResult.errors).toContain('galaxy.yml content is empty');
     });
 
     it('should return validation errors with paths', () => {
       const content = { namespace: '', name: 'posix', version: '1.0.0' };
       const result = validateGalaxyContent(content);
       expect(result.success).toBe(false);
-      expect(result.errors).toBeDefined();
-      expect(result.errors?.some(e => e.includes('namespace'))).toBe(true);
+      const errorResult = result as { success: false; errors: string[] };
+      expect(errorResult.errors).toBeDefined();
+      expect(errorResult.errors.some(e => e.includes('namespace'))).toBe(true);
     });
 
     it('should return multiple errors for multiple invalid fields', () => {
       const content = { namespace: '123', name: '456' };
       const result = validateGalaxyContent(content);
       expect(result.success).toBe(false);
-      expect(result.errors?.length).toBeGreaterThan(1);
+      const errorResult = result as { success: false; errors: string[] };
+      expect(errorResult.errors.length).toBeGreaterThan(1);
     });
   });
 
