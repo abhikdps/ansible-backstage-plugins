@@ -3,6 +3,7 @@ import type { Config } from '@backstage/config';
 
 import type {
   AapConfig,
+  PAHRepositoryConfig,
   AnsibleGitContentsSourceConfig,
   ScmProvider,
 } from './types';
@@ -77,6 +78,25 @@ function readAapApiEntityConfig(
     }
   }
 
+  let pahRepositories: PAHRepositoryConfig[] = [];
+  if (syncEntity === 'pahCollections') {
+    if (catalogConfig.has(`sync.${syncEntity}.repositories`)) {
+      const entries =
+        catalogConfig.getOptionalConfigArray(
+          `sync.${syncEntity}.repositories`,
+        ) ?? [];
+      pahRepositories = entries.map(entry => ({
+        name: entry.getString('name'),
+        // Use repository-specific schedule if provided, otherwise fall back to top-level schedule
+        schedule: entry.has('schedule')
+          ? readSchedulerServiceTaskScheduleDefinitionFromConfig(
+              entry.getConfig('schedule'),
+            )
+          : schedule,
+      }));
+    }
+  }
+
   return {
     id,
     baseUrl,
@@ -87,6 +107,7 @@ function readAapApiEntityConfig(
     surveyEnabled,
     jobTemplateLabels,
     jobTemplateExcludeLabels,
+    pahRepositories,
   };
 }
 

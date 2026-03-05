@@ -5,6 +5,11 @@ import type {
   DirectoryEntry as CommonDirectoryEntry,
 } from '@ansible/backstage-rhaap-common';
 
+export type PAHRepositoryConfig = {
+  name: string;
+  schedule: SchedulerServiceTaskScheduleDefinition | undefined;
+};
+
 export type AapConfig = {
   id: string;
   baseUrl: string;
@@ -15,6 +20,8 @@ export type AapConfig = {
   surveyEnabled?: boolean | undefined;
   jobTemplateLabels?: string[];
   jobTemplateExcludeLabels?: string[];
+  /** When set, this config is for a PAH collection sync for the given repository name. */
+  pahRepositories?: PAHRepositoryConfig[];
 };
 
 export type ScmProvider = CommonScmProvider;
