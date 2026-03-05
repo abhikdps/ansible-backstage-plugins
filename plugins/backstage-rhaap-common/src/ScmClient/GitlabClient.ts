@@ -1,29 +1,50 @@
+import { fetch as undiciFetch, Agent } from 'undici';
 import { BaseScmClient, ScmClientOptions } from './ScmClient';
 import type { RepositoryInfo, DirectoryEntry, UrlBuildOptions } from './types';
 
 export class GitlabClient extends BaseScmClient {
   private readonly apiUrl: string;
+  private readonly checkSSL: boolean;
 
   constructor(options: ScmClientOptions) {
     super(options);
-    this.apiUrl = `https://${this.host}/api/v4`;
+    this.apiUrl =
+      options.config.apiBaseUrl?.replace(/\/$/, '') ??
+      `https://${this.host}/api/v4`;
+    this.checkSSL = options.config.checkSSL !== false;
   }
 
   protected getDefaultHost(): string {
     return 'gitlab.com';
   }
 
+  private getFetchOptions(accept = 'application/json'): RequestInit & {
+    dispatcher?: Agent;
+  } {
+    const headers: Record<string, string> = {
+      'PRIVATE-TOKEN': this.config.token,
+      Accept: accept,
+    };
+    if (!this.checkSSL) {
+      return {
+        headers,
+        dispatcher: new Agent({
+          connect: { rejectUnauthorized: false },
+        }),
+      };
+    }
+    return { headers };
+  }
+
   private async fetchRest<T>(
     endpoint: string,
     signal?: AbortSignal,
   ): Promise<T> {
-    const response = await fetch(`${this.apiUrl}${endpoint}`, {
-      signal,
-      headers: {
-        'PRIVATE-TOKEN': this.config.token,
-        Accept: 'application/json',
-      },
-    });
+    const url = `${this.apiUrl}${endpoint}`;
+    const opts = { ...this.getFetchOptions(), signal };
+    const response = this.checkSSL
+      ? await fetch(url, opts)
+      : await undiciFetch(url, opts as Parameters<typeof undiciFetch>[1]);
 
     if (!response.ok) {
       const error = await response.text();
@@ -37,12 +58,11 @@ export class GitlabClient extends BaseScmClient {
     endpoint: string,
     signal?: AbortSignal,
   ): Promise<string> {
-    const response = await fetch(`${this.apiUrl}${endpoint}`, {
-      signal,
-      headers: {
-        'PRIVATE-TOKEN': this.config.token,
-      },
-    });
+    const url = `${this.apiUrl}${endpoint}`;
+    const opts = { ...this.getFetchOptions('*/*'), signal };
+    const response = this.checkSSL
+      ? await fetch(url, opts)
+      : await undiciFetch(url, opts as Parameters<typeof undiciFetch>[1]);
 
     if (!response.ok) {
       throw new Error(
@@ -51,6 +71,42 @@ export class GitlabClient extends BaseScmClient {
     }
 
     return response.text();
+  }
+
+  private projectToRepositoryInfo(project: {
+    name: string;
+    path_with_namespace: string;
+    default_branch: string;
+    web_url: string;
+    description: string | null;
+  }): RepositoryInfo {
+    return {
+      name: project.name,
+      fullPath: project.path_with_namespace,
+      defaultBranch: project.default_branch || 'main',
+      url: project.web_url,
+      description: project.description || undefined,
+    };
+  }
+
+  private shouldIncludeProject(project: {
+    archived: boolean;
+    empty_repo: boolean;
+    path_with_namespace: string;
+  }): boolean {
+    if (project.archived) {
+      this.logger.debug(
+        `[GitlabClient] Skipping archived project: ${project.path_with_namespace}`,
+      );
+      return false;
+    }
+    if (project.empty_repo) {
+      this.logger.debug(
+        `[GitlabClient] Skipping empty project: ${project.path_with_namespace}`,
+      );
+      return false;
+    }
+    return true;
   }
 
   async getRepositories(signal?: AbortSignal): Promise<RepositoryInfo[]> {
@@ -85,29 +141,8 @@ export class GitlabClient extends BaseScmClient {
         const data = await this.fetchRest<ProjectResponse[]>(endpoint, signal);
 
         for (const project of data) {
-          // skip archived repos
-          if (project.archived) {
-            this.logger.debug(
-              `[GitlabClient] Skipping archived project: ${project.path_with_namespace}`,
-            );
-            continue;
-          }
-
-          // skip empty repos
-          if (project.empty_repo) {
-            this.logger.debug(
-              `[GitlabClient] Skipping empty project: ${project.path_with_namespace}`,
-            );
-            continue;
-          }
-
-          repos.push({
-            name: project.name,
-            fullPath: project.path_with_namespace,
-            defaultBranch: project.default_branch || 'main',
-            url: project.web_url,
-            description: project.description || undefined,
-          });
+          if (!this.shouldIncludeProject(project)) continue;
+          repos.push(this.projectToRepositoryInfo(project));
         }
 
         if (data.length < perPage) {
@@ -240,11 +275,13 @@ export class GitlabClient extends BaseScmClient {
         }
 
         allEntries.push(
-          ...data.map(item => ({
-            name: item.name,
-            path: item.path,
-            type: (item.type === 'tree' ? 'dir' : 'file') as 'dir' | 'file',
-          })),
+          ...data.map(
+            (item): DirectoryEntry => ({
+              name: item.name,
+              path: item.path,
+              type: item.type === 'tree' ? 'dir' : 'file',
+            }),
+          ),
         );
 
         if (data.length < perPage) {

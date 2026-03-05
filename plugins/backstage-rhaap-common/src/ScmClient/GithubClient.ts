@@ -1,3 +1,4 @@
+import { fetch as undiciFetch, Agent } from 'undici';
 import { BaseScmClient, ScmClientOptions } from './ScmClient';
 import type { RepositoryInfo, DirectoryEntry, UrlBuildOptions } from './types';
 
@@ -10,21 +11,60 @@ import type { RepositoryInfo, DirectoryEntry, UrlBuildOptions } from './types';
 export class GithubClient extends BaseScmClient {
   private readonly apiUrl: string;
   private readonly graphqlUrl: string;
+  private readonly checkSSL: boolean;
 
   constructor(options: ScmClientOptions) {
     super(options);
-    this.apiUrl =
-      this.host === 'github.com'
-        ? 'https://api.github.com'
-        : `https://${this.host}/api/v3`;
-    this.graphqlUrl =
-      this.host === 'github.com'
-        ? 'https://api.github.com/graphql'
-        : `https://${this.host}/api/graphql`;
+    const base = options.config.apiBaseUrl?.replace(/\/$/, '');
+    if (base) {
+      this.apiUrl = base;
+      this.graphqlUrl = `${base.replace(/\/v3\/?$/, '')}/graphql`;
+    } else {
+      this.apiUrl =
+        this.host === 'github.com'
+          ? 'https://api.github.com'
+          : `https://${this.host}/api/v3`;
+      this.graphqlUrl =
+        this.host === 'github.com'
+          ? 'https://api.github.com/graphql'
+          : `https://${this.host}/api/graphql`;
+    }
+    this.checkSSL = options.config.checkSSL !== false;
   }
 
   protected getDefaultHost(): string {
     return 'github.com';
+  }
+
+  private getFetchOptions(init?: RequestInit): RequestInit & {
+    dispatcher?: Agent;
+  } {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${this.config.token}`,
+      Accept: 'application/vnd.github.v3+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      ...(init?.headers as Record<string, string>),
+    };
+    if (!this.checkSSL) {
+      return {
+        ...init,
+        headers,
+        dispatcher: new Agent({
+          connect: { rejectUnauthorized: false },
+        }),
+      };
+    }
+    return { ...init, headers };
+  }
+
+  private async doFetch(url: string, init?: RequestInit): Promise<Response> {
+    const opts = this.getFetchOptions(init);
+    return this.checkSSL
+      ? fetch(url, opts)
+      : (undiciFetch(
+          url,
+          opts as Parameters<typeof undiciFetch>[1],
+        ) as unknown as Promise<Response>);
   }
 
   // fetch data from github REST API
@@ -32,13 +72,8 @@ export class GithubClient extends BaseScmClient {
     endpoint: string,
     signal?: AbortSignal,
   ): Promise<T> {
-    const response = await fetch(`${this.apiUrl}${endpoint}`, {
+    const response = await this.doFetch(`${this.apiUrl}${endpoint}`, {
       signal,
-      headers: {
-        Authorization: `Bearer ${this.config.token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-      },
     });
 
     if (!response.ok) {
@@ -49,17 +84,15 @@ export class GithubClient extends BaseScmClient {
     return response.json() as Promise<T>;
   }
 
-  // fetc data from github GraphQL API
   private async fetchGraphQL<T>(
     query: string,
     variables: Record<string, unknown>,
     signal?: AbortSignal,
   ): Promise<T> {
-    const response = await fetch(this.graphqlUrl, {
+    const response = await this.doFetch(this.graphqlUrl, {
       signal,
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${this.config.token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ query, variables }),
@@ -80,7 +113,11 @@ export class GithubClient extends BaseScmClient {
       );
     }
 
-    return result.data as T;
+    if (result.data === undefined) {
+      throw new Error('GitHub GraphQL response missing data');
+    }
+
+    return result.data;
   }
 
   async getRepositories(signal?: AbortSignal): Promise<RepositoryInfo[]> {
@@ -277,19 +314,15 @@ export class GithubClient extends BaseScmClient {
     path: string,
     signal?: AbortSignal,
   ): Promise<string> {
-    const response = await fetch(
-      `${this.apiUrl}/repos/${repo.fullPath}/contents/${encodeURIComponent(
-        path,
-      )}?ref=${encodeURIComponent(ref)}`,
-      {
-        signal,
-        headers: {
-          Authorization: `Bearer ${this.config.token}`,
-          Accept: 'application/vnd.github.v3.raw',
-          'X-GitHub-Api-Version': '2022-11-28',
-        },
+    const url = `${this.apiUrl}/repos/${repo.fullPath}/contents/${encodeURIComponent(
+      path,
+    )}?ref=${encodeURIComponent(ref)}`;
+    const response = await this.doFetch(url, {
+      signal,
+      headers: {
+        Accept: 'application/vnd.github.v3.raw',
       },
-    );
+    });
 
     if (!response.ok) {
       throw new Error(
