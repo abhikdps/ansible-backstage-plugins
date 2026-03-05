@@ -1,10 +1,16 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
+import * as undici from 'undici';
 import { GitlabClient } from './GitlabClient';
 import type { RepositoryInfo, ScmClientConfig } from './types';
 
 // Mock global fetch
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
+
+jest.mock('undici', () => ({
+  ...jest.requireActual('undici'),
+  fetch: jest.fn(),
+}));
 
 describe('GitlabClient', () => {
   let client: GitlabClient;
@@ -52,6 +58,36 @@ describe('GitlabClient', () => {
       };
       const glClient = new GitlabClient({ config, logger: mockLogger });
       expect(glClient.getHost()).toBe('gitlab.enterprise.com');
+    });
+  });
+
+  describe('getFetchOptions (checkSSL: false)', () => {
+    it('should return headers and dispatcher when checkSSL is false', async () => {
+      const config: ScmClientConfig = {
+        scmProvider: 'gitlab',
+        host: 'gitlab.com',
+        organization: 'test-group',
+        token: 'test-token',
+        checkSSL: false,
+      };
+      const glClient = new GitlabClient({ config, logger: mockLogger });
+      (undici.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve([]),
+      });
+
+      await glClient.getRepositories();
+
+      expect(undici.fetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'PRIVATE-TOKEN': 'test-token',
+            Accept: 'application/json',
+          }),
+          dispatcher: expect.anything(),
+        }),
+      );
     });
   });
 

@@ -14,6 +14,7 @@ export interface CreateScmClientOptions {
   scmProvider: ScmProvider;
   host?: string;
   organization: string;
+  checkSSL?: boolean;
 }
 
 export class ScmClientFactory {
@@ -26,40 +27,44 @@ export class ScmClientFactory {
   }
 
   async createClient(options: CreateScmClientOptions): Promise<ScmClient> {
-    const { scmProvider, host, organization } = options;
+    const { scmProvider, host, organization, checkSSL } = options;
 
     const resolvedHost =
       host || (scmProvider === 'github' ? 'github.com' : 'gitlab.com');
 
-    const token = this.getToken(scmProvider, resolvedHost);
-
-    const config = {
-      scmProvider,
-      host: resolvedHost,
-      organization,
-      token,
-    };
-
     if (scmProvider === 'github') {
+      const { token, apiBaseUrl } = this.getGithubConfig(resolvedHost);
+      const config = {
+        scmProvider,
+        host: resolvedHost,
+        organization,
+        token,
+        apiBaseUrl,
+        checkSSL,
+      };
       return new GithubClient({ config, logger: this.logger });
-    } else if (scmProvider === 'gitlab') {
+    }
+
+    if (scmProvider === 'gitlab') {
+      const { token, apiBaseUrl } = this.getGitlabConfig(resolvedHost);
+      const config = {
+        scmProvider,
+        host: resolvedHost,
+        organization,
+        token,
+        apiBaseUrl,
+        checkSSL,
+      };
       return new GitlabClient({ config, logger: this.logger });
     }
 
     throw new Error(`Unsupported SCM provider: ${scmProvider}`);
   }
 
-  private getToken(scmProvider: ScmProvider, host: string): string {
-    if (scmProvider === 'github') {
-      return this.getGithubToken(host);
-    } else if (scmProvider === 'gitlab') {
-      return this.getGitlabToken(host);
-    }
-    throw new Error(`Unsupported SCM provider: ${scmProvider}`);
-  }
-
-  // github token from integrations based on host
-  private getGithubToken(host: string): string {
+  private getGithubConfig(host: string): {
+    token: string;
+    apiBaseUrl?: string;
+  } {
     const integration = this.integrations.github.byHost(host);
     if (!integration) {
       throw new Error(
@@ -81,11 +86,16 @@ export class ScmClientFactory {
     this.logger.debug(
       `[ScmClientFactory] Using GitHub integration for host: ${host}`,
     );
-    return token;
+    return {
+      token,
+      apiBaseUrl: config.apiBaseUrl,
+    };
   }
 
-  // gitlab token from integrations based on host
-  private getGitlabToken(host: string): string {
+  private getGitlabConfig(host: string): {
+    token: string;
+    apiBaseUrl?: string;
+  } {
     const integration = this.integrations.gitlab.byHost(host);
     if (!integration) {
       throw new Error(
@@ -107,6 +117,9 @@ export class ScmClientFactory {
     this.logger.debug(
       `[ScmClientFactory] Using GitLab integration for host: ${host}`,
     );
-    return token;
+    return {
+      token,
+      apiBaseUrl: config.apiBaseUrl,
+    };
   }
 }

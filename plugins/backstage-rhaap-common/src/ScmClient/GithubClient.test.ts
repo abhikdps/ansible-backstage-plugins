@@ -1,10 +1,16 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
+import * as undici from 'undici';
 import { GithubClient } from './GithubClient';
 import type { RepositoryInfo, ScmClientConfig } from './types';
 
 // Mock global fetch
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
+
+jest.mock('undici', () => ({
+  ...jest.requireActual('undici'),
+  fetch: jest.fn(),
+}));
 
 describe('GithubClient', () => {
   let client: GithubClient;
@@ -63,6 +69,38 @@ describe('GithubClient', () => {
       };
       const ghClient = new GithubClient({ config, logger: mockLogger });
       expect(ghClient.getHost()).toBe('github.com');
+    });
+
+    it('should use apiBaseUrl for REST and derive GraphQL URL by stripping /v3 when provided', async () => {
+      const config: ScmClientConfig = {
+        scmProvider: 'github',
+        host: 'ghe.example.com',
+        organization: 'test-org',
+        token: 'test-token',
+        apiBaseUrl: 'https://ghe.example.com/api/v3',
+      };
+      const ghClient = new GithubClient({ config, logger: mockLogger });
+      const mockResponse = {
+        data: {
+          organization: {
+            repositories: {
+              pageInfo: { hasNextPage: false, endCursor: null },
+              nodes: [],
+            },
+          },
+        },
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      });
+
+      await ghClient.getRepositories();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://ghe.example.com/api/graphql',
+        expect.any(Object),
+      );
     });
   });
 
@@ -355,12 +393,64 @@ describe('GithubClient', () => {
       );
     });
 
+    it('should throw when GraphQL response has no data', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({}),
+      });
+
+      await expect(client.getRepositories()).rejects.toThrow(
+        'GitHub GraphQL response missing data',
+      );
+    });
+
     it('should throw when AbortSignal is aborted during getRepositories', async () => {
       const controller = new AbortController();
       controller.abort();
 
       await expect(client.getRepositories(controller.signal)).rejects.toThrow(
         'SCM sync aborted, stopping repository pagination',
+      );
+    });
+  });
+
+  describe('getFetchOptions (checkSSL: false)', () => {
+    it('should merge init (e.g. signal) with headers and dispatcher when checkSSL is false', async () => {
+      const config: ScmClientConfig = {
+        scmProvider: 'github',
+        host: 'github.com',
+        organization: 'test-org',
+        token: 'test-token',
+        checkSSL: false,
+      };
+      const ghClient = new GithubClient({ config, logger: mockLogger });
+      const mockResponse = {
+        data: {
+          organization: {
+            repositories: {
+              pageInfo: { hasNextPage: false, endCursor: null },
+              nodes: [],
+            },
+          },
+        },
+      };
+      (undici.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      });
+      const signal = new AbortController().signal;
+
+      await ghClient.getRepositories(signal);
+
+      expect(undici.fetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+          }),
+          signal,
+          dispatcher: expect.anything(),
+        }),
       );
     });
   });
