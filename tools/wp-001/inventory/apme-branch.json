@@ -1,0 +1,733 @@
+[
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-plugin-auth-backend-module-rhaap-provider#.",
+    "runtime": "node",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/auth-backend-module-rhaap-provider/package.json",
+      "symbol": "."
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-plugin-auth-backend-module-rhaap-provider_..json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-apme-common#.",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-apme-common/package.json",
+      "symbol": "."
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-apme-common_..json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-apme-common#./types",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-apme-common/package.json",
+      "symbol": "./types"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-apme-common_._types.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-apme-common#./severity",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-apme-common/package.json",
+      "symbol": "./severity"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-apme-common_._severity.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-apme-common#./proposalTier",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-apme-common/package.json",
+      "symbol": "./proposalTier"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-apme-common_._proposalTier.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-apme-common#./api",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-apme-common/package.json",
+      "symbol": "./api"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-apme-common_._api.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-apme-common#./useApmeEnabled",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-apme-common/package.json",
+      "symbol": "./useApmeEnabled"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-apme-common_._useApmeEnabled.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-apme-common#./normalizeRepoUrl",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-apme-common/package.json",
+      "symbol": "./normalizeRepoUrl"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-apme-common_._normalizeRepoUrl.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-apme-common#./catalogEntity",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-apme-common/package.json",
+      "symbol": "./catalogEntity"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-apme-common_._catalogEntity.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-apme-common#./operationStatus",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-apme-common/package.json",
+      "symbol": "./operationStatus"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-apme-common_._operationStatus.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-apme-common#./gatewayRules",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-apme-common/package.json",
+      "symbol": "./gatewayRules"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-apme-common_._gatewayRules.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-apme-common#./scanTargetDefaults",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-apme-common/package.json",
+      "symbol": "./scanTargetDefaults"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-apme-common_._scanTargetDefaults.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-apme-common#./ansibleCoreVersionOptions",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-apme-common/package.json",
+      "symbol": "./ansibleCoreVersionOptions"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-apme-common_._ansibleCoreVersionOptions.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-apme-common#./resolveScanTarget",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-apme-common/package.json",
+      "symbol": "./resolveScanTarget"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-apme-common_._resolveScanTarget.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-apme-common#./config",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-apme-common/package.json",
+      "symbol": "./config"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-apme-common_._config.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-apme-common#./registerOrResolveApmeProject",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-apme-common/package.json",
+      "symbol": "./registerOrResolveApmeProject"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-apme-common_._registerOrResolveApmeProject.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-apme-common#./apmeChatModel",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-apme-common/package.json",
+      "symbol": "./apmeChatModel"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-apme-common_._apmeChatModel.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-apme-common#./package.json",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-apme-common/package.json",
+      "symbol": "./package.json"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-apme-common_._package.json.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/plugin-backstage-apme#.",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-apme/package.json",
+      "symbol": "."
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_plugin-backstage-apme_..json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-rhaap-common#.",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-rhaap-common/package.json",
+      "symbol": "."
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-rhaap-common_..json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-rhaap-common#./constants",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-rhaap-common/package.json",
+      "symbol": "./constants"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-rhaap-common_._constants.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-rhaap-common#./permissions",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-rhaap-common/package.json",
+      "symbol": "./permissions"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-rhaap-common_._permissions.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-rhaap-common#./permissionRules",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-rhaap-common/package.json",
+      "symbol": "./permissionRules"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-rhaap-common_._permissionRules.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-rhaap-common#./gitRepositoriesExtensions",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-rhaap-common/package.json",
+      "symbol": "./gitRepositoriesExtensions"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-rhaap-common_._gitRepositoriesExtensions.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-rhaap-common#./gitRepositoriesCatalog",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-rhaap-common/package.json",
+      "symbol": "./gitRepositoriesCatalog"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-rhaap-common_._gitRepositoriesCatalog.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-rhaap-common#./devSpaces",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-rhaap-common/package.json",
+      "symbol": "./devSpaces"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-rhaap-common_._devSpaces.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-rhaap-common#./catalogEntity",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-rhaap-common/package.json",
+      "symbol": "./catalogEntity"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-rhaap-common_._catalogEntity.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-rhaap-common#./package.json",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-rhaap-common/package.json",
+      "symbol": "./package.json"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-rhaap-common_._package.json.json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/plugin-backstage-rhaap#.",
+    "runtime": "frontend",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-rhaap/package.json",
+      "symbol": "."
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_plugin-backstage-rhaap_..json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-plugin-catalog-backend-module-apme#.",
+    "runtime": "node",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/catalog-backend-module-apme/package.json",
+      "symbol": "."
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-plugin-catalog-backend-module-apme_..json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/backstage-plugin-catalog-backend-module-rhaap#.",
+    "runtime": "node",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/catalog-backend-module-rhaap/package.json",
+      "symbol": "."
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_backstage-plugin-catalog-backend-module-rhaap_..json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/plugin-scaffolder-backend-module-backstage-rhaap#.",
+    "runtime": "node",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/scaffolder-backend-module-backstage-rhaap/package.json",
+      "symbol": "."
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_plugin-scaffolder-backend-module-backstage-rhaap_..json"
+  },
+  {
+    "family": "export",
+    "currentId": "@ansible/plugin-backstage-self-service#.",
+    "runtime": "frontend",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/self-service/package.json",
+      "symbol": "."
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_plugin-backstage-self-service_..json"
+  },
+  {
+    "family": "export",
+    "currentId": "auth/rhaap-provider",
+    "runtime": "backend-module",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/auth-backend-module-rhaap-provider/src/module.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/auth_rhaap-provider.json"
+  },
+  {
+    "family": "frontend",
+    "currentId": "routeRef:apme",
+    "runtime": "frontend",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-apme/src/plugin.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/frontend/routeRef_apme.json"
+  },
+  {
+    "family": "frontend",
+    "currentId": "plugin:apme",
+    "runtime": "frontend",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-apme/src/plugin.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/frontend/plugin_apme.json"
+  },
+  {
+    "family": "permission",
+    "currentId": "ansible.execution-environments.view",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-rhaap-common/src/permissions/index.ts",
+      "symbol": "executionEnvironmentsViewPermission"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/permission/ansible.execution-environments.view.json"
+  },
+  {
+    "family": "permission",
+    "currentId": "ansible.git-repositories.view",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-rhaap-common/src/permissions/index.ts",
+      "symbol": "gitRepositoriesViewPermission"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/permission/ansible.git-repositories.view.json"
+  },
+  {
+    "family": "permission",
+    "currentId": "ansible.collections.view",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-rhaap-common/src/permissions/index.ts",
+      "symbol": "collectionsViewPermission"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/permission/ansible.collections.view.json"
+  },
+  {
+    "family": "permission",
+    "currentId": "ansible.templates.view",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-rhaap-common/src/permissions/index.ts",
+      "symbol": "templatesViewPermission"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/permission/ansible.templates.view.json"
+  },
+  {
+    "family": "permission",
+    "currentId": "ansible.history.view",
+    "runtime": "portable",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-rhaap-common/src/permissions/index.ts",
+      "symbol": "historyViewPermission"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/permission/ansible.history.view.json"
+  },
+  {
+    "family": "frontend",
+    "currentId": "plugin:ansible",
+    "runtime": "frontend",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-rhaap/src/plugin.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/frontend/plugin_ansible.json"
+  },
+  {
+    "family": "frontend",
+    "currentId": "routeRef:ansible",
+    "runtime": "frontend",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/backstage-rhaap/src/routes.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/frontend/routeRef_ansible.json"
+  },
+  {
+    "family": "export",
+    "currentId": "catalog/apme",
+    "runtime": "backend-module",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/catalog-backend-module-apme/src/module.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/catalog_apme.json"
+  },
+  {
+    "family": "export",
+    "currentId": "catalog/rhaap",
+    "runtime": "backend-module",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/catalog-backend-module-rhaap/src/module.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/catalog_rhaap.json"
+  },
+  {
+    "family": "action",
+    "currentId": "rhaap:clean-up",
+    "runtime": "node",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/scaffolder-backend-module-backstage-rhaap/src/actions/aapCleanUp.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/action/rhaap_clean-up.json"
+  },
+  {
+    "family": "action",
+    "currentId": "rhaap:create-execution-environment",
+    "runtime": "node",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/scaffolder-backend-module-backstage-rhaap/src/actions/aapCreateEEEnv.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/action/rhaap_create-execution-environment.json"
+  },
+  {
+    "family": "action",
+    "currentId": "rhaap:create-job-template",
+    "runtime": "node",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/scaffolder-backend-module-backstage-rhaap/src/actions/aapCreateJobTemplate.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/action/rhaap_create-job-template.json"
+  },
+  {
+    "family": "action",
+    "currentId": "rhaap:create-project",
+    "runtime": "node",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/scaffolder-backend-module-backstage-rhaap/src/actions/aapCreateProject.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/action/rhaap_create-project.json"
+  },
+  {
+    "family": "action",
+    "currentId": "rhaap:launch-job-template",
+    "runtime": "node",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/scaffolder-backend-module-backstage-rhaap/src/actions/aapLaunchJobTemplate.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/action/rhaap_launch-job-template.json"
+  },
+  {
+    "family": "action",
+    "currentId": "ansible:content:create",
+    "runtime": "node",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/scaffolder-backend-module-backstage-rhaap/src/actions/ansible.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/action/ansible_content_create.json"
+  },
+  {
+    "family": "action",
+    "currentId": "ansible:create:ee-definition",
+    "runtime": "node",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/scaffolder-backend-module-backstage-rhaap/src/actions/createEEDefinition.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/action/ansible_create_ee-definition.json"
+  },
+  {
+    "family": "action",
+    "currentId": "ansible:prepare:publish",
+    "runtime": "node",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/scaffolder-backend-module-backstage-rhaap/src/actions/prepareForPublish.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/action/ansible_prepare_publish.json"
+  },
+  {
+    "family": "action",
+    "currentId": "ansible:register:git-repository",
+    "runtime": "node",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/scaffolder-backend-module-backstage-rhaap/src/actions/registerGitRepository.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/action/ansible_register_git-repository.json"
+  },
+  {
+    "family": "export",
+    "currentId": "scaffolder/ansible",
+    "runtime": "backend-module",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/scaffolder-backend-module-backstage-rhaap/src/module.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/export/scaffolder_ansible.json"
+  },
+  {
+    "family": "frontend",
+    "currentId": "plugin:self-service",
+    "runtime": "frontend",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/self-service/src/plugin.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/frontend/plugin_self-service.json"
+  },
+  {
+    "family": "frontend",
+    "currentId": "routeRef:self-service",
+    "runtime": "frontend",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/self-service/src/routes.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/frontend/routeRef_self-service.json"
+  },
+  {
+    "family": "frontend",
+    "currentId": "routeRef:self-service/ee",
+    "runtime": "frontend",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/self-service/src/routes.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/frontend/routeRef_self-service_ee.json"
+  },
+  {
+    "family": "frontend",
+    "currentId": "routeRef:self-service/collections",
+    "runtime": "frontend",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/self-service/src/routes.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/frontend/routeRef_self-service_collections.json"
+  },
+  {
+    "family": "frontend",
+    "currentId": "routeRef:self-service/repositories",
+    "runtime": "frontend",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/self-service/src/routes.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/frontend/routeRef_self-service_repositories.json"
+  },
+  {
+    "family": "frontend",
+    "currentId": "routeRef:self-service/content-quality",
+    "runtime": "frontend",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/self-service/src/routes.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/frontend/routeRef_self-service_content-quality.json"
+  },
+  {
+    "family": "frontend",
+    "currentId": "routeRef:self-service/templates",
+    "runtime": "frontend",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/self-service/src/routes.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/frontend/routeRef_self-service_templates.json"
+  },
+  {
+    "family": "frontend",
+    "currentId": "routeRef:self-service/history",
+    "runtime": "frontend",
+    "source": {
+      "repository": "ansible-backstage-plugins",
+      "revision": "a5fd309d78e89f99680012ec21d6094db00b7c1d",
+      "file": "plugins/self-service/src/routes.ts"
+    },
+    "fixture": "tools/wp-001/inventory/fixtures/frontend/routeRef_self-service_history.json"
+  }
+]
