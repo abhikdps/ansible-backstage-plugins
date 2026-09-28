@@ -4,6 +4,15 @@
 > **Date:** 2026-09-28
 > **Author:** AI-assisted design session
 > **Scope:** Extract reusable components and create an extension SDK for the self-service plugin
+> **Jira:** [ANSTRAT-2497](https://redhat.atlassian.net/browse/ANSTRAT-2497) — Portal Plugin Factory: Plugin Development Guide and SDK
+
+> **Positioning:** This document is **Phase 1** of the broader Automation Portal Plugin Factory
+> SDK described in ANSTRAT-2497. It delivers the self-service plugin's extension surface:
+> the `backstage-rhaap-react` component library and `backstage-rhaap-extension-api` contracts
+> package. ANSTRAT-2497's full factory scope (portal-wide RBAC delegation, settings
+> registration, capability metadata, scaffold CLI, contributor kit) is beyond this document's
+> implementation boundary. The packages produced here establish the package naming, versioning,
+> and contract patterns that the broader factory SDK will extend.
 
 ---
 
@@ -190,6 +199,10 @@ interface TabContribution {
    *  non-lazy components in Suspense only when needed. */
   component: React.LazyExoticComponent<React.ComponentType<any>> | React.ComponentType<any>;
   filter?: (entity: Entity) => boolean;
+  /** If set, the tab is hidden from users who lack this permission.
+   *  Evaluated by ExtensionRenderer using @backstage/plugin-permission-react.
+   *  Only Backstage BasicPermission is supported (no ResourcePermission). */
+  permission?: BasicPermission;
   /** Lower value = further left. Built-in tabs use 0–20.
    *  Community tabs should use 21+ to appear after built-ins.
    *  Negative priorities are allowed but will render before built-in tabs.
@@ -202,6 +215,8 @@ interface CardContribution {
   slot: 'overview-left' | 'overview-right' | 'sidebar' | string;
   component: React.LazyExoticComponent<React.ComponentType<any>> | React.ComponentType<any>;
   filter?: (entity: Entity) => boolean;
+  /** If set, the card slot is hidden from users who lack this permission. */
+  permission?: BasicPermission;
   priority?: number;
 }
 
@@ -219,6 +234,8 @@ interface ActionContribution {
     getApi: <T>(apiRef: ApiRef<T>) => T;
   }) => void | Promise<void>;
   filter?: (entity: Entity) => boolean;
+  /** If set, the action button/menu item is hidden from users who lack this permission. */
+  permission?: BasicPermission;
   variant?: 'button' | 'menu-item';
   priority?: number;
 }
@@ -338,16 +355,19 @@ plugins/backstage-rhaap-extension-api/
   "peerDependencies": {
     "react": "^18.3.1",
     "@backstage/catalog-model": "^1.7.7",
-    "@backstage/core-plugin-api": "^1.12.4"
+    "@backstage/core-plugin-api": "^1.12.4",
+    "@backstage/plugin-permission-common": "^0.8.4"
   }
 }
 ```
 
-> **Why `@backstage/core-plugin-api` is needed:** `ActionContribution.handler`
-> uses `ApiRef<T>` from this package for the `getApi()` helper type.
-> All deps are peers (type-only usage at compile time; the host app supplies them
-> at runtime). Community plugins already depend on `@backstage/core-plugin-api`
-> for their own API access, so this adds no new burden.
+> **Why these peers are needed:**
+> - `@backstage/core-plugin-api` — `ApiRef<T>` type for the `getApi()` helper
+> - `@backstage/plugin-permission-common` — `BasicPermission` type for the `permission` field on contribution types
+>
+> Permission *evaluation* (`usePermission()`) happens in `ExtensionRenderer` inside
+> self-service, which depends on `@backstage/plugin-permission-react`. The contracts
+> package only needs the type (`BasicPermission`), not the evaluation hook.
 
 ---
 
@@ -462,14 +482,18 @@ function useExtensionTabs(extensionPoint, entity?) {
 Contributed components are rendered inside `RhaapThemeProvider` (MUI v4 only — see Goal 6 scope), `ErrorBoundary`, and `Suspense`:
 
 ```typescript
-<RhaapThemeProvider>
-  <ErrorBoundary fallback={<ContributionErrorFallback id={contribution.id} />}>
-    <Suspense fallback={<SkeletonLoader />}>
-      <ContributedComponent entity={entity} />
-    </Suspense>
-  </ErrorBoundary>
-</RhaapThemeProvider>
+<PermissionGate permission={contribution.permission}>
+  <RhaapThemeProvider>
+    <ErrorBoundary fallback={<ContributionErrorFallback id={contribution.id} />}>
+      <Suspense fallback={<SkeletonLoader />}>
+        <ContributedComponent entity={entity} />
+      </Suspense>
+    </ErrorBoundary>
+  </RhaapThemeProvider>
+</PermissionGate>
 ```
+
+`PermissionGate` is a thin wrapper around `@backstage/plugin-permission-react`'s `usePermission()` hook. If `contribution.permission` is undefined, the gate is a no-op (renders children directly). If the user lacks the permission, the slot renders nothing — same behavior as the built-in sidebar items.
 
 Each contributed component slot is individually wrapped in an `ErrorBoundary`. If a community plugin's component throws during render, only that slot shows a fallback (e.g., "This tab failed to load") — the rest of the host page remains intact. This is implemented in `ExtensionRenderer`.
 
@@ -600,7 +624,8 @@ plugins/self-service/src/extensions/
   └── deps: (none — all framework deps are peers)
 
 @ansible/backstage-rhaap-extension-api
-  ├── peerDeps: react, @backstage/catalog-model, @backstage/core-plugin-api
+  ├── peerDeps: react, @backstage/catalog-model, @backstage/core-plugin-api,
+  │             @backstage/plugin-permission-common
   └── deps: (none — all deps are peers for type-only usage)
 
 @ansible/backstage-rhaap-common
@@ -700,6 +725,11 @@ Community plugin (e.g. @acme/plugin-security-scan)
 - Update all affected tests
 
 ### Phase 4: Content discovery extraction (future — separate plan)
+
+> **First named external consumer:** APME (Automation Portal Management Experience)
+> is the first external product team targeting the SDK per ANSTRAT-2497. The content
+> discovery extraction below serves as the first-party proof-of-SDK, validating the
+> extension points before APME begins integration.
 
 - Extract Git Repositories, Collections, EE catalog into `@ansible/plugin-backstage-content-discovery`
 - Extract backend into `@ansible/backstage-plugin-catalog-backend-module-content-discovery`
