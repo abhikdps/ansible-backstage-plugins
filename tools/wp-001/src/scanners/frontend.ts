@@ -42,7 +42,8 @@ export function scanFrontend(
     if (!init || init.getKind() !== SyntaxKind.StringLiteral) continue;
 
     const rawId = (init as import('ts-morph').StringLiteral).getLiteralValue();
-    const currentId = callee === 'createPlugin' ? `plugin:${rawId}` : `routeRef:${rawId}`;
+    const currentId =
+      callee === 'createPlugin' ? `plugin:${rawId}` : `routeRef:${rawId}`;
 
     rows.push({
       family: 'frontend',

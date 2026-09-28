@@ -11,7 +11,10 @@ const tsMorph: typeof import('ts-morph') = require(
 );
 const { Project, SyntaxKind } = tsMorph;
 
-function getStringProp(obj: import('ts-morph').ObjectLiteralExpression, propName: string): string | undefined {
+function getStringProp(
+  obj: import('ts-morph').ObjectLiteralExpression,
+  propName: string,
+): string | undefined {
   const prop = obj.getProperty(propName);
   if (!prop) return undefined;
   const pa = prop.asKind(SyntaxKind.PropertyAssignment);

@@ -24,7 +24,8 @@ function joinPath(segments: string[]): string {
 
 /** Extract @visibility or @deepVisibility runtime from JSDoc on a node. */
 function visibilityFromJsDocs(node: TsMorphNode): ContractRuntime | undefined {
-  const jsDocs = (node as any).getJsDocs?.() as import('ts-morph').JSDoc[] | undefined;
+  const jsDocs = (node as any).getJsDocs?.() as
+    import('ts-morph').JSDoc[] | undefined;
   if (!jsDocs?.length) return undefined;
   for (const jsDoc of jsDocs) {
     for (const tag of jsDoc.getTags()) {
@@ -66,29 +67,46 @@ function resolveType(typeNode: TypeNode): Resolved {
   // Union: strip undefined/null, then resolve remaining
   if (k === SyntaxKind.UnionType) {
     const union = typeNode.asKindOrThrow(SyntaxKind.UnionType);
-    const rest = union.getTypeNodes().filter(t => !isPrimitive(t) || (
-      t.getKind() !== SyntaxKind.UndefinedKeyword && t.getKind() !== SyntaxKind.NullKeyword
-    ));
+    const rest = union
+      .getTypeNodes()
+      .filter(
+        t =>
+          !isPrimitive(t) ||
+          (t.getKind() !== SyntaxKind.UndefinedKeyword &&
+            t.getKind() !== SyntaxKind.NullKeyword),
+      );
     if (rest.length === 0) return { kind: 'primitive' };
     if (rest.length === 1) return resolveType(rest[0]);
     // Check if all non-null/undefined members are primitive
     if (rest.every(t => isPrimitive(t))) return { kind: 'primitive' };
     // Mixed — pick the first complex one
     const obj = rest.find(t => t.getKind() === SyntaxKind.TypeLiteral);
-    if (obj) return { kind: 'object', inner: obj.asKindOrThrow(SyntaxKind.TypeLiteral) };
+    if (obj)
+      return {
+        kind: 'object',
+        inner: obj.asKindOrThrow(SyntaxKind.TypeLiteral),
+      };
     return { kind: 'primitive' };
   }
 
   // Object literal
   if (k === SyntaxKind.TypeLiteral) {
-    return { kind: 'object', inner: typeNode.asKindOrThrow(SyntaxKind.TypeLiteral) };
+    return {
+      kind: 'object',
+      inner: typeNode.asKindOrThrow(SyntaxKind.TypeLiteral),
+    };
   }
 
   // Array: T[] form
   if (k === SyntaxKind.ArrayType) {
-    const elem = typeNode.asKindOrThrow(SyntaxKind.ArrayType).getElementTypeNode();
+    const elem = typeNode
+      .asKindOrThrow(SyntaxKind.ArrayType)
+      .getElementTypeNode();
     if (elem.getKind() === SyntaxKind.TypeLiteral) {
-      return { kind: 'array-object', inner: elem.asKindOrThrow(SyntaxKind.TypeLiteral) };
+      return {
+        kind: 'array-object',
+        inner: elem.asKindOrThrow(SyntaxKind.TypeLiteral),
+      };
     }
     return { kind: 'array-primitive' };
   }
@@ -99,7 +117,10 @@ function resolveType(typeNode: TypeNode): Resolved {
     if (ref.getTypeName().getText() === 'Array') {
       const args = ref.getTypeArguments();
       if (args.length > 0 && args[0].getKind() === SyntaxKind.TypeLiteral) {
-        return { kind: 'array-object', inner: args[0].asKindOrThrow(SyntaxKind.TypeLiteral) };
+        return {
+          kind: 'array-object',
+          inner: args[0].asKindOrThrow(SyntaxKind.TypeLiteral),
+        };
       }
       return { kind: 'array-primitive' };
     }
@@ -153,9 +174,23 @@ function walkTypeLiteral(
       } else if (resolved.kind === 'array-primitive') {
         rows.push(makeRow(newSegments, propName, runtime, source));
       } else if (resolved.kind === 'object') {
-        walkTypeLiteral(resolved.inner, newSegments, runtime, source, rows, depth + 1);
+        walkTypeLiteral(
+          resolved.inner,
+          newSegments,
+          runtime,
+          source,
+          rows,
+          depth + 1,
+        );
       } else if (resolved.kind === 'array-object') {
-        walkTypeLiteral(resolved.inner, [...newSegments, '[]'], runtime, source, rows, depth + 1);
+        walkTypeLiteral(
+          resolved.inner,
+          [...newSegments, '[]'],
+          runtime,
+          source,
+          rows,
+          depth + 1,
+        );
       }
     }
 
@@ -172,9 +207,23 @@ function walkTypeLiteral(
       if (resolved.kind === 'primitive' || resolved.kind === 'external-ref') {
         rows.push(makeRow(indexedSegments, '[]', runtime, source));
       } else if (resolved.kind === 'object') {
-        walkTypeLiteral(resolved.inner, indexedSegments, runtime, source, rows, depth + 1);
+        walkTypeLiteral(
+          resolved.inner,
+          indexedSegments,
+          runtime,
+          source,
+          rows,
+          depth + 1,
+        );
       } else if (resolved.kind === 'array-object') {
-        walkTypeLiteral(resolved.inner, [...indexedSegments, '[]'], runtime, source, rows, depth + 1);
+        walkTypeLiteral(
+          resolved.inner,
+          [...indexedSegments, '[]'],
+          runtime,
+          source,
+          rows,
+          depth + 1,
+        );
       }
     }
   }
@@ -193,7 +242,9 @@ export function scanConfigSchema(
   const sf = project.createSourceFile('__config.d.ts', sourceText);
 
   // Find: export interface Config { ... }
-  const configInterface = sf.getInterfaces().find(i => i.getName() === 'Config' && i.isExported());
+  const configInterface = sf
+    .getInterfaces()
+    .find(i => i.getName() === 'Config' && i.isExported());
   if (!configInterface) return rows;
 
   // Build a synthetic TypeLiteralNode-like structure from the interface members
@@ -216,7 +267,14 @@ export function scanConfigSchema(
       } else if (resolved.kind === 'object') {
         walkTypeLiteral(resolved.inner, [propName], runtime, source, rows, 1);
       } else if (resolved.kind === 'array-object') {
-        walkTypeLiteral(resolved.inner, [propName, '[]'], runtime, source, rows, 1);
+        walkTypeLiteral(
+          resolved.inner,
+          [propName, '[]'],
+          runtime,
+          source,
+          rows,
+          1,
+        );
       }
     }
   }

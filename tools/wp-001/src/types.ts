@@ -8,11 +8,7 @@ export type ContractFamily =
   | 'config';
 
 export type ContractRuntime =
-  | 'portable'
-  | 'frontend'
-  | 'node'
-  | 'backend-plugin'
-  | 'backend-module';
+  'portable' | 'frontend' | 'node' | 'backend-plugin' | 'backend-module';
 
 export interface ContractSource {
   repository: string;

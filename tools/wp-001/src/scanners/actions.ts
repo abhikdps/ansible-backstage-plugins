@@ -38,7 +38,9 @@ export function scanActions(
     const init = pa.getInitializer();
     if (!init || init.getKind() !== SyntaxKind.StringLiteral) continue;
 
-    const currentId = (init as import('ts-morph').StringLiteral).getLiteralValue();
+    const currentId = (
+      init as import('ts-morph').StringLiteral
+    ).getLiteralValue();
     rows.push({
       family: 'action',
       currentId,

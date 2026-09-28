@@ -28,7 +28,9 @@ export function scanPermissions(
   const project = new Project({ useInMemoryFileSystem: true });
   const sf = project.createSourceFile('__temp.ts', sourceText);
 
-  for (const varDecl of sf.getDescendantsOfKind(SyntaxKind.VariableDeclaration)) {
+  for (const varDecl of sf.getDescendantsOfKind(
+    SyntaxKind.VariableDeclaration,
+  )) {
     const typeNode = varDecl.getTypeNode();
     if (!typeNode) continue;
 
@@ -36,7 +38,8 @@ export function scanPermissions(
     if (!PERMISSION_TYPES.has(typeName)) continue;
 
     const init = varDecl.getInitializer();
-    if (!init || init.getKind() !== SyntaxKind.ObjectLiteralExpression) continue;
+    if (!init || init.getKind() !== SyntaxKind.ObjectLiteralExpression)
+      continue;
 
     const obj = init.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
     const nameProp = obj.getProperty('name');
@@ -47,7 +50,9 @@ export function scanPermissions(
     const nameInit = pa.getInitializer();
     if (!nameInit || nameInit.getKind() !== SyntaxKind.StringLiteral) continue;
 
-    const currentId = (nameInit as import('ts-morph').StringLiteral).getLiteralValue();
+    const currentId = (
+      nameInit as import('ts-morph').StringLiteral
+    ).getLiteralValue();
     const symbolName = varDecl.getName();
 
     rows.push({

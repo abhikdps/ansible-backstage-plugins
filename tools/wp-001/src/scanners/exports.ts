@@ -14,7 +14,11 @@ export function scanPackageExports(
   if (!packageName) return rows;
 
   const exportsField = packageJson.exports;
-  if (!exportsField || typeof exportsField !== 'object' || Array.isArray(exportsField)) {
+  if (
+    !exportsField ||
+    typeof exportsField !== 'object' ||
+    Array.isArray(exportsField)
+  ) {
     // No named export map — record the implicit "." entrypoint if main is set
     if (packageJson.main) {
       const currentId = `${packageName}#.`;
@@ -43,10 +47,23 @@ export function scanPackageExports(
 }
 
 function inferRuntime(packageName: string): ContractInventoryRow['runtime'] {
-  if (packageName.includes('frontend') || packageName.includes('self-service') || packageName.includes('backstage-rhaap') && !packageName.includes('common') && !packageName.includes('catalog') && !packageName.includes('auth') && !packageName.includes('scaffolder')) {
+  if (
+    packageName.includes('frontend') ||
+    packageName.includes('self-service') ||
+    (packageName.includes('backstage-rhaap') &&
+      !packageName.includes('common') &&
+      !packageName.includes('catalog') &&
+      !packageName.includes('auth') &&
+      !packageName.includes('scaffolder'))
+  ) {
     return 'frontend';
   }
-  if (packageName.includes('backend') || packageName.includes('catalog-backend') || packageName.includes('auth-backend') || packageName.includes('scaffolder-backend')) {
+  if (
+    packageName.includes('backend') ||
+    packageName.includes('catalog-backend') ||
+    packageName.includes('auth-backend') ||
+    packageName.includes('scaffolder-backend')
+  ) {
     return 'node';
   }
   return 'portable';

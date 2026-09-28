@@ -13,10 +13,10 @@ export function lsTree(
   subPath?: string,
 ): string[] {
   const pathArg = subPath ? ` -- ${subPath}` : '';
-  const out = execSync(
-    `git ls-tree -r --name-only ${revision}${pathArg}`,
-    { cwd: repoPath, encoding: 'utf8' },
-  ).trim();
+  const out = execSync(`git ls-tree -r --name-only ${revision}${pathArg}`, {
+    cwd: repoPath,
+    encoding: 'utf8',
+  }).trim();
   return out ? out.split('\n') : [];
 }
 
