@@ -50,7 +50,10 @@ export {
 export * from './cache';
 
 // ─── Self-service–specific (not in backstage-rhaap-react) ─────────────────────
-export { fetchReadmeFromBackend, fetchGitFileContentFromBackend } from './fetchReadme';
+export {
+  fetchReadmeFromBackend,
+  fetchGitFileContentFromBackend,
+} from './fetchReadme';
 export type { FetchReadmeParams, FetchGitFileOutcome } from './fetchReadme';
 export { SCM_INTEGRATION_AUTH_FAILED_CODE } from '@ansible/backstage-rhaap-common/constants';
 export { CONFIGURATION_DOCS_URL } from './constants';

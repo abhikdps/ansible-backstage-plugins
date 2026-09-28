@@ -7,8 +7,7 @@ import type { BasicPermission } from '@backstage/plugin-permission-common';
  *  `ExtensionRenderer` always wraps in `<Suspense>` — the fallback
  *  never activates for synchronous components. */
 export type ContributionComponent =
-  | LazyExoticComponent<ComponentType<any>>
-  | ComponentType<any>;
+  LazyExoticComponent<ComponentType<any>> | ComponentType<any>;
 
 /** Context passed to an `ActionContribution.handler` at invocation time. */
 export interface ActionContext {

@@ -184,7 +184,8 @@ describe('UserProvisionerProvider', () => {
       expect(result).toBe(true);
       expect(mockAnsibleService.listSystemUsers).toHaveBeenCalled();
 
-      const mutationCall = (mockConnection.applyMutation as jest.Mock).mock.calls[0][0] as any;
+      const mutationCall = (mockConnection.applyMutation as jest.Mock).mock
+        .calls[0][0] as any;
       expect(mutationCall.added).toHaveLength(2);
 
       const groupEntity = mutationCall.added.find(
@@ -199,7 +200,8 @@ describe('UserProvisionerProvider', () => {
       await provider.connect(mockConnection);
       await provider.createUser('jdoe', 42);
 
-      const mutationCall = (mockConnection.applyMutation as jest.Mock).mock.calls[0][0] as any;
+      const mutationCall = (mockConnection.applyMutation as jest.Mock).mock
+        .calls[0][0] as any;
       expect(mutationCall.added).toHaveLength(1);
       expect(mutationCall.added[0].entity.kind).toBe('User');
       expect(mockAnsibleService.listSystemUsers).not.toHaveBeenCalled();
@@ -212,7 +214,8 @@ describe('UserProvisionerProvider', () => {
       await provider.connect(mockConnection);
       await provider.createUser('admin', 1);
 
-      const mutationCall = (mockConnection.applyMutation as jest.Mock).mock.calls[0][0] as any;
+      const mutationCall = (mockConnection.applyMutation as jest.Mock).mock
+        .calls[0][0] as any;
       const userEntity = mutationCall.added.find(
         (e: any) => e.entity.kind === 'User',
       );
@@ -272,7 +275,8 @@ describe('UserProvisionerProvider', () => {
       const result = await provider.createUser('jdoe', 42);
 
       expect(result).toBe(true);
-      const mutationCall = (mockConnection.applyMutation as jest.Mock).mock.calls[0][0] as any;
+      const mutationCall = (mockConnection.applyMutation as jest.Mock).mock
+        .calls[0][0] as any;
       const userEntity = mutationCall.added[0].entity;
       expect(userEntity.spec.memberOf).toContain('group:default/ops-team');
     });
@@ -296,7 +300,8 @@ describe('UserProvisionerProvider', () => {
 
       expect(result).toBe(true);
       // Only the user entity, not aap-admins
-      const mutationCall = (mockConnection.applyMutation as jest.Mock).mock.calls[0][0] as any;
+      const mutationCall = (mockConnection.applyMutation as jest.Mock).mock
+        .calls[0][0] as any;
       expect(mutationCall.added).toHaveLength(1);
     });
   });
@@ -333,14 +338,15 @@ describe('UserProvisionerProvider', () => {
       await multiOrgProvider.connect(mockConnection);
       await multiOrgProvider.createUser('jdoe', 42);
 
-      const mutationCall = (mockConnection.applyMutation as jest.Mock).mock.calls[0][0] as any;
+      const mutationCall = (mockConnection.applyMutation as jest.Mock).mock
+        .calls[0][0] as any;
       const userEntity = mutationCall.added[0].entity;
       // With multi-org, org namespace is sanitized org name, not 'default'
       expect(userEntity.spec.memberOf).toContain('group:default/default');
       // org annotation should be set in multi-org mode
-      expect(
-        userEntity.metadata.annotations['ansible.com/organizations'],
-      ).toBe('Default');
+      expect(userEntity.metadata.annotations['ansible.com/organizations']).toBe(
+        'Default',
+      );
     });
   });
 });

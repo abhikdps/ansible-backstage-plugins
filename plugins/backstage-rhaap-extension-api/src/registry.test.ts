@@ -1,5 +1,9 @@
 import { contributionRegistry } from './registry';
-import type { TabContribution, CardContribution, ActionContribution } from './types';
+import type {
+  TabContribution,
+  CardContribution,
+  ActionContribution,
+} from './types';
 import type { Entity } from '@backstage/catalog-model';
 
 const mockEntity = (kind = 'Component'): Entity => ({
@@ -44,8 +48,16 @@ describe('ContributionRegistry', () => {
 
     it('replaces a tab with the same id and warns', () => {
       const spy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-      const tab1: TabContribution = { id: 'dup', label: 'Old', component: () => null as any };
-      const tab2: TabContribution = { id: 'dup', label: 'New', component: () => null as any };
+      const tab1: TabContribution = {
+        id: 'dup',
+        label: 'Old',
+        component: () => null as any,
+      };
+      const tab2: TabContribution = {
+        id: 'dup',
+        label: 'New',
+        component: () => null as any,
+      };
       contributionRegistry.registerTab(EP, tab1);
       contributionRegistry.registerTab(EP, tab2);
       expect(contributionRegistry.getTabs(EP)).toHaveLength(1);
@@ -67,8 +79,12 @@ describe('ContributionRegistry', () => {
         component: () => null as any,
         filter: e => e.kind === 'API',
       });
-      expect(contributionRegistry.getTabs(EP, mockEntity('Component'))).toHaveLength(1);
-      expect(contributionRegistry.getTabs(EP, mockEntity('Component'))[0].id).toBe('visible');
+      expect(
+        contributionRegistry.getTabs(EP, mockEntity('Component')),
+      ).toHaveLength(1);
+      expect(
+        contributionRegistry.getTabs(EP, mockEntity('Component'))[0].id,
+      ).toBe('visible');
     });
 
     it('hides a tab whose filter throws', () => {
@@ -77,17 +93,37 @@ describe('ContributionRegistry', () => {
         id: 'bad-filter',
         label: 'Bad',
         component: () => null as any,
-        filter: () => { throw new Error('boom'); },
+        filter: () => {
+          throw new Error('boom');
+        },
       });
       expect(contributionRegistry.getTabs(EP, mockEntity())).toHaveLength(0);
-      expect(spy).toHaveBeenCalledWith(expect.stringContaining('bad-filter'), expect.any(Error));
+      expect(spy).toHaveBeenCalledWith(
+        expect.stringContaining('bad-filter'),
+        expect.any(Error),
+      );
       spy.mockRestore();
     });
 
     it('sorts tabs by priority', () => {
-      contributionRegistry.registerTab(EP, { id: 'p50', label: 'P50', component: () => null as any, priority: 50 });
-      contributionRegistry.registerTab(EP, { id: 'p10', label: 'P10', component: () => null as any, priority: 10 });
-      contributionRegistry.registerTab(EP, { id: 'p30', label: 'P30', component: () => null as any, priority: 30 });
+      contributionRegistry.registerTab(EP, {
+        id: 'p50',
+        label: 'P50',
+        component: () => null as any,
+        priority: 50,
+      });
+      contributionRegistry.registerTab(EP, {
+        id: 'p10',
+        label: 'P10',
+        component: () => null as any,
+        priority: 10,
+      });
+      contributionRegistry.registerTab(EP, {
+        id: 'p30',
+        label: 'P30',
+        component: () => null as any,
+        priority: 30,
+      });
       const ids = contributionRegistry.getTabs(EP).map(t => t.id);
       expect(ids).toEqual(['p10', 'p30', 'p50']);
     });
@@ -119,7 +155,11 @@ describe('ContributionRegistry', () => {
 
   describe('disable / enable', () => {
     it('hides a disabled contribution and shows it again after enable', () => {
-      const tab: TabContribution = { id: 'toggle', label: 'T', component: () => null as any };
+      const tab: TabContribution = {
+        id: 'toggle',
+        label: 'T',
+        component: () => null as any,
+      };
       contributionRegistry.registerTab(EP, tab);
       expect(contributionRegistry.getTabs(EP)).toHaveLength(1);
 
@@ -135,7 +175,11 @@ describe('ContributionRegistry', () => {
     it('calls listener when a contribution is registered', () => {
       const listener = jest.fn();
       const unsub = contributionRegistry.subscribe(listener);
-      contributionRegistry.registerTab(EP, { id: 'x', label: 'X', component: () => null as any });
+      contributionRegistry.registerTab(EP, {
+        id: 'x',
+        label: 'X',
+        component: () => null as any,
+      });
       expect(listener).toHaveBeenCalledTimes(1);
       unsub();
     });
@@ -144,14 +188,22 @@ describe('ContributionRegistry', () => {
       const listener = jest.fn();
       const unsub = contributionRegistry.subscribe(listener);
       unsub();
-      contributionRegistry.registerTab(EP, { id: 'y', label: 'Y', component: () => null as any });
+      contributionRegistry.registerTab(EP, {
+        id: 'y',
+        label: 'Y',
+        component: () => null as any,
+      });
       expect(listener).not.toHaveBeenCalled();
     });
   });
 
   describe('reset', () => {
     it('clears all registrations', () => {
-      contributionRegistry.registerTab(EP, { id: 'z', label: 'Z', component: () => null as any });
+      contributionRegistry.registerTab(EP, {
+        id: 'z',
+        label: 'Z',
+        component: () => null as any,
+      });
       contributionRegistry.reset();
       expect(contributionRegistry.getTabs(EP)).toHaveLength(0);
     });

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Box, Button, Typography, Tab, Tabs } from '@material-ui/core';
+import { Box, Button, Typography, Tab, Tabs, Menu } from '@material-ui/core';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
+import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import { Entity } from '@backstage/catalog-model';
 import {
   catalogApiRef,
@@ -19,10 +20,16 @@ import { RequirePermission } from '@backstage/plugin-permission-react';
 import { gitRepositoriesViewPermission } from '@ansible/backstage-rhaap-common/permissions';
 import {
   useExtensionTabs,
+  useExtensionCards,
+  useExtensionActions,
   EXTENSION_POINTS,
 } from '@ansible/backstage-rhaap-extension-api';
 
-import { ExtensionTabContent } from '../../extensions/ExtensionRenderer';
+import {
+  ExtensionTabContent,
+  ExtensionCardContent,
+  ExtensionActionMenuItem,
+} from '../../extensions/ExtensionRenderer';
 import { RepositoryBreadcrumbs } from './RepositoryBreadcrumbs';
 import { RepositoryAboutCard } from './RepositoryAboutCard';
 import { RepositoryReadmeCard } from './RepositoryReadmeCard';
@@ -195,6 +202,17 @@ const RepositoryDetailsPageInner = () => {
     EXTENSION_POINTS.GIT_REPO_DETAIL_TABS,
     entity ?? undefined,
   );
+  const extensionCards = useExtensionCards(
+    EXTENSION_POINTS.GIT_REPO_DETAIL_CARDS,
+    entity ?? undefined,
+  );
+  const extensionActions = useExtensionActions(
+    EXTENSION_POINTS.GIT_REPO_DETAIL_ACTIONS,
+    entity ?? undefined,
+  );
+  const [actionsAnchorEl, setActionsAnchorEl] = useState<null | HTMLElement>(
+    null,
+  );
 
   const fetchEntity = useCallback(() => {
     if (!repositoryName) return;
@@ -355,6 +373,34 @@ const RepositoryDetailsPageInner = () => {
             View in source
           </Button>
         )}
+        {extensionActions.length > 0 && entity && (
+          <>
+            <Button
+              variant="outlined"
+              color="primary"
+              endIcon={<ArrowDropDownIcon />}
+              onClick={e => setActionsAnchorEl(e.currentTarget)}
+              className={classes.syncButton}
+              style={{ whiteSpace: 'nowrap', flexShrink: 0, marginLeft: 8 }}
+            >
+              Actions
+            </Button>
+            <Menu
+              anchorEl={actionsAnchorEl}
+              open={Boolean(actionsAnchorEl)}
+              onClose={() => setActionsAnchorEl(null)}
+            >
+              {extensionActions.map(ea => (
+                <ExtensionActionMenuItem
+                  key={ea.id}
+                  contribution={ea}
+                  entity={entity as Entity}
+                  onMenuClose={() => setActionsAnchorEl(null)}
+                />
+              ))}
+            </Menu>
+          </>
+        )}
       </Box>
 
       <Tabs
@@ -384,6 +430,15 @@ const RepositoryDetailsPageInner = () => {
               readmeContent={readmeContent}
               isLoading={readmeLoading}
             />
+            {extensionCards
+              .filter(c => c.slot === 'overview-left')
+              .map(c => (
+                <ExtensionCardContent
+                  key={c.id}
+                  contribution={c}
+                  entity={entity as Entity}
+                />
+              ))}
           </Box>
           <Box className={classes.detailsRightColumn}>
             <RepositoryAboutCard
@@ -391,6 +446,15 @@ const RepositoryDetailsPageInner = () => {
               onViewSource={handleViewSource}
               onNavigateToCollections={() => setTab(2)}
             />
+            {extensionCards
+              .filter(c => c.slot !== 'overview-left')
+              .map(c => (
+                <ExtensionCardContent
+                  key={c.id}
+                  contribution={c}
+                  entity={entity as Entity}
+                />
+              ))}
           </Box>
         </Box>
       )}
@@ -417,11 +481,7 @@ const RepositoryDetailsPageInner = () => {
 
       {extensionTabs.map((et, i) =>
         tab === GIT_REPO_BUILT_IN_TABS + i ? (
-          <ExtensionTabContent
-            key={et.id}
-            contribution={et}
-            entity={entity}
-          />
+          <ExtensionTabContent key={et.id} contribution={et} entity={entity} />
         ) : null,
       )}
     </Box>

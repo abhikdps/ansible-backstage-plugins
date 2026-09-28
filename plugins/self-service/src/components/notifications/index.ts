@@ -1,6 +1,9 @@
 // ─── Re-exports from @ansible/backstage-rhaap-react ──────────────────────────
 // Pure UI notification components — single source of truth.
-export { NotificationCard, NotificationStack } from '@ansible/backstage-rhaap-react';
+export {
+  NotificationCard,
+  NotificationStack,
+} from '@ansible/backstage-rhaap-react';
 export type {
   Notification,
   NotificationSeverity,

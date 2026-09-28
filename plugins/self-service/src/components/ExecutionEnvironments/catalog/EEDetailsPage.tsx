@@ -51,9 +51,15 @@ import { ResourcesCard } from './ResourcesCard';
 import { useEEBuildFlow } from './useEEBuildFlow';
 import {
   useExtensionTabs,
+  useExtensionCards,
+  useExtensionActions,
   EXTENSION_POINTS,
 } from '@ansible/backstage-rhaap-extension-api';
-import { ExtensionTabContent } from '../../../extensions/ExtensionRenderer';
+import {
+  ExtensionTabContent,
+  ExtensionCardContent,
+  ExtensionActionMenuItem,
+} from '../../../extensions/ExtensionRenderer';
 
 const useActionsMenuStyles = makeStyles(theme => ({
   actionsButton: {
@@ -171,6 +177,14 @@ export const EEDetailsPage: React.FC = () => {
   const [entity, setEntity] = useState<Entity | null | undefined>(undefined);
   const extensionTabs = useExtensionTabs(
     EXTENSION_POINTS.EE_DETAIL_TABS,
+    entity ?? undefined,
+  );
+  const extensionCards = useExtensionCards(
+    EXTENSION_POINTS.EE_DETAIL_CARDS,
+    entity ?? undefined,
+  );
+  const extensionActions = useExtensionActions(
+    EXTENSION_POINTS.EE_DETAIL_ACTIONS,
     entity ?? undefined,
   );
   const [menuId, setMenuId] = useState<string>('');
@@ -561,6 +575,15 @@ export const EEDetailsPage: React.FC = () => {
                     </ListItemIcon>
                     <Typography variant="body2">Delete</Typography>
                   </MenuItem>
+                  {entity &&
+                    extensionActions.map(ea => (
+                      <ExtensionActionMenuItem
+                        key={ea.id}
+                        contribution={ea}
+                        entity={entity as Entity}
+                        onMenuClose={handleMenuClose}
+                      />
+                    ))}
                 </Menu>
               </>
             )}
@@ -601,6 +624,15 @@ export const EEDetailsPage: React.FC = () => {
                             : defaultReadme
                         }
                       />
+                      {extensionCards
+                        .filter(c => c.slot === 'overview-left')
+                        .map(c => (
+                          <ExtensionCardContent
+                            key={c.id}
+                            contribution={c}
+                            entity={entity as Entity}
+                          />
+                        ))}
                     </Box>
 
                     {/* Right Column - About, Defined Content, Resources */}
@@ -625,6 +657,16 @@ export const EEDetailsPage: React.FC = () => {
                       <DefinedContentCard parsedDefinition={parsedDefinition} />
 
                       <ResourcesCard />
+
+                      {extensionCards
+                        .filter(c => c.slot !== 'overview-left')
+                        .map(c => (
+                          <ExtensionCardContent
+                            key={c.id}
+                            contribution={c}
+                            entity={entity as Entity}
+                          />
+                        ))}
                     </Box>
                   </Box>
                 )}

@@ -32,8 +32,10 @@ export const catalogModuleRhaapUserProvisioner = createBackendModule({
         // Cast to IUserProvisionerConnectable to access the wiring method.
         // This interface is separate from IUserProvisioner (the public consumer API)
         // so registerCreateUserFn doesn't leak into the auth plugin's surface.
-        (userProvisioner as unknown as IUserProvisionerConnectable).registerCreateUserFn(
-          (username, userID) => provider.createUser(username, userID),
+        (
+          userProvisioner as unknown as IUserProvisionerConnectable
+        ).registerCreateUserFn((username, userID) =>
+          provider.createUser(username, userID),
         );
 
         catalog.addEntityProvider(provider);

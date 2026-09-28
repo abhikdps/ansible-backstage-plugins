@@ -28,12 +28,12 @@ function safeFilter<T extends { filter?: (e: Entity) => boolean }>(
   }
 }
 
-function sortByPriority<T extends { id: string; priority?: number }>(items: T[]): T[] {
+function sortByPriority<T extends { id: string; priority?: number }>(
+  items: T[],
+): T[] {
   // Array.prototype.sort is stable in modern JS engines — equal priorities
   // preserve insertion order.
-  return [...items].sort(
-    (a, b) => (a.priority ?? 0) - (b.priority ?? 0),
-  );
+  return [...items].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));
 }
 
 class ContributionRegistry {
@@ -94,7 +94,10 @@ class ContributionRegistry {
 
   // ── Tab registration ──────────────────────────────────────────────────────
 
-  registerTab(extensionPoint: string, contribution: TabContribution): () => void {
+  registerTab(
+    extensionPoint: string,
+    contribution: TabContribution,
+  ): () => void {
     return this.register(this.tabs, extensionPoint, contribution);
   }
 
@@ -104,7 +107,10 @@ class ContributionRegistry {
 
   // ── Card registration ─────────────────────────────────────────────────────
 
-  registerCard(extensionPoint: string, contribution: CardContribution): () => void {
+  registerCard(
+    extensionPoint: string,
+    contribution: CardContribution,
+  ): () => void {
     return this.register(this.cards, extensionPoint, contribution);
   }
 
@@ -114,7 +120,10 @@ class ContributionRegistry {
 
   // ── Action registration ───────────────────────────────────────────────────
 
-  registerAction(extensionPoint: string, contribution: ActionContribution): () => void {
+  registerAction(
+    extensionPoint: string,
+    contribution: ActionContribution,
+  ): () => void {
     return this.register(this.actions, extensionPoint, contribution);
   }
 

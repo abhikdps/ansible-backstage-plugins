@@ -9,11 +9,7 @@ import {
   SLOW_POLL_INTERVAL_MS,
   TRACKING_TIMEOUT_MS,
 } from '../utils';
-import type {
-  StartedSyncInfo,
-  SyncOutcome,
-  SyncProgressEntry,
-} from '../types';
+import type { StartedSyncInfo, SyncOutcome, SyncProgressEntry } from '../types';
 
 interface ProviderStatus {
   sourceId: string;
