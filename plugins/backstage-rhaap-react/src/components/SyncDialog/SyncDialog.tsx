@@ -37,7 +37,6 @@ import {
 } from '../../types';
 import { useSharedStyles } from '../../styles';
 import { GitLabIcon, RedHatIcon } from '../../icons';
-import { useNotifications } from '../../notifications';
 import { SYNC_FAILED_CATEGORY, SYNC_STARTED_CATEGORY } from '../../utils';
 
 type AnsibleSyncPostResult = {
@@ -125,11 +124,11 @@ export const SyncDialog = ({
   open,
   onClose,
   onSyncsStarted,
+  showNotification,
 }: SyncDialogProps) => {
   const classes = useSharedStyles();
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
-  const { showNotification } = useNotifications();
 
   const [sourcesTree, setSourcesTree] = useState<SourcesTree>({});
   const [providers, setProviders] = useState<ProviderInfo[]>([]);

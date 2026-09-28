@@ -1,3 +1,5 @@
+import type { ShowNotificationOptions } from './notifications/types';
+
 export interface SyncStatus {
   lastSyncTime: string | null;
   lastFailedSyncTime: string | null;
@@ -50,6 +52,8 @@ export interface SyncDialogProps {
   open: boolean;
   onClose: () => void;
   onSyncsStarted?: (syncs: StartedSyncInfo[]) => void;
+  /** Callback to display a notification. Inject from `useNotifications()` at the call site. */
+  showNotification: (options: ShowNotificationOptions) => void;
 }
 
 export interface EmptyStateProps {

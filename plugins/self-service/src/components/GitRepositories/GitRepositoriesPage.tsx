@@ -83,6 +83,7 @@ export const GitRepositoriesPage = () => {
     useSyncStatusPolling();
 
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
+  const { showNotification } = useNotifications();
   const [hasConfiguredSources, setHasConfiguredSources] = useState<
     boolean | null
   >(null);
@@ -210,6 +211,7 @@ export const GitRepositoriesPage = () => {
         open={syncDialogOpen}
         onClose={() => setSyncDialogOpen(false)}
         onSyncsStarted={handleSyncsStarted}
+        showNotification={showNotification}
       />
     </Page>
   );

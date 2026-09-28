@@ -294,7 +294,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ansible/backstage-rhaap-react@workspace:plugins/backstage-rhaap-react":
+"@ansible/backstage-rhaap-react@workspace:^, @ansible/backstage-rhaap-react@workspace:plugins/backstage-rhaap-react":
   version: 0.0.0-use.local
   resolution: "@ansible/backstage-rhaap-react@workspace:plugins/backstage-rhaap-react"
   dependencies:
@@ -312,7 +312,6 @@ __metadata:
     "@testing-library/react": "npm:^14.0.0"
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
-    react-router-dom: "npm:^7.18.4"
   peerDependencies:
     "@backstage/catalog-model": ^1.7.7
     "@backstage/core-components": ^0.18.8
@@ -373,6 +372,7 @@ __metadata:
   dependencies:
     "@ansible/backstage-rhaap-common": "workspace:^"
     "@ansible/backstage-rhaap-extension-api": "workspace:^"
+    "@ansible/backstage-rhaap-react": "workspace:^"
     "@backstage/catalog-client": "npm:^1.14.0"
     "@backstage/catalog-model": "npm:^1.7.7"
     "@backstage/cli": "npm:^0.36.0"
@@ -38091,18 +38091,6 @@ __metadata:
     react: ">=16.8"
     react-dom: ">=16.8"
   checksum: 10c0/57dbb2ae4ac787f78c4d10b764c1c5223635378033e33dda4e0a4417144ae847fb43dc98008075951826258287c27c67729ca713c90957cf2ecf9055561bdc2e
-  languageName: node
-  linkType: hard
-
-"react-router-dom@npm:^7.18.4":
-  version: 7.18.4
-  resolution: "react-router-dom@npm:7.18.4"
-  dependencies:
-    react-router: "npm:7.18.4"
-  peerDependencies:
-    react: ">=18"
-    react-dom: ">=18"
-  checksum: 10c0/b337acffb669fd977423e3ef2a0551a5d68c2447c718942b232cae367fd599723525e412b4ad0d08607189f962571dfc7ef0373d47fcf0ae301a860510e5e1f1
   languageName: node
   linkType: hard
 
