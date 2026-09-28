@@ -6,3 +6,4 @@ export * from './constants';
 export * from './ScmClient';
 export * from './permissions';
 export * from './utils/nameFormatting';
+export * from './UserProvisioner';

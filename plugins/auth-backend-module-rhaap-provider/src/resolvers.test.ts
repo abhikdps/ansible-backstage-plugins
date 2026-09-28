@@ -5,6 +5,7 @@ import {
   SignInInfo,
 } from '@backstage/plugin-auth-node';
 import { AAPAuthSignInResolvers } from './resolvers';
+import { IUserProvisioner } from '@ansible/backstage-rhaap-common';
 
 function mockUserEntity(
   name: string,
@@ -30,50 +31,28 @@ function mockUserEntity(
   };
 }
 
-global.fetch = jest.fn();
+function makeUserProvisioner(
+  createUserImpl?: (username: string, userID: number) => Promise<boolean>,
+): IUserProvisioner {
+  return {
+    createUser: createUserImpl ?? jest.fn().mockResolvedValue(true),
+  };
+}
 
-const mockDiscovery = {
-  getBaseUrl: jest.fn().mockResolvedValue('http://localhost:7007/api/catalog'),
-};
-
-const mockAuth = {
-  getOwnServiceCredentials: jest
-    .fn()
-    .mockResolvedValue({ principal: { type: 'service' } }),
-  getPluginRequestToken: jest
-    .fn()
-    .mockResolvedValue({ token: 'mock-service-token' }),
+const mockConfig = {
+  getOptionalBoolean: jest.fn().mockReturnValue(false),
 };
 
 describe('resolvers', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Mock setTimeout to avoid actual delays in tests
-    jest
-      .spyOn(global, 'setTimeout')
-      .mockImplementation((callback: any, _delay?: number) => {
-        // Immediately call the callback to avoid delays in tests
-        if (typeof callback === 'function') {
-          callback();
-        }
-        return 1 as any; // Return a fake timer ID
-      });
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      text: () => Promise.resolve('User created successfully'),
-    });
-    mockDiscovery.getBaseUrl.mockResolvedValue(
-      'http://localhost:7007/api/catalog',
-    );
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
   });
 
   describe('usernameMatchingUser', () => {
-    it('usernameMatchingUser works', async () => {
-      const resolverFactory = AAPAuthSignInResolvers.usernameMatchingUser;
+    it('should sign in existing catalog user', async () => {
+      const resolverFactory = AAPAuthSignInResolvers.usernameMatchingUser({
+        config: mockConfig as any,
+      });
       const resolver = (resolverFactory as any)();
 
       const info: SignInInfo<OAuthAuthenticatorResult<PassportProfile>> = {
@@ -118,8 +97,10 @@ describe('resolvers', () => {
       });
     });
 
-    it('usernameMatchingUser should include aap-admins for superuser', async () => {
-      const resolverFactory = AAPAuthSignInResolvers.usernameMatchingUser;
+    it('should include aap-admins for superuser', async () => {
+      const resolverFactory = AAPAuthSignInResolvers.usernameMatchingUser({
+        config: mockConfig as any,
+      });
       const resolver = (resolverFactory as any)();
 
       const info: SignInInfo<OAuthAuthenticatorResult<PassportProfile>> = {
@@ -161,8 +142,10 @@ describe('resolvers', () => {
       });
     });
 
-    it('usernameMatchingUser should fail', async () => {
-      const resolverFactory = AAPAuthSignInResolvers.usernameMatchingUser;
+    it('should throw when username is missing from profile', async () => {
+      const resolverFactory = AAPAuthSignInResolvers.usernameMatchingUser({
+        config: mockConfig as any,
+      });
       const resolver = (resolverFactory as any)();
 
       const info: SignInInfo<OAuthAuthenticatorResult<PassportProfile>> = {
@@ -199,13 +182,95 @@ describe('resolvers', () => {
         'Oauth2 user profile does not contain a username',
       );
     });
+
+    it('should throw when user is not in catalog and dangerously flag is false', async () => {
+      const resolverFactory = AAPAuthSignInResolvers.usernameMatchingUser({
+        config: mockConfig as any,
+      });
+      const resolver = (resolverFactory as any)();
+
+      const info: SignInInfo<OAuthAuthenticatorResult<PassportProfile>> = {
+        profile: {},
+        result: {
+          session: {
+            accessToken: 'at',
+            tokenType: 'Bearer',
+            scope: 'read',
+            expiresInSeconds: 0,
+            refreshToken: 'rt',
+          },
+          fullProfile: {
+            id: '1',
+            provider: 'AAP oauth2',
+            username: 'ghost',
+            displayName: 'ghost',
+          },
+        },
+      };
+
+      const context = {
+        findCatalogUser: jest
+          .fn()
+          .mockRejectedValue(new Error('User not found')),
+        issueToken: jest.fn(),
+      } satisfies Partial<AuthResolverContext>;
+
+      await expect(resolver(info, context as any)).rejects.toThrow(
+        'Sign in failed: User not found in the RH AAP software catalog',
+      );
+    });
+
+    it('should issue minimal token when user not in catalog and dangerously flag is true', async () => {
+      const dangerousConfig = {
+        getOptionalBoolean: jest.fn().mockReturnValue(true),
+      };
+      const resolverFactory = AAPAuthSignInResolvers.usernameMatchingUser({
+        config: dangerousConfig as any,
+      });
+      const resolver = (resolverFactory as any)();
+
+      const info: SignInInfo<OAuthAuthenticatorResult<PassportProfile>> = {
+        profile: {},
+        result: {
+          session: {
+            accessToken: 'at',
+            tokenType: 'Bearer',
+            scope: 'read',
+            expiresInSeconds: 0,
+            refreshToken: 'rt',
+          },
+          fullProfile: {
+            id: '1',
+            provider: 'AAP oauth2',
+            username: 'ghost',
+            displayName: 'ghost',
+          },
+        },
+      };
+
+      const context = {
+        findCatalogUser: jest
+          .fn()
+          .mockRejectedValue(new Error('User not found')),
+        issueToken: jest.fn().mockResolvedValue({ token: 'ghost-token' }),
+      } satisfies Partial<AuthResolverContext>;
+
+      const result = await resolver(info, context as any);
+      expect(context.issueToken).toHaveBeenCalledWith({
+        claims: {
+          sub: 'user:default/ghost',
+          ent: ['user:default/ghost'],
+        },
+      });
+      expect(result).toEqual({ token: 'ghost-token' });
+    });
   });
 
   describe('allowNewAAPUserSignIn', () => {
-    it('should sign in existing user without creating new user', async () => {
+    it('should sign in existing user without calling createUser', async () => {
+      const userProvisioner = makeUserProvisioner();
       const resolverFactory = AAPAuthSignInResolvers.allowNewAAPUserSignIn({
-        discovery: mockDiscovery as any,
-        auth: mockAuth as any,
+        userProvisioner,
       });
       const resolver = (resolverFactory as any)();
 
@@ -244,6 +309,7 @@ describe('resolvers', () => {
       expect(context.findCatalogUser).toHaveBeenCalledWith({
         entityRef: { name: 'existingUser' },
       });
+      expect(userProvisioner.createUser).not.toHaveBeenCalled();
       expect(context.issueToken).toHaveBeenCalledWith({
         claims: {
           sub: 'user:default/existinguser',
@@ -251,13 +317,14 @@ describe('resolvers', () => {
         },
       });
       expect(result).toEqual({ token: 'user-token' });
-      expect(global.fetch).not.toHaveBeenCalled();
     });
 
-    it('should create new user when not found in catalog and then sign in', async () => {
+    it('should call createUser and sign in when user not in catalog', async () => {
+      const userProvisioner = makeUserProvisioner(
+        jest.fn().mockResolvedValue(true),
+      );
       const resolverFactory = AAPAuthSignInResolvers.allowNewAAPUserSignIn({
-        discovery: mockDiscovery as any,
-        auth: mockAuth as any,
+        userProvisioner,
       });
       const resolver = (resolverFactory as any)();
 
@@ -296,20 +363,10 @@ describe('resolvers', () => {
 
       const result = await resolver(info, context as any);
 
+      expect(userProvisioner.createUser).toHaveBeenCalledWith('newUser', 456);
       expect(context.findCatalogUser).toHaveBeenCalledWith({
         entityRef: { name: 'newUser' },
       });
-      expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:7007/api/catalog/aap/create_user',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: 'Bearer mock-service-token',
-          },
-          body: JSON.stringify({ username: 'newUser', userID: 456 }),
-        },
-      );
       expect(context.issueToken).toHaveBeenCalledWith({
         claims: {
           sub: 'user:default/newuser',
@@ -320,9 +377,9 @@ describe('resolvers', () => {
     });
 
     it('should fail when username is missing', async () => {
+      const userProvisioner = makeUserProvisioner();
       const resolverFactory = AAPAuthSignInResolvers.allowNewAAPUserSignIn({
-        discovery: mockDiscovery as any,
-        auth: mockAuth as any,
+        userProvisioner,
       });
       const resolver = (resolverFactory as any)();
 
@@ -365,9 +422,9 @@ describe('resolvers', () => {
     });
 
     it('should fail when userID is missing', async () => {
+      const userProvisioner = makeUserProvisioner();
       const resolverFactory = AAPAuthSignInResolvers.allowNewAAPUserSignIn({
-        discovery: mockDiscovery as any,
-        auth: mockAuth as any,
+        userProvisioner,
       });
       const resolver = (resolverFactory as any)();
 
@@ -409,38 +466,30 @@ describe('resolvers', () => {
       );
     });
 
-    it('should handle user creation failure', async () => {
+    it('should propagate error when createUser fails', async () => {
+      const userProvisioner = makeUserProvisioner(
+        jest.fn().mockRejectedValue(new Error('AAP API error')),
+      );
       const resolverFactory = AAPAuthSignInResolvers.allowNewAAPUserSignIn({
-        discovery: mockDiscovery as any,
-        auth: mockAuth as any,
+        userProvisioner,
       });
       const resolver = (resolverFactory as any)();
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-        text: () => Promise.resolve('Failed to create user'),
-      });
-
       const info: SignInInfo<OAuthAuthenticatorResult<PassportProfile>> = {
-        profile: {
-          email: 'newuser@test.com',
-          picture: undefined,
-          displayName: 'New User',
-        },
+        profile: {},
         result: {
           session: {
-            accessToken: 'accessToken',
+            accessToken: 'at',
             tokenType: 'Bearer',
             scope: 'read',
-            expiresInSeconds: 31536000000,
-            refreshToken: 'refreshToken',
+            expiresInSeconds: 0,
+            refreshToken: 'rt',
           },
           fullProfile: {
             id: '456',
             provider: 'AAP oauth2',
             username: 'newUser',
-            email: 'newuser@test.com',
-            displayName: 'New User',
+            displayName: 'newUser',
           },
         },
       };
@@ -452,115 +501,97 @@ describe('resolvers', () => {
         issueToken: jest.fn(),
       } satisfies Partial<AuthResolverContext>;
 
-      let error;
-      try {
-        await resolver(info, context as any);
-      } catch (e: any) {
-        error = e;
-      }
-
-      expect(error?.message).toContain('Failed to create user');
-    });
-
-    it('should handle sign-in failure after user creation', async () => {
-      const resolverFactory = AAPAuthSignInResolvers.allowNewAAPUserSignIn({
-        discovery: mockDiscovery as any,
-        auth: mockAuth as any,
-      });
-      const resolver = (resolverFactory as any)();
-
-      const info: SignInInfo<OAuthAuthenticatorResult<PassportProfile>> = {
-        profile: {
-          email: 'newuser@test.com',
-          picture: undefined,
-          displayName: 'New User',
-        },
-        result: {
-          session: {
-            accessToken: 'accessToken',
-            tokenType: 'Bearer',
-            scope: 'read',
-            expiresInSeconds: 31536000000,
-            refreshToken: 'refreshToken',
-          },
-          fullProfile: {
-            id: '456',
-            provider: 'AAP oauth2',
-            username: 'newUser',
-            email: 'newuser@test.com',
-            displayName: 'New User',
-          },
-        },
-      };
-
-      const context = {
-        findCatalogUser: jest
-          .fn()
-          .mockRejectedValue(new Error('User not found')),
-        issueToken: jest.fn(),
-      } satisfies Partial<AuthResolverContext>;
-
-      let error;
-      try {
-        await resolver(info, context as any);
-      } catch (e: any) {
-        error = e;
-      }
-
-      expect(error?.message).toContain(
-        'Sign in failed: User newUser not found in the RH AAP catalog after creation attempt',
+      await expect(resolver(info, context as any)).rejects.toThrow(
+        'AAP API error',
       );
     });
 
-    it('should handle zero as valid userID', async () => {
+    it('should throw when user still not found after provisioning', async () => {
+      const userProvisioner = makeUserProvisioner(
+        jest.fn().mockResolvedValue(true),
+      );
       const resolverFactory = AAPAuthSignInResolvers.allowNewAAPUserSignIn({
-        discovery: mockDiscovery as any,
-        auth: mockAuth as any,
+        userProvisioner,
       });
       const resolver = (resolverFactory as any)();
 
       const info: SignInInfo<OAuthAuthenticatorResult<PassportProfile>> = {
-        profile: {
-          email: 'admin@test.com',
-          picture: undefined,
-          displayName: 'Admin User',
-        },
+        profile: {},
         result: {
           session: {
-            accessToken: 'accessToken',
+            accessToken: 'at',
             tokenType: 'Bearer',
             scope: 'read',
-            expiresInSeconds: 31536000000,
-            refreshToken: 'refreshToken',
+            expiresInSeconds: 0,
+            refreshToken: 'rt',
+          },
+          fullProfile: {
+            id: '456',
+            provider: 'AAP oauth2',
+            username: 'newUser',
+            displayName: 'newUser',
+          },
+        },
+      };
+
+      const context = {
+        findCatalogUser: jest
+          .fn()
+          .mockRejectedValue(new Error('User not found')),
+        issueToken: jest.fn(),
+      } satisfies Partial<AuthResolverContext>;
+
+      await expect(resolver(info, context as any)).rejects.toThrow(
+        'Sign in failed: User newUser not found in catalog after provisioning',
+      );
+    });
+
+    it('should sign in successfully with userID 0', async () => {
+      // id='0' (string) is truthy, so the guard does NOT throw.
+      // Number('0') === 0, which is also not NaN, so userID 0 is valid.
+      const userProvisioner = makeUserProvisioner();
+      const resolverFactory = AAPAuthSignInResolvers.allowNewAAPUserSignIn({
+        userProvisioner,
+      });
+      const resolver = (resolverFactory as any)();
+
+      const info: SignInInfo<OAuthAuthenticatorResult<PassportProfile>> = {
+        profile: {},
+        result: {
+          session: {
+            accessToken: 'at',
+            tokenType: 'Bearer',
+            scope: 'read',
+            expiresInSeconds: 0,
+            refreshToken: 'rt',
           },
           fullProfile: {
             id: '0',
             provider: 'AAP oauth2',
             username: 'adminUser',
-            email: 'admin@test.com',
-            displayName: 'Admin User',
+            displayName: 'adminUser',
           },
         },
       };
 
       const entity = mockUserEntity('adminUser');
       const context = {
+        // User exists — found immediately, createUser not called
         findCatalogUser: jest.fn().mockResolvedValue({ entity }),
         issueToken: jest.fn().mockResolvedValue({ token: 'admin-token' }),
       } satisfies Partial<AuthResolverContext>;
 
       const result = await resolver(info, context as any);
-
-      expect(context.findCatalogUser).toHaveBeenCalledWith({
-        entityRef: { name: 'adminUser' },
-      });
+      expect(userProvisioner.createUser).not.toHaveBeenCalled();
       expect(result).toEqual({ token: 'admin-token' });
     });
 
     it('should include aap-admins group for superuser on first login', async () => {
+      const userProvisioner = makeUserProvisioner(
+        jest.fn().mockResolvedValue(true),
+      );
       const resolverFactory = AAPAuthSignInResolvers.allowNewAAPUserSignIn({
-        discovery: mockDiscovery as any,
-        auth: mockAuth as any,
+        userProvisioner,
       });
       const resolver = (resolverFactory as any)();
 
@@ -611,9 +642,9 @@ describe('resolvers', () => {
     });
 
     it('should include stitched group relations in token', async () => {
+      const userProvisioner = makeUserProvisioner();
       const resolverFactory = AAPAuthSignInResolvers.allowNewAAPUserSignIn({
-        discovery: mockDiscovery as any,
-        auth: mockAuth as any,
+        userProvisioner,
       });
       const resolver = (resolverFactory as any)();
 

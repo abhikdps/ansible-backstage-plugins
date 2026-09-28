@@ -6,8 +6,11 @@ import {
   authProvidersExtensionPoint,
   createOAuthProviderFactory,
 } from '@backstage/plugin-auth-node';
+import {
+  ansibleServiceRef,
+  userProvisionerRef,
+} from '@ansible/backstage-rhaap-common';
 import { AAPAuthSignInResolvers } from './resolvers';
-import { ansibleServiceRef } from '@ansible/backstage-rhaap-common';
 import { aapAuthAuthenticator } from './authenticator';
 import { createUserJobTemplatesRouter } from './userJobTemplatesRouter';
 
@@ -19,9 +22,8 @@ export const authModuleRhaapProvider = createBackendModule({
       deps: {
         providers: authProvidersExtensionPoint,
         ansibleService: ansibleServiceRef,
+        userProvisioner: userProvisionerRef,
         config: coreServices.rootConfig,
-        discovery: coreServices.discovery,
-        auth: coreServices.auth,
         httpRouter: coreServices.httpRouter,
         httpAuth: coreServices.httpAuth,
         logger: coreServices.logger,
@@ -29,8 +31,7 @@ export const authModuleRhaapProvider = createBackendModule({
       async init({
         providers,
         ansibleService,
-        discovery,
-        auth,
+        userProvisioner,
         config,
         httpRouter,
         httpAuth,
@@ -41,11 +42,12 @@ export const authModuleRhaapProvider = createBackendModule({
           factory: createOAuthProviderFactory({
             authenticator: aapAuthAuthenticator(ansibleService),
             signInResolverFactories: {
-              usernameMatchingUser: AAPAuthSignInResolvers.usernameMatchingUser,
+              usernameMatchingUser: AAPAuthSignInResolvers.usernameMatchingUser(
+                { config },
+              ),
               allowNewAAPUserSignIn:
                 AAPAuthSignInResolvers.allowNewAAPUserSignIn({
-                  discovery,
-                  auth,
+                  userProvisioner,
                 }),
             },
           }),
