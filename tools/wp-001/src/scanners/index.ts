@@ -4,8 +4,9 @@ import { scanActions } from './actions.ts';
 import { scanPermissions } from './permissions.ts';
 import { scanFrontend } from './frontend.ts';
 import { scanPackageExports } from './exports.ts';
+import { scanConfigSchema } from './config.ts';
 
-export { scanPackageExports };
+export { scanPackageExports, scanConfigSchema };
 
 /**
  * Runs all AST-based scanners on a single TypeScript source file.

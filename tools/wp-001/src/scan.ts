@@ -2,7 +2,7 @@ import path from 'node:path';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { repos } from './config.ts';
 import { revParse, lsTree, showFile } from './git.ts';
-import { scanSourceFile, scanPackageExports } from './scanners/index.ts';
+import { scanSourceFile, scanPackageExports, scanConfigSchema } from './scanners/index.ts';
 import type { ContractInventoryRow, RepoTarget } from './types.ts';
 
 function log(msg: string): void {
@@ -29,8 +29,11 @@ async function scanRepo(target: RepoTarget): Promise<ContractInventoryRow[]> {
       !f.includes('/node_modules/'),
   );
   const packageJsonFiles = allFiles.filter(f => f.endsWith('/package.json'));
+  const configFiles = allFiles.filter(
+    f => f.endsWith('/config.d.ts') && !f.includes('/node_modules/'),
+  );
 
-  log(`  ${tsFiles.length} TypeScript source files, ${packageJsonFiles.length} package.json files`);
+  log(`  ${tsFiles.length} TypeScript source files, ${packageJsonFiles.length} package.json files, ${configFiles.length} config.d.ts files`);
 
   const rows: ContractInventoryRow[] = [];
 
@@ -47,6 +50,21 @@ async function scanRepo(target: RepoTarget): Promise<ContractInventoryRow[]> {
       rows.push(...scanPackageExports(parsed, source));
     } catch {
       // Skip unparseable package.json files
+    }
+  }
+
+  // Scan config.d.ts schema files
+  for (const configFile of configFiles) {
+    try {
+      const content = showFile(repoPath, revision, configFile);
+      const source: ContractInventoryRow['source'] = {
+        repository,
+        revision: sha,
+        file: configFile,
+      };
+      rows.push(...scanConfigSchema(content, source));
+    } catch {
+      // Skip unreadable files
     }
   }
 

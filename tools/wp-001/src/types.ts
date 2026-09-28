@@ -4,7 +4,8 @@ export type ContractFamily =
   | 'permission'
   | 'action'
   | 'frontend'
-  | 'export';
+  | 'export'
+  | 'config';
 
 export type ContractRuntime =
   | 'portable'
