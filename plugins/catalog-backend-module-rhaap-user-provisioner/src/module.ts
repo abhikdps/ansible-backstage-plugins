@@ -6,7 +6,7 @@ import { catalogProcessingExtensionPoint } from '@backstage/plugin-catalog-node/
 import {
   ansibleServiceRef,
   userProvisionerRef,
-  UserProvisioner,
+  IUserProvisionerConnectable,
 } from '@ansible/backstage-rhaap-common';
 import { UserProvisionerProvider } from './UserProvisionerProvider';
 
@@ -29,10 +29,10 @@ export const catalogModuleRhaapUserProvisioner = createBackendModule({
           logger,
         });
 
-        // Wire the provider's createUser method into the shared service ref instance.
-        // The UserProvisioner singleton is root-scoped, so the auth module
-        // receives the same instance and can call createUser() directly.
-        (userProvisioner as UserProvisioner).registerCreateUserFn(
+        // Cast to IUserProvisionerConnectable to access the wiring method.
+        // This interface is separate from IUserProvisioner (the public consumer API)
+        // so registerCreateUserFn doesn't leak into the auth plugin's surface.
+        (userProvisioner as unknown as IUserProvisionerConnectable).registerCreateUserFn(
           (username, userID) => provider.createUser(username, userID),
         );
 

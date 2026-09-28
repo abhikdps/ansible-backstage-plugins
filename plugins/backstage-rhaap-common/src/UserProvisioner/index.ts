@@ -16,11 +16,25 @@ export interface IUserProvisioner {
 }
 
 /**
+ * Wiring interface implemented by the UserProvisioner singleton.
+ * Used by catalog-backend-module-rhaap-user-provisioner to register its
+ * createUser implementation without exposing internal details on IUserProvisioner.
+ * @public
+ */
+export interface IUserProvisionerConnectable {
+  registerCreateUserFn(
+    fn: (username: string, userID: number) => Promise<boolean>,
+  ): void;
+}
+
+/**
  * Internal class holding the registered creator function.
  * Shared as a root-scoped singleton so catalog and auth modules share the same instance.
  * @public
  */
-export class UserProvisioner implements IUserProvisioner {
+export class UserProvisioner
+  implements IUserProvisioner, IUserProvisionerConnectable
+{
   private createUserFn:
     | ((username: string, userID: number) => Promise<boolean>)
     | null = null;
