@@ -104,6 +104,7 @@ jest.mock('../notifications', () => ({
     subscribe: jest.fn().mockReturnValue(() => {}),
     getIsSyncInProgress: jest.fn().mockReturnValue(false),
     startTracking: jest.fn(),
+    addInvalidator: jest.fn().mockReturnValue(() => {}),
   },
 }));
 

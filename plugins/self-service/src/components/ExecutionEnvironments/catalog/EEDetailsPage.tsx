@@ -49,6 +49,11 @@ import { LinksCard } from './LinksCard';
 import { ReadmeCard } from './ReadmeCard';
 import { ResourcesCard } from './ResourcesCard';
 import { useEEBuildFlow } from './useEEBuildFlow';
+import {
+  useExtensionTabs,
+  EXTENSION_POINTS,
+} from '@ansible/backstage-rhaap-extension-api';
+import { ExtensionTabContent } from '../../../extensions/ExtensionRenderer';
 
 const useActionsMenuStyles = makeStyles(theme => ({
   actionsButton: {
@@ -162,7 +167,12 @@ export const EEDetailsPage: React.FC = () => {
     scmProvider,
     closeDialog,
   } = useEEBuildFlow();
+  const EE_BUILT_IN_TABS = 1; // Overview
   const [entity, setEntity] = useState<Entity | null | undefined>(undefined);
+  const extensionTabs = useExtensionTabs(
+    EXTENSION_POINTS.EE_DETAIL_TABS,
+    entity ?? undefined,
+  );
   const [menuId, setMenuId] = useState<string>('');
   const [defaultReadme, setDefaultReadme] = useState<string>('');
   const [fetchedDefinition, setFetchedDefinition] = useState<string | null>(
@@ -566,6 +576,16 @@ export const EEDetailsPage: React.FC = () => {
                   style={{ marginTop: 16, marginBottom: 24 }}
                 >
                   <Tab label="Overview" />
+                  {extensionTabs.map(et => {
+                    const Icon = et.icon;
+                    return (
+                      <Tab
+                        key={et.id}
+                        label={et.label}
+                        icon={Icon ? <Icon fontSize="small" /> : undefined}
+                      />
+                    );
+                  })}
                 </Tabs>
 
                 {/* Overview */}
@@ -607,6 +627,16 @@ export const EEDetailsPage: React.FC = () => {
                       <ResourcesCard />
                     </Box>
                   </Box>
+                )}
+
+                {extensionTabs.map((et, i) =>
+                  tab === EE_BUILT_IN_TABS + i ? (
+                    <ExtensionTabContent
+                      key={et.id}
+                      contribution={et}
+                      entity={entity as Entity}
+                    />
+                  ) : null,
                 )}
               </>
             ) : (

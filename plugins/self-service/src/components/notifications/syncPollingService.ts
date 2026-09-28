@@ -14,8 +14,6 @@ import type {
   SyncOutcome,
   SyncProgressEntry,
 } from '../common/types';
-import { invalidateCollections } from '../CollectionsCatalog/collectionsInvalidation';
-import { gitReposCache } from '../GitRepositories/gitReposCache';
 
 interface ProviderStatus {
   sourceId: string;
@@ -104,6 +102,7 @@ class SyncPollingService {
   private readonly listeners: Set<SyncStatusListener> = new Set();
   private readonly syncProgress: Map<string, SyncProgressEntry> = new Map();
   private readonly progressListeners: Set<SyncProgressListener> = new Set();
+  private readonly cacheInvalidators: Set<() => void> = new Set();
   /** Display names for which a sync-outcome notification has already been sent
    *  in the current session. Prevents duplicate toasts regardless of which
    *  code path (tracked / untracked / timing race) fires first. Cleared on
@@ -115,8 +114,16 @@ class SyncPollingService {
   }
 
   private invalidateAllCaches(): void {
-    invalidateCollections();
-    gitReposCache.invalidateFetchedData();
+    this.cacheInvalidators.forEach(fn => fn());
+  }
+
+  /** Register a cache-invalidation callback to be called whenever a sync
+   *  completes or times out. Returns an unregister function. */
+  addInvalidator(fn: () => void): () => void {
+    this.cacheInvalidators.add(fn);
+    return () => {
+      this.cacheInvalidators.delete(fn);
+    };
   }
 
   initialize(discoveryApi: DiscoveryApi, fetchApi: FetchApi): void {
@@ -607,6 +614,7 @@ class SyncPollingService {
     this.isSyncInProgress = false;
     this.listeners.clear();
     this.progressListeners.clear();
+    this.cacheInvalidators.clear();
     this.discoveryApi = null;
     this.fetchApi = null;
   }

@@ -32,6 +32,9 @@ describe('syncPollingService', () => {
     jest.clearAllMocks();
     mockInvalidateFetchedData.mockClear();
     syncPollingService.clear();
+    // Register the mock as an invalidator so the service calls it when it
+    // invalidates caches (mirrors what RouteView does in production).
+    syncPollingService.addInvalidator(mockInvalidateFetchedData);
 
     mockDiscoveryApi = {
       getBaseUrl: jest

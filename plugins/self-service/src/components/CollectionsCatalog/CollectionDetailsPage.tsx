@@ -25,6 +25,11 @@ import {
   fetchGitFileContentFromBackend,
   ScmIntegrationAuthError,
 } from '../common';
+import {
+  useExtensionTabs,
+  EXTENSION_POINTS,
+} from '@ansible/backstage-rhaap-extension-api';
+import { ExtensionTabContent } from '../../extensions/ExtensionRenderer';
 
 const CollectionDetailsPageInner = () => {
   const classes = useCollectionsStyles();
@@ -45,6 +50,11 @@ const CollectionDetailsPageInner = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [tab, setTab] = useState(0);
   const [scmIntegrationAuthError, setScmIntegrationAuthError] = useState(false);
+  const COLLECTION_BUILT_IN_TABS = 1; // Overview
+  const extensionTabs = useExtensionTabs(
+    EXTENSION_POINTS.COLLECTION_DETAIL_TABS,
+    entity ?? undefined,
+  );
 
   const fetchEntity = useCallback(() => {
     if (!collectionName) return;
@@ -338,6 +348,16 @@ const CollectionDetailsPageInner = () => {
         className={classes.detailsTabs}
       >
         <Tab label="Overview" />
+        {extensionTabs.map(et => {
+          const Icon = et.icon;
+          return (
+            <Tab
+              key={et.id}
+              label={et.label}
+              icon={Icon ? <Icon fontSize="small" /> : undefined}
+            />
+          );
+        })}
       </Tabs>
 
       {tab === 0 && (
@@ -362,6 +382,16 @@ const CollectionDetailsPageInner = () => {
             <CollectionResourcesCard entity={entity} />
           </Box>
         </Box>
+      )}
+
+      {extensionTabs.map((et, i) =>
+        tab === COLLECTION_BUILT_IN_TABS + i ? (
+          <ExtensionTabContent
+            key={et.id}
+            contribution={et}
+            entity={entity}
+          />
+        ) : null,
       )}
     </Box>
   );

@@ -17,7 +17,12 @@ import {
 } from '@backstage/core-plugin-api';
 import { RequirePermission } from '@backstage/plugin-permission-react';
 import { gitRepositoriesViewPermission } from '@ansible/backstage-rhaap-common/permissions';
+import {
+  useExtensionTabs,
+  EXTENSION_POINTS,
+} from '@ansible/backstage-rhaap-extension-api';
 
+import { ExtensionTabContent } from '../../extensions/ExtensionRenderer';
 import { RepositoryBreadcrumbs } from './RepositoryBreadcrumbs';
 import { RepositoryAboutCard } from './RepositoryAboutCard';
 import { RepositoryReadmeCard } from './RepositoryReadmeCard';
@@ -185,6 +190,11 @@ const RepositoryDetailsPageInner = () => {
   const [readmeLoading, setReadmeLoading] = useState(false);
   const [tab, setTab] = useState(0);
   const [scmIntegrationAuthError, setScmIntegrationAuthError] = useState(false);
+  const GIT_REPO_BUILT_IN_TABS = 3; // Overview, CI Activity, Collections
+  const extensionTabs = useExtensionTabs(
+    EXTENSION_POINTS.GIT_REPO_DETAIL_TABS,
+    entity ?? undefined,
+  );
 
   const fetchEntity = useCallback(() => {
     if (!repositoryName) return;
@@ -355,6 +365,16 @@ const RepositoryDetailsPageInner = () => {
         <Tab label="Overview" />
         <Tab label="CI Activity" />
         <Tab label="Collections" />
+        {extensionTabs.map(et => {
+          const Icon = et.icon;
+          return (
+            <Tab
+              key={et.id}
+              label={et.label}
+              icon={Icon ? <Icon fontSize="small" /> : undefined}
+            />
+          );
+        })}
       </Tabs>
 
       {tab === 0 && (
@@ -393,6 +413,16 @@ const RepositoryDetailsPageInner = () => {
             <CollectionsListPage filterByRepositoryEntity={entity} />
           </EntityListProvider>
         </Box>
+      )}
+
+      {extensionTabs.map((et, i) =>
+        tab === GIT_REPO_BUILT_IN_TABS + i ? (
+          <ExtensionTabContent
+            key={et.id}
+            contribution={et}
+            entity={entity}
+          />
+        ) : null,
       )}
     </Box>
   );
