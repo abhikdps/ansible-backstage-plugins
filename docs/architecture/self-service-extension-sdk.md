@@ -454,7 +454,29 @@ plugins:
 > `alertApi` for failed resolutions (gated behind a `debug` config flag to avoid
 > user-facing noise).
 
-### 4.3 Async loading (handled by the registry)
+### 4.3 Registry singleton — shared module requirement
+
+The `ContributionRegistry` is a **module-level singleton** — the shared bus between community plugins and the self-service host. This only works if all parties are talking to **the same instance** of `backstage-rhaap-extension-api`.
+
+In RHDH, if self-service and a community plugin each bundle their own copy via `--embed-package`, you get two separate registries. Community plugin registrations never reach the self-service host.
+
+**The fix** follows the standard Scalprum shared module pattern (same as how `react` is shared):
+
+- **Self-service** lists `@ansible/backstage-rhaap-extension-api` in the RHDH shared scope — it provides the one shared instance
+- **Community plugins** declare it as a `peerDependency` only — they do **not** embed it via `--embed-package`
+- The RHDH deployer registers it once in `dynamic-plugins.yaml`:
+
+```yaml
+sharedPackages:
+  - package: '@ansible/backstage-rhaap-extension-api'
+    version: '^1.0.0'
+```
+
+**In standard Backstage** (no RHDH / no Scalprum): all plugins load in the same JS bundle so the module singleton is naturally shared — no `sharedPackages` configuration needed.
+
+`@ansible/backstage-rhaap-react` (the component library) does **not** need to be shared — it has no singleton state. Each consumer can safely embed its own copy.
+
+### 4.4 Async loading (handled by the registry)
 
 RHDH dynamic plugins load asynchronously. A community plugin may finish loading after the self-service page has already rendered. The `useExtensionTabs` hook uses a subscription pattern that triggers React re-renders when late registrations arrive:
 
@@ -872,6 +894,7 @@ const ContributedSidebarItems = () => {
 | **Community plugin's filter callback throws inside useMemo** | **Registry getters wrap `filter()` in try/catch; throwing filter omits contribution + logs warning** |
 | **Community plugin's action handler throws or returns rejected promise** | **`ExtensionRenderer` wraps handler invocation in try/catch + await; surfaces error via `alertApi`; host page unaffected** |
 | **Scalprum integration is net-new with no local examples** | **Target `@scalprum/react-core` API documented; RHDH docs linked; higher implementation risk flagged for Phase 3** |
+| **Registry singleton duplicated across dynamic plugins** | **`backstage-rhaap-extension-api` must be in RHDH `sharedPackages` scope; community plugins use peerDep only — no `--embed-package`** |
 | **`syncPollingService` has page-specific hard imports** | **Must refactor to callback-based invalidation before extraction (documented in Phase 1 pre-requisite)** |
 
 ---
