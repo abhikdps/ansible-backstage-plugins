@@ -102,7 +102,7 @@ describe('self-service plugin module', () => {
   it('calls createPlugin with expected id and apis', () => {
     expect(createPluginMock).toHaveBeenCalledTimes(1);
     const callArg = createPluginMock.mock.calls[0][0];
-    expect(callArg).toHaveProperty('id', 'self-service');
+    expect(callArg).toHaveProperty('id', 'portal-scaffolder');
     expect(callArg).toHaveProperty('apis');
     expect(Array.isArray(callArg.apis)).toBe(true);
     expect(callArg.apis).toContain(mockAAPApis);

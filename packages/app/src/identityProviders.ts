@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { rhAapAuthApiRef } from '@ansible/plugin-backstage-self-service';
+import { rhAapAuthApiRef } from '@ansible/portal-scaffolder';
 
 import { githubAuthApiRef } from '@backstage/core-plugin-api';
 

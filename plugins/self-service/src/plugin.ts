@@ -15,7 +15,7 @@ import {
 import { AAPApis, AapAuthApi, EEBuildApis } from './apis';
 
 export const selfServicePlugin = createPlugin({
-  id: 'self-service',
+  id: 'portal-scaffolder',
   apis: [AAPApis, AapAuthApi, EEBuildApis],
   routes: {
     root: rootRouteRef,

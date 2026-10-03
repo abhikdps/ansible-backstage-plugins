@@ -1,6 +1,6 @@
 dynamicPlugins:
   frontend:
-    ansible.plugin-backstage-self-service:
+    ansible.portal-scaffolder:
       signInPage:
         importName: SignInPage
       providerSettings:

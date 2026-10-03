@@ -1,4 +1,5 @@
 # Section: ANSTRAT-2497 Implementation Guide
+
 ### (Proposed insertion into "Content Experience Architecture" — Section 10 or as an appendix)
 
 > **Instructions for merge:** Insert this section as **§10 — ANSTRAT-2497 Implementation
@@ -47,14 +48,14 @@ validated the core patterns from this document:
 
 **PoC deviations from this architecture (corrected for production):**
 
-| PoC decision | Correct production decision |
-|---|---|
-| `handler()` for server effects | `CapabilityLaunch.operationId` / `workflowId` (§6.3) |
-| Per-page frozen IDs (`rhaap.git-repository.detail.tabs`) | Experience + capability + entry point model (§6.2) |
-| Packages: `backstage-rhaap-*` | Packages: `portal-extension-*` / `portal-plugin-sdk` (§2.1) |
-| Host in `self-service` plugin | Host in `portal-core` workspace (§2.2) |
-| Single EE type | Two types: `execution-environment-definition`, `execution-environment-image` (§4.2, §7.2) |
-| `filter?` as sole type gate | `appliesToContentTypes` is the primary static gate (§6.2) |
+| PoC decision                                             | Correct production decision                                                               |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `handler()` for server effects                           | `CapabilityLaunch.operationId` / `workflowId` (§6.3)                                      |
+| Per-page frozen IDs (`rhaap.git-repository.detail.tabs`) | Experience + capability + entry point model (§6.2)                                        |
+| Packages: `backstage-rhaap-*`                            | Packages: `portal-extension-*` / `portal-plugin-sdk` (§2.1)                               |
+| Host in `self-service` plugin                            | Host in `portal-core` workspace (§2.2)                                                    |
+| Single EE type                                           | Two types: `execution-environment-definition`, `execution-environment-image` (§4.2, §7.2) |
+| `filter?` as sole type gate                              | `appliesToContentTypes` is the primary static gate (§6.2)                                 |
 
 All PoC design decisions and alignment with this architecture are documented at
 `docs/architecture/self-service-extension-sdk.md` — specifically §12 (Alignment with
@@ -127,7 +128,7 @@ SDK works before ANSTRAT-1758 and partner integrations depend on it.
 
 Identity middleware, audit event emitter, health push, org-keyed DB helpers.
 
-**Phase 6 — Content extraction** *(dependent on ANSTRAT-1758)*
+**Phase 6 — Content extraction** _(dependent on ANSTRAT-1758)_
 
 Components move per §7.3. The first concrete prerequisite: ANSTRAT-1758 publishes
 `automation-content-client` and the registered operations for the seven scaffolder
@@ -141,12 +142,12 @@ Add `/self-service/*` redirects. This is the last phase — done once packages a
 
 ### 10.5 Contracts published for ANSTRAT-1758
 
-| Package | What it provides |
-|---|---|
+| Package                            | What it provides                                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------- |
 | `@ansible/portal-extension-common` | `PluginManifest`, `CapabilityContribution`, `CapabilityLaunch`, canonical content type ID strings |
-| `@ansible/portal-extension-api` | `ContributionRegistry`, `registerCapability()`, React hooks |
-| `@ansible/portal-plugin-sdk` | `usePortalContext()`, BUI tokens, RJSF widget registration |
-| `@ansible/portal-plugin-node` | Identity middleware, audit emit, health push |
+| `@ansible/portal-extension-api`    | `ContributionRegistry`, `registerCapability()`, React hooks                                       |
+| `@ansible/portal-plugin-sdk`       | `usePortalContext()`, BUI tokens, RJSF widget registration                                        |
+| `@ansible/portal-plugin-node`      | Identity middleware, audit emit, health push                                                      |
 
 ANSTRAT-1758 depends on these packages. Breaking changes to them require coordination
 and a major semver bump with a migration guide.

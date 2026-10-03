@@ -1,6 +1,6 @@
 // ─── Re-exports from @ansible/backstage-rhaap-react ──────────────────────────
-export { useIsSuperuser } from '@ansible/backstage-rhaap-react';
-export type { UseIsSuperuserResult } from '@ansible/backstage-rhaap-react';
+export { useIsSuperuser } from '@ansible/portal-plugin-sdk';
+export type { UseIsSuperuserResult } from '@ansible/portal-plugin-sdk';
 
 // ─── Self-service–specific ────────────────────────────────────────────────────
 // useSyncStatusPolling is kept here because it subscribes to the self-service

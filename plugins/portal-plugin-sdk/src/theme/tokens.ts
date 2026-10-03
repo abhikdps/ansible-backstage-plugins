@@ -1,5 +1,5 @@
 /**
- * Static design token constants for `@ansible/backstage-rhaap-react`.
+ * Static design token constants for `@ansible/portal-plugin-sdk`.
  *
  * These are **static defaults** and do NOT adapt to the active Backstage theme.
  * For theme-aware styling, use the CSS custom properties injected by

@@ -2,7 +2,7 @@
 
 > **Jira:** [ANSTRAT-2497](https://redhat.atlassian.net/browse/ANSTRAT-2497) — Portal Plugin Factory: Plugin Development Guide and SDK
 > **Team:** Self-service and portal core teams
-> **Status:** Active — Phases 1–5 complete; Phase 6 blocked on ANSTRAT-1758
+> **Status:** Active — Phases 1–5, 7 complete (in-scope); Phase 6 blocked on ANSTRAT-1758
 > **Branch:** `anstrat-2497-poc` in `ansible-backstage-plugins`
 > **Related:** [ANSTRAT-1758](https://redhat.atlassian.net/browse/ANSTRAT-1758) (Content Management), [PR #712](https://github.com/ansible/ansible-backstage-plugins/pull/712) (migration plan)
 > **Canonical architecture reference:** [Content Experience Architecture](https://github.com/ansible/ansible-rhdh-plugins/blob/portal-plugin-research/.sdlc/research/plugin-factory/Content%20Experience%20Architecture.md) (Ganesh's doc)
@@ -48,6 +48,7 @@ Concretely, this Jira ticket delivers:
    imports between self-service and content components (§7.5 of the architecture doc).
 
 **What this ticket does NOT own:**
+
 - Content management primitives, ingestion, trust, OCI adapters → ANSTRAT-1758
 - AAP resource sync, auth provider, scaffolder actions → AAP integration team
 - Operator / appliance delivery manifest → release engineering (§9.1 of architecture doc)
@@ -61,6 +62,7 @@ It validated the core patterns but used preliminary names and made several desig
 decisions that need updating before production. Full record: `docs/architecture/self-service-extension-sdk.md`.
 
 **What the PoC proved:**
+
 - Module-level singleton registry works for async dynamic plugin late-loading
 - Component extraction from self-service with re-export shims preserves backward compatibility
 - `useExtensionTabs` subscription + re-render handles RHDH async plugin loading correctly
@@ -68,6 +70,7 @@ decisions that need updating before production. Full record: `docs/architecture/
 - MUI v4 `ThemeProvider` wrapping gives contributed components automatic host theme inheritance
 
 **What the PoC got wrong (resolved in §4):**
+
 - Package names: `backstage-rhaap-*` → `portal-*` / `automation-portal-*`
 - Host location: in self-service → in `portal-core` workspace
 - `handler()` for server effects → `CapabilityLaunch.operationId` / `workflowId`
@@ -146,16 +149,16 @@ export interface PluginManifest {
 
 ### 4.2 Experiences (host-owned, not plugin-owned)
 
-The host declares named UX regions. Plugins contribute capabilities *into* them.
+The host declares named UX regions. Plugins contribute capabilities _into_ them.
 No plugin creates an experience by registering. Unknown `experienceId` values are rejected.
 
 ```typescript
 // Initial set of experiences (portal-extension-host declares these)
 export const EXPERIENCE_IDS = {
-  CONTENT_QUALITY:     'content-quality-assessment',
-  CONTENT_AUTHORING:   'content-authoring',
-  CONTENT_MIGRATION:   'content-migration',
-  SELF_SERVICE:        'self-service',      // templates, tasks, history
+  CONTENT_QUALITY: 'content-quality-assessment',
+  CONTENT_AUTHORING: 'content-authoring',
+  CONTENT_MIGRATION: 'content-migration',
+  SELF_SERVICE: 'self-service', // templates, tasks, history
 } as const;
 ```
 
@@ -165,10 +168,10 @@ export const EXPERIENCE_IDS = {
 export interface CapabilityContribution {
   id: string;
   ownerPlugin: string;
-  experienceId: string;                        // must match an EXPERIENCE_IDS value
+  experienceId: string; // must match an EXPERIENCE_IDS value
   displayName: string;
   description: string;
-  appliesToContentTypes: string[] | '*';        // primary type gate — evaluated statically
+  appliesToContentTypes: string[] | '*'; // primary type gate — evaluated statically
   entryPoints: CapabilityEntryPoint[];
   order?: number;
   minimumHostApiVersion: string;
@@ -178,21 +181,21 @@ export interface CapabilityEntryPoint {
   id: string;
   kind: ContributionKind;
   surface: EntrySurface;
-  appliesToContentTypes: string[];              // narrower than capability-level
+  appliesToContentTypes: string[]; // narrower than capability-level
   label: string;
-  launches: CapabilityLaunch;                  // no handler URL; no arbitrary fetch
+  launches: CapabilityLaunch; // no handler URL; no arbitrary fetch
   requiredPermission?: PermissionRequirement;
-  filter?: (entity: Entity) => boolean;        // additional UI predicate only
+  filter?: (entity: Entity) => boolean; // additional UI predicate only
 }
 
 export type LaunchType = 'slot' | 'workflow' | 'operation';
 
 export interface CapabilityLaunch {
   type: LaunchType;
-  moduleName?: string;       // 'slot': federated module mounted into targetSlot
-  targetSlot?: string;       // 'slot': named layout zone inside the experience
-  workflowId?: string;       // 'workflow': host-routed guided flow; no plugin URL
-  operationId?: string;      // 'operation': registered server-side operation, audited
+  moduleName?: string; // 'slot': federated module mounted into targetSlot
+  targetSlot?: string; // 'slot': named layout zone inside the experience
+  workflowId?: string; // 'workflow': host-routed guided flow; no plugin URL
+  operationId?: string; // 'operation': registered server-side operation, audited
 }
 ```
 
@@ -206,17 +209,17 @@ may use a thin `onActivate` callback in the `slot` launch type, scoped strictly 
 
 The following type IDs are canonical. Plugins use these exact strings in `appliesToContentTypes`.
 
-| Type ID | What it is |
-|---|---|
-| `collection` | Ansible collection (Galaxy v3, Pulp, or OCI artifact) |
-| `execution-environment-definition` | `execution-environment.yml` in source control |
-| `execution-environment-image` | Built OCI image with digest, manifest, trust evidence |
-| `playbook-repository` | Git repository containing playbooks/roles |
-| `*` | Any content type (global settings, non-content surfaces only) |
+| Type ID                            | What it is                                                    |
+| ---------------------------------- | ------------------------------------------------------------- |
+| `collection`                       | Ansible collection (Galaxy v3, Pulp, or OCI artifact)         |
+| `execution-environment-definition` | `execution-environment.yml` in source control                 |
+| `execution-environment-image`      | Built OCI image with digest, manifest, trust evidence         |
+| `playbook-repository`              | Git repository containing playbooks/roles                     |
+| `*`                                | Any content type (global settings, non-content surfaces only) |
 
 **`execution-environment-definition` and `execution-environment-image` are two distinct
-types.** A definition lists what was *requested* to be built; an image records what the
-build *actually resolved*. Entry points differ: "Build" hangs off a definition; "Trust
+types.** A definition lists what was _requested_ to be built; an image records what the
+build _actually resolved_. Entry points differ: "Build" hangs off a definition; "Trust
 signals" and "Content inventory" hang off a built image.
 
 ### 4.5 Backward compatibility aliases (current self-service pages)
@@ -226,10 +229,10 @@ The current self-service detail pages (`RepositoryDetailsPage`, `CollectionDetai
 during the transition. The PoC's `EXTENSION_POINTS` constants become compatibility
 aliases — they are not the primary API.
 
-| PoC ID (alias, deprecated) | Target experience + kind |
-|---|---|
-| `rhaap.git-repository.detail.tabs` | `content-authoring` experience, `page-tab` on `playbook-repository` |
-| `rhaap.collection.detail.tabs` | `content-quality-assessment` experience, `page-tab` on `collection` |
+| PoC ID (alias, deprecated)                | Target experience + kind                                                         |
+| ----------------------------------------- | -------------------------------------------------------------------------------- |
+| `rhaap.git-repository.detail.tabs`        | `content-authoring` experience, `page-tab` on `playbook-repository`              |
+| `rhaap.collection.detail.tabs`            | `content-quality-assessment` experience, `page-tab` on `collection`              |
 | `rhaap.execution-environment.detail.tabs` | `content-authoring` experience, `page-tab` on `execution-environment-definition` |
 
 ### 4.6 Developer SDK contracts
@@ -281,25 +284,25 @@ published to the workspace. Component library and hooks that any plugin can impo
 
 **Work (extract from self-service, add new):**
 
-| Item | Source | Status |
-|---|---|---|
-| `PageHeaderSection` | `self-service/components/common/` | ✅ Done — `backstage-rhaap-react/src/components/PageHeaderSection/` |
-| `SyncDialog`, `SyncProgressPopover` | `self-service/components/common/` | ✅ Done — `backstage-rhaap-react/src/components/SyncDialog/`, `SyncProgressPopover/` |
-| `EmptyState`, `EntityLinkButton`, `SkeletonLoader` | `self-service/components/common/` | ✅ Done — `backstage-rhaap-react/src/components/` |
-| `ScmIntegrationAuthError` | `self-service/components/common/` | ✅ Done — `backstage-rhaap-react/src/components/ScmIntegrationAuthError/` |
-| `NotificationProvider`, `NotificationStack`, `notificationStore` | `self-service/components/notifications/` | ✅ Done — `backstage-rhaap-react/src/notifications/` |
-| `syncPollingService` (DI callbacks) | `self-service/components/notifications/` | ✅ Done — `addInvalidator(fn)` callback DI implemented in `syncPollingService.ts` |
-| `PaginatedEntityCache`, `usePagination`, `useCacheSubscription` | `self-service/components/common/cache/` | ✅ Done — `backstage-rhaap-react/src/cache/` |
-| `useIsSuperuser`, `useSyncStatusPolling` | `self-service/hooks/` | ✅ Done — `backstage-rhaap-react/src/hooks/` |
-| Style hooks, icons, types, constants | `self-service/components/common/` | ✅ Done — `backstage-rhaap-react/src/styles/`, `icons/`, `types.ts`, `utils/constants.ts` |
-| `RhaapThemeProvider` (MUI v4 → `PortalThemeProvider`) | New | ✅ Done — `backstage-rhaap-react/src/theme/RhaapThemeProvider.tsx`; rename to `PortalThemeProvider` in Phase 7 |
-| Static design tokens (`rhaapTokens`) | New | ✅ Done — `backstage-rhaap-react/src/theme/tokens.ts` |
-| CSS custom properties from `useTheme()` (`--rhaap-*` vars) | New | ❌ Not implemented — `tokens.ts` comments describe the spec but no runtime CSS var injection in `ExtensionRenderer` yet |
-| `usePortalContext()` (organizationId, apiClient) | New | ❌ Not started |
-| BUI design tokens | New | ❌ Not started |
-| RJSF widget registration | New | ❌ Not started |
-| Re-export shims in self-service | New | ✅ Done — `self-service/src/components/common/index.ts`, `notifications/index.ts`, etc. re-export from `backstage-rhaap-react` |
-| **Fix PoC test failures** | — | ✅ Done — all 196 suites, 3961 tests passing |
+| Item                                                             | Source                                   | Status                                                                                                                         |
+| ---------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `PageHeaderSection`                                              | `self-service/components/common/`        | ✅ Done — `backstage-rhaap-react/src/components/PageHeaderSection/`                                                            |
+| `SyncDialog`, `SyncProgressPopover`                              | `self-service/components/common/`        | ✅ Done — `backstage-rhaap-react/src/components/SyncDialog/`, `SyncProgressPopover/`                                           |
+| `EmptyState`, `EntityLinkButton`, `SkeletonLoader`               | `self-service/components/common/`        | ✅ Done — `backstage-rhaap-react/src/components/`                                                                              |
+| `ScmIntegrationAuthError`                                        | `self-service/components/common/`        | ✅ Done — `backstage-rhaap-react/src/components/ScmIntegrationAuthError/`                                                      |
+| `NotificationProvider`, `NotificationStack`, `notificationStore` | `self-service/components/notifications/` | ✅ Done — `backstage-rhaap-react/src/notifications/`                                                                           |
+| `syncPollingService` (DI callbacks)                              | `self-service/components/notifications/` | ✅ Done — `addInvalidator(fn)` callback DI implemented in `syncPollingService.ts`                                              |
+| `PaginatedEntityCache`, `usePagination`, `useCacheSubscription`  | `self-service/components/common/cache/`  | ✅ Done — `backstage-rhaap-react/src/cache/`                                                                                   |
+| `useIsSuperuser`, `useSyncStatusPolling`                         | `self-service/hooks/`                    | ✅ Done — `backstage-rhaap-react/src/hooks/`                                                                                   |
+| Style hooks, icons, types, constants                             | `self-service/components/common/`        | ✅ Done — `backstage-rhaap-react/src/styles/`, `icons/`, `types.ts`, `utils/constants.ts`                                      |
+| `RhaapThemeProvider` (MUI v4 → `PortalThemeProvider`)            | New                                      | ✅ Done — `backstage-rhaap-react/src/theme/RhaapThemeProvider.tsx`; rename to `PortalThemeProvider` in Phase 7                 |
+| Static design tokens (`rhaapTokens`)                             | New                                      | ✅ Done — `backstage-rhaap-react/src/theme/tokens.ts`                                                                          |
+| CSS custom properties from `useTheme()` (`--rhaap-*` vars)       | New                                      | ❌ Not implemented — `tokens.ts` comments describe the spec but no runtime CSS var injection in `ExtensionRenderer` yet        |
+| `usePortalContext()` (organizationId, apiClient)                 | New                                      | ❌ Not started                                                                                                                 |
+| BUI design tokens                                                | New                                      | ❌ Not started                                                                                                                 |
+| RJSF widget registration                                         | New                                      | ❌ Not started                                                                                                                 |
+| Re-export shims in self-service                                  | New                                      | ✅ Done — `self-service/src/components/common/index.ts`, `notifications/index.ts`, etc. re-export from `backstage-rhaap-react` |
+| **Fix PoC test failures**                                        | —                                        | ✅ Done — all 196 suites, 3961 tests passing                                                                                   |
 
 **Prerequisite:** ~~Refactor `syncPollingService` to accept cache-invalidation callbacks
 (currently hardcodes `invalidateCollections` and `gitReposCache` imports).~~ Done — `addInvalidator(fn)` DI is implemented.
@@ -313,23 +316,23 @@ published to the workspace. The contracts other plugins and the host depend on.
 
 **Work:**
 
-| Item | Notes | Status |
-|---|---|---|
-| `PluginManifest`, `CapabilityContribution`, `CapabilityEntryPoint` | Per §4.1–4.3 | ✅ Done — `backstage-rhaap-extension-api/src/manifest.ts` has complete type definitions |
-| `CapabilityLaunch` (`slot \| workflow \| operation`) | Replaces `handler()` for server effects | ✅ Done — `backstage-rhaap-extension-api/src/types.ts` |
-| `ExperienceDefinition`, `EXPERIENCE_IDS` | Per §4.2 | ✅ Done — `ExperienceDefinition` in `manifest.ts`; `EXPERIENCE_IDS` constants in `extensionPoints.ts` |
-| `appliesToContentTypes` on all contribution types | Per §4.4 | ✅ Done — on `TabContribution`, `CardContribution`, `ActionContribution` (types.ts) and `CapabilityContribution`, `CapabilityEntryPoint` (manifest.ts) |
-| `SettingsContribution` (operationId-based, no apiEndpoint) | Per §4.6 | ✅ Done — `manifest.ts` |
-| `EntitlementDefinition` | Per §4.6 | ✅ Done — `manifest.ts` |
-| `OperationDescriptor` (stub — full impl is ANSTRAT-1758) | Enough for `operationId` references | ✅ Done — stub in `manifest.ts`; full execution mode / idempotency fields deferred to Phase 5 |
-| `ContributionRegistry` singleton | ✅ Done (PoC) — rename + move to this package | ✅ Done — `backstage-rhaap-extension-api/src/registry.ts`; moves to `portal-extension-api` package in Phase 7 |
-| `EXTENSION_POINTS` constants as compatibility aliases | Per §4.5 | ✅ Done — `backstage-rhaap-extension-api/src/extensionPoints.ts` |
-| `CONTENT_TYPES` constants | Per §4.4 | ✅ Done — `extensionPoints.ts` |
-| `useExtensionTabs`, `useExtensionCards`, `useExtensionActions` hooks | ✅ Done (PoC) | ✅ Done — `backstage-rhaap-extension-api/src/hooks/index.ts` |
-| Convenience registration helpers | ✅ Done (PoC) | ✅ Done — `backstage-rhaap-extension-api/src/helpers/` (collection, git-repository, execution-environment, template) |
-| `ContributionRegistry.reset()` for test isolation | ✅ Done (PoC) | ✅ Done |
-| Full unit test coverage | Per existing test strategy | ✅ Done — `registry.test.ts` (contentType filtering, entity filtering, priority sort, enable/disable, subscribe/unsubscribe, reset) |
-| `sharedPackages` documentation | RHDH `dynamic-plugins.yaml` example | ❌ Not started |
+| Item                                                                 | Notes                                         | Status                                                                                                                                                 |
+| -------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PluginManifest`, `CapabilityContribution`, `CapabilityEntryPoint`   | Per §4.1–4.3                                  | ✅ Done — `backstage-rhaap-extension-api/src/manifest.ts` has complete type definitions                                                                |
+| `CapabilityLaunch` (`slot \| workflow \| operation`)                 | Replaces `handler()` for server effects       | ✅ Done — `backstage-rhaap-extension-api/src/types.ts`                                                                                                 |
+| `ExperienceDefinition`, `EXPERIENCE_IDS`                             | Per §4.2                                      | ✅ Done — `ExperienceDefinition` in `manifest.ts`; `EXPERIENCE_IDS` constants in `extensionPoints.ts`                                                  |
+| `appliesToContentTypes` on all contribution types                    | Per §4.4                                      | ✅ Done — on `TabContribution`, `CardContribution`, `ActionContribution` (types.ts) and `CapabilityContribution`, `CapabilityEntryPoint` (manifest.ts) |
+| `SettingsContribution` (operationId-based, no apiEndpoint)           | Per §4.6                                      | ✅ Done — `manifest.ts`                                                                                                                                |
+| `EntitlementDefinition`                                              | Per §4.6                                      | ✅ Done — `manifest.ts`                                                                                                                                |
+| `OperationDescriptor` (stub — full impl is ANSTRAT-1758)             | Enough for `operationId` references           | ✅ Done — stub in `manifest.ts`; full execution mode / idempotency fields deferred to Phase 5                                                          |
+| `ContributionRegistry` singleton                                     | ✅ Done (PoC) — rename + move to this package | ✅ Done — `backstage-rhaap-extension-api/src/registry.ts`; moves to `portal-extension-api` package in Phase 7                                          |
+| `EXTENSION_POINTS` constants as compatibility aliases                | Per §4.5                                      | ✅ Done — `backstage-rhaap-extension-api/src/extensionPoints.ts`                                                                                       |
+| `CONTENT_TYPES` constants                                            | Per §4.4                                      | ✅ Done — `extensionPoints.ts`                                                                                                                         |
+| `useExtensionTabs`, `useExtensionCards`, `useExtensionActions` hooks | ✅ Done (PoC)                                 | ✅ Done — `backstage-rhaap-extension-api/src/hooks/index.ts`                                                                                           |
+| Convenience registration helpers                                     | ✅ Done (PoC)                                 | ✅ Done — `backstage-rhaap-extension-api/src/helpers/` (collection, git-repository, execution-environment, template)                                   |
+| `ContributionRegistry.reset()` for test isolation                    | ✅ Done (PoC)                                 | ✅ Done                                                                                                                                                |
+| Full unit test coverage                                              | Per existing test strategy                    | ✅ Done — `registry.test.ts` (contentType filtering, entity filtering, priority sort, enable/disable, subscribe/unsubscribe, reset)                    |
+| `sharedPackages` documentation                                       | RHDH `dynamic-plugins.yaml` example           | ❌ Not started                                                                                                                                         |
 
 ---
 
@@ -340,21 +343,21 @@ Lives in `portal-core`, not in self-service.
 
 **Work:**
 
-| Item | Notes | Status |
-|---|---|---|
-| `ExtensionRenderer` | Renders contributions: `PortalThemeProvider` → `ErrorBoundary` → `Suspense` → component | ✅ Done — `self-service/src/extensions/ExtensionRenderer.tsx` (`ExtensionTabContent`, `ExtensionCardContent`, `ExtensionActionMenuItem`, `useActionActivation`); moves to `portal-extension-host` in Phase 7 |
-| `DynamicExtensionDiscovery` (Scalprum) | RHDH-only; no-op in standard Backstage | ⚠️ Partial — `DynamicExtensionDiscovery.tsx` created; Scalprum integration stubbed (pending RHDH team confirmation of Scalprum API, see §8); self-service manifest validation wired on mount |
-| `ExperienceSlot` component | Named layout zone that stacks registered contributions for an experience + slot | ✅ Done — `self-service/src/extensions/ExperienceSlot.tsx` (`ExperienceCardSlot`, `ExperienceTabContent`) |
-| Manifest validation on plugin load | Reject incompatible `apiVersion`; log, do not crash | ✅ Done — `self-service/src/extensions/validateManifest.ts`; validates semver compatibility, known `experienceId`s, and `minimumHostApiVersion`; wired in `DynamicExtensionDiscovery` |
-| Permission gating per contribution | `PermissionGate` wrapper using `requiredPermission` field | ✅ Done — `usePermission` gating in `ExtensionTabContent`, `ExtensionCardContent`, `useActionActivation` |
-| `filter()` as additional predicate | Applied after `appliesToContentTypes` static gate | ✅ Done — `safeFilter()` in `registry.ts` |
-| `onActivate` for pure-UI slot launches | Thin callback for navigation/dialog only; no network | ✅ Done — `useActionActivation` in `ExtensionRenderer.tsx` |
-| Error boundary per slot | Individual contribution crash does not take down the page | ✅ Done — `ErrorBoundary.tsx` (class component, `getDerivedStateFromError`) |
-| CSS custom properties injection | Via `useTheme()`, theme-adaptive | ❌ Not implemented — spec is in `tokens.ts` comments but runtime `--rhaap-*` injection into wrapper element is not yet done |
-| Handler safety (`try/catch` + error logging) | For `onActivate` callbacks | ✅ Done — `ExtensionActionMenuItem` catches and logs `onActivate` rejections |
-| RJSF settings shell | Renders `SettingsContribution` schema with custom widget registry | ❌ Not started |
-| Health display aggregator | Receives `pushHealthStatus` from plugins | ❌ Not started |
-| `DynamicExtensionDiscovery` no-op fallback | Detects Scalprum absence cleanly | ✅ Done — `useIsDynamicEnvironment()` hook; `DynamicExtensionDiscovery` is a no-op in standard Backstage |
+| Item                                         | Notes                                                                                   | Status                                                                                                                                                                                                       |
+| -------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ExtensionRenderer`                          | Renders contributions: `PortalThemeProvider` → `ErrorBoundary` → `Suspense` → component | ✅ Done — `self-service/src/extensions/ExtensionRenderer.tsx` (`ExtensionTabContent`, `ExtensionCardContent`, `ExtensionActionMenuItem`, `useActionActivation`); moves to `portal-extension-host` in Phase 7 |
+| `DynamicExtensionDiscovery` (Scalprum)       | RHDH-only; no-op in standard Backstage                                                  | ⚠️ Partial — `DynamicExtensionDiscovery.tsx` created; Scalprum integration stubbed (pending RHDH team confirmation of Scalprum API, see §8); self-service manifest validation wired on mount                 |
+| `ExperienceSlot` component                   | Named layout zone that stacks registered contributions for an experience + slot         | ✅ Done — `self-service/src/extensions/ExperienceSlot.tsx` (`ExperienceCardSlot`, `ExperienceTabContent`)                                                                                                    |
+| Manifest validation on plugin load           | Reject incompatible `apiVersion`; log, do not crash                                     | ✅ Done — `self-service/src/extensions/validateManifest.ts`; validates semver compatibility, known `experienceId`s, and `minimumHostApiVersion`; wired in `DynamicExtensionDiscovery`                        |
+| Permission gating per contribution           | `PermissionGate` wrapper using `requiredPermission` field                               | ✅ Done — `usePermission` gating in `ExtensionTabContent`, `ExtensionCardContent`, `useActionActivation`                                                                                                     |
+| `filter()` as additional predicate           | Applied after `appliesToContentTypes` static gate                                       | ✅ Done — `safeFilter()` in `registry.ts`                                                                                                                                                                    |
+| `onActivate` for pure-UI slot launches       | Thin callback for navigation/dialog only; no network                                    | ✅ Done — `useActionActivation` in `ExtensionRenderer.tsx`                                                                                                                                                   |
+| Error boundary per slot                      | Individual contribution crash does not take down the page                               | ✅ Done — `ErrorBoundary.tsx` (class component, `getDerivedStateFromError`)                                                                                                                                  |
+| CSS custom properties injection              | Via `useTheme()`, theme-adaptive                                                        | ❌ Not implemented — spec is in `tokens.ts` comments but runtime `--rhaap-*` injection into wrapper element is not yet done                                                                                  |
+| Handler safety (`try/catch` + error logging) | For `onActivate` callbacks                                                              | ✅ Done — `ExtensionActionMenuItem` catches and logs `onActivate` rejections                                                                                                                                 |
+| RJSF settings shell                          | Renders `SettingsContribution` schema with custom widget registry                       | ❌ Not started                                                                                                                                                                                               |
+| Health display aggregator                    | Receives `pushHealthStatus` from plugins                                                | ❌ Not started                                                                                                                                                                                               |
+| `DynamicExtensionDiscovery` no-op fallback   | Detects Scalprum absence cleanly                                                        | ✅ Done — `useIsDynamicEnvironment()` hook; `DynamicExtensionDiscovery` is a no-op in standard Backstage                                                                                                     |
 
 ---
 
@@ -366,15 +369,15 @@ and partner integrations depend on it.
 
 **Work:**
 
-| Item | Notes | Status |
-|---|---|---|
-| `RepositoryDetailsPage` tabs → `useExtensionTabs` | ✅ Done (PoC) | ✅ Done |
-| `EEDetailsPage` tabs → `useExtensionTabs` | ✅ Done (PoC) | ✅ Done |
-| `CollectionDetailsPage` tabs → `useExtensionTabs` | ✅ Done (PoC) | ✅ Done |
+| Item                                                           | Notes                                                                                                                                                                           | Status  |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `RepositoryDetailsPage` tabs → `useExtensionTabs`              | ✅ Done (PoC)                                                                                                                                                                   | ✅ Done |
+| `EEDetailsPage` tabs → `useExtensionTabs`                      | ✅ Done (PoC)                                                                                                                                                                   | ✅ Done |
+| `CollectionDetailsPage` tabs → `useExtensionTabs`              | ✅ Done (PoC)                                                                                                                                                                   | ✅ Done |
 | Register built-in tabs as `CapabilityEntryPoint` contributions | `selfServiceManifest.ts` declares all capabilities; validated on startup via `DynamicExtensionDiscovery`; full slot-based activation (component extraction) deferred to Phase 6 | ✅ Done |
-| `GitRepositoriesPage` list tabs → extension support | `useExtensionTabs(GIT_REPO_LIST_TABS)` wired; extension tabs append after Catalog + CI Activity; `activeExtTabIndex` state for in-page switching; 4 new tests | ✅ Done |
-| All affected tests updated | Fixed in previous session (192 suites); 4 new extension tab tests added this session (196 suites, 3961 tests) | ✅ Done |
-| Full verification (tsc, lint, test) | tsc: 0 errors; lint: 0 errors; tests: all pass | ✅ Done |
+| `GitRepositoriesPage` list tabs → extension support            | `useExtensionTabs(GIT_REPO_LIST_TABS)` wired; extension tabs append after Catalog + CI Activity; `activeExtTabIndex` state for in-page switching; 4 new tests                   | ✅ Done |
+| All affected tests updated                                     | Fixed in previous session (192 suites); 4 new extension tab tests added this session (196 suites, 3961 tests)                                                                   | ✅ Done |
+| Full verification (tsc, lint, test)                            | tsc: 0 errors; lint: 0 errors; tests: all pass                                                                                                                                  | ✅ Done |
 
 ---
 
@@ -386,16 +389,16 @@ and partner integrations depend on it.
 
 **Work:**
 
-| Item | Notes | Status |
-|---|---|---|
-| `createPortalPlugin()` factory | Returns `PortalPlugin` with `createMiddleware`, `pushHealthStatus`, `emitAuditEvent`, `withLogger` | ✅ Done — `createPortalPlugin.ts` |
-| Identity middleware | `createIdentityMiddleware({ httpAuth, userInfo, logger })` — attaches `req.portalContext` with `userId`, `organizationId`, `userEntityRef`; derived from Backstage user entity ref namespace; never blocks unauthenticated routes | ✅ Done — `middleware.ts` |
-| `PortalContext` type + Express augmentation | `req.portalContext?: PortalContext` statically typed in all consumers | ✅ Done — `types.ts` |
-| Health push | `pushHealthStatus(status)` + `HealthRegistry` singleton per plugin; `subscribe()`; `getAllHealthStatuses()` for host aggregation; initial state `UNKNOWN` | ✅ Done — `healthRegistry.ts` |
-| Audit event emitter | `AuditEmitter.emit(event)` → structured `info` log entry with plugin, operationId, userId, organizationId, outcome, timestamp | ✅ Done — `auditEmitter.ts` (Phase 5: log only; durable store in later phase) |
-| Organization-keyed DB helpers | `withOrganization(orgId, fn)` — rejects empty orgId; trims whitespace; makes key unavoidable at call site | ✅ Done — `withOrganization.ts` |
-| Full unit test coverage | 34 tests: `parseEntityRef`, `createIdentityMiddleware`, `HealthRegistry`, `withOrganization`, `AuditEmitter`, `createPortalPlugin` integration | ✅ Done — `createPortalPlugin.test.ts` |
-| tsc + lint | tsc: 0 errors; lint: 0 errors | ✅ Done |
+| Item                                        | Notes                                                                                                                                                                                                                             | Status                                                                        |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `createPortalPlugin()` factory              | Returns `PortalPlugin` with `createMiddleware`, `pushHealthStatus`, `emitAuditEvent`, `withLogger`                                                                                                                                | ✅ Done — `createPortalPlugin.ts`                                             |
+| Identity middleware                         | `createIdentityMiddleware({ httpAuth, userInfo, logger })` — attaches `req.portalContext` with `userId`, `organizationId`, `userEntityRef`; derived from Backstage user entity ref namespace; never blocks unauthenticated routes | ✅ Done — `middleware.ts`                                                     |
+| `PortalContext` type + Express augmentation | `req.portalContext?: PortalContext` statically typed in all consumers                                                                                                                                                             | ✅ Done — `types.ts`                                                          |
+| Health push                                 | `pushHealthStatus(status)` + `HealthRegistry` singleton per plugin; `subscribe()`; `getAllHealthStatuses()` for host aggregation; initial state `UNKNOWN`                                                                         | ✅ Done — `healthRegistry.ts`                                                 |
+| Audit event emitter                         | `AuditEmitter.emit(event)` → structured `info` log entry with plugin, operationId, userId, organizationId, outcome, timestamp                                                                                                     | ✅ Done — `auditEmitter.ts` (Phase 5: log only; durable store in later phase) |
+| Organization-keyed DB helpers               | `withOrganization(orgId, fn)` — rejects empty orgId; trims whitespace; makes key unavoidable at call site                                                                                                                         | ✅ Done — `withOrganization.ts`                                               |
+| Full unit test coverage                     | 34 tests: `parseEntityRef`, `createIdentityMiddleware`, `HealthRegistry`, `withOrganization`, `AuditEmitter`, `createPortalPlugin` integration                                                                                    | ✅ Done — `createPortalPlugin.test.ts`                                        |
+| tsc + lint                                  | tsc: 0 errors; lint: 0 errors                                                                                                                                                                                                     | ✅ Done                                                                       |
 
 ---
 
@@ -406,15 +409,15 @@ content type IDs before this phase begins.
 
 **Work (§7.3 of architecture doc):**
 
-| Component | Moves to | Constraint |
-|---|---|---|
-| `CollectionsCatalog` | `automation-content-module-collection` (ANSTRAT-1758) | No circular dep: self-service imports content by published version only |
-| `GitRepositories` | `automation-content` (ANSTRAT-1758) | Same |
-| `ExecutionEnvironments` (built image view) | `automation-content-module-execution-environment` (ANSTRAT-1758) | |
-| `ExecutionEnvironments` (definition catalog) | Stays in `self-service` → `portal-scaffolder` | This is authoring, not content browsing |
-| `LandingPage`, `Home` | `portal-core` (`portal-theme`) | |
-| `SignInPage`, `AAPLogoutButton`, `AppThemeFixer` | `portal-core` / `aap` workspace | |
-| Seven scaffolder pickers | Re-implemented against `content.collections.list` operation (§7.5) | Contract agreed with ANSTRAT-1758 first |
+| Component                                        | Moves to                                                           | Constraint                                                              |
+| ------------------------------------------------ | ------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| `CollectionsCatalog`                             | `automation-content-module-collection` (ANSTRAT-1758)              | No circular dep: self-service imports content by published version only |
+| `GitRepositories`                                | `automation-content` (ANSTRAT-1758)                                | Same                                                                    |
+| `ExecutionEnvironments` (built image view)       | `automation-content-module-execution-environment` (ANSTRAT-1758)   |                                                                         |
+| `ExecutionEnvironments` (definition catalog)     | Stays in `self-service` → `portal-scaffolder`                      | This is authoring, not content browsing                                 |
+| `LandingPage`, `Home`                            | `portal-core` (`portal-theme`)                                     |                                                                         |
+| `SignInPage`, `AAPLogoutButton`, `AppThemeFixer` | `portal-core` / `aap` workspace                                    |                                                                         |
+| Seven scaffolder pickers                         | Re-implemented against `content.collections.list` operation (§7.5) | Contract agreed with ANSTRAT-1758 first                                 |
 
 **The seven pickers boundary (§7.5):** ANSTRAT-1758 declares a registered operation
 and typed client method (e.g., `content.collections.list`) with schema and permission.
@@ -427,13 +430,14 @@ This is the first concrete contract the two Jiras need to agree on.
 
 **Dependency:** Phases 1–4 complete; packages stable enough to rename before any external publish.
 
-| Current name | Target name | Notes |
-|---|---|---|
-| `backstage-rhaap-react` | `portal-plugin-sdk` | Move to `workspaces/portal-core/` |
-| `backstage-rhaap-extension-api` | `portal-extension-api` | Move to `workspaces/portal-core/` |
-| *(host, in self-service)* | `portal-extension-host` | Move to `workspaces/portal-core/` |
-| `plugin-backstage-self-service` | `portal-scaffolder` | Plugin ID: `portal-scaffolder`, keep `/self-service/*` redirects |
-| `ansible-backstage-plugins` repo | `automation-portal-plugins` | Coordinate with all teams; GitHub redirects old paths |
+| Current name                     | Target name                 | Notes                                                            | Status                                                                                                                                              |
+| -------------------------------- | --------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `backstage-rhaap-react`          | `portal-plugin-sdk`         | Move to `workspaces/portal-core/` (deferred)                     | ✅ Package name `@ansible/portal-plugin-sdk`; directory renamed to `plugins/portal-plugin-sdk/`                                                     |
+| `backstage-rhaap-extension-api`  | `portal-extension-api`      | Move to `workspaces/portal-core/` (deferred)                     | ✅ Package name `@ansible/portal-extension-api`; directory renamed to `plugins/portal-extension-api/`                                               |
+| `backstage-rhaap-node`           | `portal-plugin-node`        | Move to `workspaces/portal-core/` (deferred)                     | ✅ Package name `@ansible/portal-plugin-node`; directory renamed to `plugins/portal-plugin-node/`                                                   |
+| _(host, in self-service)_        | `portal-extension-host`     | Move to `workspaces/portal-core/` (deferred)                     | ✅ Standalone package `@ansible/portal-extension-host` at `plugins/portal-extension-host/`; `self-service/src/extensions/` are thin re-export shims |
+| `plugin-backstage-self-service`  | `portal-scaffolder`         | Plugin ID: `portal-scaffolder`, keep `/self-service/*` redirects | ✅ Package name `@ansible/portal-scaffolder`; plugin ID `portal-scaffolder`; manifest IDs updated; route paths `/self-service/*` preserved          |
+| `ansible-backstage-plugins` repo | `automation-portal-plugins` | Coordinate with all teams; GitHub redirects old paths            | ❌ Deferred — coordination required                                                                                                                 |
 
 ---
 
@@ -442,12 +446,12 @@ This is the first concrete contract the two Jiras need to agree on.
 The following packages are the boundary that ANSTRAT-1758 (content management) and
 partner integrations build against. They must be versioned and stable.
 
-| Package | Consumers | What it provides |
-|---|---|---|
-| `@ansible/portal-extension-common` | ANSTRAT-1758, partner plugins | `PluginManifest`, `CapabilityContribution`, `CapabilityLaunch`, type IDs |
-| `@ansible/portal-extension-api` | ANSTRAT-1758 frontend, partner plugins | `ContributionRegistry`, `useExtensionTabs`, `registerCapability()` |
-| `@ansible/portal-plugin-sdk` | ANSTRAT-1758 frontend, partner plugins | `usePortalContext()`, BUI tokens, widget registration |
-| `@ansible/portal-plugin-node` | ANSTRAT-1758 backend, partner plugins | Identity middleware, audit emit, health push |
+| Package                            | Consumers                              | What it provides                                                         |
+| ---------------------------------- | -------------------------------------- | ------------------------------------------------------------------------ |
+| `@ansible/portal-extension-common` | ANSTRAT-1758, partner plugins          | `PluginManifest`, `CapabilityContribution`, `CapabilityLaunch`, type IDs |
+| `@ansible/portal-extension-api`    | ANSTRAT-1758 frontend, partner plugins | `ContributionRegistry`, `useExtensionTabs`, `registerCapability()`       |
+| `@ansible/portal-plugin-sdk`       | ANSTRAT-1758 frontend, partner plugins | `usePortalContext()`, BUI tokens, widget registration                    |
+| `@ansible/portal-plugin-node`      | ANSTRAT-1758 backend, partner plugins  | Identity middleware, audit emit, health push                             |
 
 **Semver policy:** Pre-1.0.0 minor bumps may include breaking changes (documented in
 changelog). Once 1.0.0 ships: extension point IDs and `PluginManifest` shape are
@@ -478,14 +482,14 @@ against the published client, and Phase 6 can begin without blocking either team
 
 ## 8. Open Questions
 
-| Question | Owner | Blocking |
-|---|---|---|
-| Exact Scalprum API (`@scalprum/react-core`) for `DynamicExtensionDiscovery` — which method resolves a federated module? | Portal core | Phase 3 |
-| Should experiences have sub-experiences or nested slots? | Portal core + content team | Phase 2 |
-| Can `portal-extension-host` be a standard Backstage plugin (not just a React component) to support backend-side manifest validation? | Portal core | Phase 3 |
-| `portal-plugin.yaml` delivery manifest (§9.1 of architecture doc) — who builds the aggregator? | Release engineering | Phase 7 |
-| Tenant isolation: single-org deployments must still key all queries by `organizationId` — does the node SDK enforce this at the middleware layer or at the DB helper layer? | Portal core | Phase 5 |
-| Gitea support for `playbook-repository` type — deliver or dated deviation? | Content team | Phase 6 |
+| Question                                                                                                                                                                    | Owner                      | Blocking |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | -------- |
+| Exact Scalprum API (`@scalprum/react-core`) for `DynamicExtensionDiscovery` — which method resolves a federated module?                                                     | Portal core                | Phase 3  |
+| Should experiences have sub-experiences or nested slots?                                                                                                                    | Portal core + content team | Phase 2  |
+| Can `portal-extension-host` be a standard Backstage plugin (not just a React component) to support backend-side manifest validation?                                        | Portal core                | Phase 3  |
+| `portal-plugin.yaml` delivery manifest (§9.1 of architecture doc) — who builds the aggregator?                                                                              | Release engineering        | Phase 7  |
+| Tenant isolation: single-org deployments must still key all queries by `organizationId` — does the node SDK enforce this at the middleware layer or at the DB helper layer? | Portal core                | Phase 5  |
+| Gitea support for `playbook-repository` type — deliver or dated deviation?                                                                                                  | Content team               | Phase 6  |
 
 ---
 
@@ -518,13 +522,13 @@ plugin convention.
 
 ## 10. Documentation Deliverables
 
-| Document | Location | Content | Status |
-|---|---|---|---|
-| This guide | `docs/next/anstrat-2497-implementation-guide.md` | Implementation plan, phases, contracts | ✅ This file |
-| PoC arch doc | `docs/architecture/self-service-extension-sdk.md` | PoC decisions + alignment notes (§12) | ✅ Done |
-| Component library README | `plugins/portal-plugin-sdk/README.md` | All exported components, props, examples | ❌ |
-| Extension SDK README | `plugins/portal-extension-api/README.md` | How to register capabilities, all extension points | ❌ |
-| Community developer quickstart | `docs/sdk/quickstart.md` | End-to-end: build a plugin that adds a tab | ❌ |
-| Design tokens reference | `docs/sdk/design-tokens.md` | CSS custom properties, JS tokens, theme guidance | ❌ |
-| RHDH dynamic plugin guide | `docs/sdk/rhdh-dynamic-plugins.md` | Registration, Scalprum, declarative config | ❌ |
-| Internal migration guide | `docs/sdk/migration-from-self-service.md` | How to update imports from old locations | ❌ |
+| Document                       | Location                                          | Content                                            | Status       |
+| ------------------------------ | ------------------------------------------------- | -------------------------------------------------- | ------------ |
+| This guide                     | `docs/next/anstrat-2497-implementation-guide.md`  | Implementation plan, phases, contracts             | ✅ This file |
+| PoC arch doc                   | `docs/architecture/self-service-extension-sdk.md` | PoC decisions + alignment notes (§12)              | ✅ Done      |
+| Component library README       | `plugins/portal-plugin-sdk/README.md`             | All exported components, props, examples           | ❌           |
+| Extension SDK README           | `plugins/portal-extension-api/README.md`          | How to register capabilities, all extension points | ❌           |
+| Community developer quickstart | `docs/sdk/quickstart.md`                          | End-to-end: build a plugin that adds a tab         | ❌           |
+| Design tokens reference        | `docs/sdk/design-tokens.md`                       | CSS custom properties, JS tokens, theme guidance   | ❌           |
+| RHDH dynamic plugin guide      | `docs/sdk/rhdh-dynamic-plugins.md`                | Registration, Scalprum, declarative config         | ❌           |
+| Internal migration guide       | `docs/sdk/migration-from-self-service.md`         | How to update imports from old locations           | ❌           |

@@ -1,5 +1,5 @@
-import type { PluginManifest } from '@ansible/backstage-rhaap-extension-api';
-import { EXPERIENCE_IDS, CONTENT_TYPES } from '@ansible/backstage-rhaap-extension-api';
+import type { PluginManifest } from '@ansible/portal-extension-api';
+import { EXPERIENCE_IDS, CONTENT_TYPES } from '@ansible/portal-extension-api';
 
 /**
  * The host contract version self-service was built against.
@@ -10,35 +10,31 @@ import { EXPERIENCE_IDS, CONTENT_TYPES } from '@ansible/backstage-rhaap-extensio
 export const SELF_SERVICE_API_VERSION = '0.1.0';
 
 /**
- * Self-service plugin manifest — declares every capability, entitlement, and
- * operation this plugin contributes to the portal.
+ * Portal-scaffolder plugin manifest — declares every capability, entitlement,
+ * and operation this plugin contributes to the portal.
  *
- * The host (portal-extension-host, currently at `src/extensions/`) validates
- * this manifest on startup via `validateManifest()`. Invalid or incompatible
- * capabilities are skipped individually; the plugin does not fail to load.
+ * The host (`@ansible/portal-extension-host`) validates this manifest on
+ * startup via `validateManifest()`. Invalid or incompatible capabilities are
+ * skipped individually; the plugin does not fail to load.
  *
- * Phase 4 of ANSTRAT-2497: self-service is wired as a first-party contributor
- * to prove the manifest pipeline before ANSTRAT-1758 and community plugins
- * depend on it.
+ * Phase 4 of ANSTRAT-2497: portal-scaffolder is wired as a first-party
+ * contributor to prove the manifest pipeline before ANSTRAT-1758 and community
+ * plugins depend on it.
  *
  * Phase 6 note: When the content pages (CollectionsCatalog, GitRepositories)
  * move to the content workspace, they will be removed from this manifest and
  * replaced by separate manifests in their new packages.
  */
 export const selfServiceManifest: PluginManifest = {
-  /**
-   * Future canonical name: `portal-scaffolder`.
-   * Kept as `self-service` until Phase 7 renames the plugin ID.
-   */
-  id: 'self-service',
+  id: 'portal-scaffolder',
   version: '1.0.0',
   apiVersion: SELF_SERVICE_API_VERSION,
 
   capabilities: [
     // ── Collection detail ─────────────────────────────────────────────────
     {
-      id: 'self-service.collection-detail',
-      ownerPlugin: 'self-service',
+      id: 'portal-scaffolder.collection-detail',
+      ownerPlugin: 'portal-scaffolder',
       experienceId: EXPERIENCE_IDS.CONTENT_QUALITY,
       displayName: 'Collection Detail',
       description:
@@ -46,7 +42,7 @@ export const selfServiceManifest: PluginManifest = {
       appliesToContentTypes: [CONTENT_TYPES.COLLECTION],
       entryPoints: [
         {
-          id: 'self-service.collection-detail.overview-tab',
+          id: 'portal-scaffolder.collection-detail.overview-tab',
           kind: 'entity-tab',
           surface: 'entity-page',
           appliesToContentTypes: [CONTENT_TYPES.COLLECTION],
@@ -62,8 +58,8 @@ export const selfServiceManifest: PluginManifest = {
 
     // ── Repository detail ─────────────────────────────────────────────────
     {
-      id: 'self-service.repository-detail',
-      ownerPlugin: 'self-service',
+      id: 'portal-scaffolder.repository-detail',
+      ownerPlugin: 'portal-scaffolder',
       experienceId: EXPERIENCE_IDS.CONTENT_AUTHORING,
       displayName: 'Repository Detail',
       description:
@@ -71,7 +67,7 @@ export const selfServiceManifest: PluginManifest = {
       appliesToContentTypes: [CONTENT_TYPES.PLAYBOOK_REPOSITORY],
       entryPoints: [
         {
-          id: 'self-service.repository-detail.overview-tab',
+          id: 'portal-scaffolder.repository-detail.overview-tab',
           kind: 'entity-tab',
           surface: 'entity-page',
           appliesToContentTypes: [CONTENT_TYPES.PLAYBOOK_REPOSITORY],
@@ -79,7 +75,7 @@ export const selfServiceManifest: PluginManifest = {
           launches: { type: 'slot', targetSlot: 'repository-detail-main' },
         },
         {
-          id: 'self-service.repository-detail.ci-activity-tab',
+          id: 'portal-scaffolder.repository-detail.ci-activity-tab',
           kind: 'entity-tab',
           surface: 'entity-page',
           appliesToContentTypes: [CONTENT_TYPES.PLAYBOOK_REPOSITORY],
@@ -92,8 +88,8 @@ export const selfServiceManifest: PluginManifest = {
 
     // ── EE definition detail ──────────────────────────────────────────────
     {
-      id: 'self-service.ee-definition-detail',
-      ownerPlugin: 'self-service',
+      id: 'portal-scaffolder.ee-definition-detail',
+      ownerPlugin: 'portal-scaffolder',
       experienceId: EXPERIENCE_IDS.CONTENT_AUTHORING,
       displayName: 'Execution Environment Definition Detail',
       description:
@@ -101,10 +97,12 @@ export const selfServiceManifest: PluginManifest = {
       appliesToContentTypes: [CONTENT_TYPES.EXECUTION_ENVIRONMENT_DEFINITION],
       entryPoints: [
         {
-          id: 'self-service.ee-definition-detail.overview-tab',
+          id: 'portal-scaffolder.ee-definition-detail.overview-tab',
           kind: 'entity-tab',
           surface: 'entity-page',
-          appliesToContentTypes: [CONTENT_TYPES.EXECUTION_ENVIRONMENT_DEFINITION],
+          appliesToContentTypes: [
+            CONTENT_TYPES.EXECUTION_ENVIRONMENT_DEFINITION,
+          ],
           label: 'Overview',
           launches: { type: 'slot', targetSlot: 'ee-definition-detail-main' },
         },
@@ -114,8 +112,8 @@ export const selfServiceManifest: PluginManifest = {
 
     // ── Repository list ───────────────────────────────────────────────────
     {
-      id: 'self-service.repository-list',
-      ownerPlugin: 'self-service',
+      id: 'portal-scaffolder.repository-list',
+      ownerPlugin: 'portal-scaffolder',
       experienceId: EXPERIENCE_IDS.CONTENT_AUTHORING,
       displayName: 'Repository List',
       description:
@@ -123,7 +121,7 @@ export const selfServiceManifest: PluginManifest = {
       appliesToContentTypes: [CONTENT_TYPES.PLAYBOOK_REPOSITORY],
       entryPoints: [
         {
-          id: 'self-service.repository-list.catalog-tab',
+          id: 'portal-scaffolder.repository-list.catalog-tab',
           kind: 'page-tab',
           surface: 'experience-slot',
           appliesToContentTypes: [CONTENT_TYPES.PLAYBOOK_REPOSITORY],
@@ -131,7 +129,7 @@ export const selfServiceManifest: PluginManifest = {
           launches: { type: 'slot', targetSlot: 'repository-list-catalog' },
         },
         {
-          id: 'self-service.repository-list.ci-activity-tab',
+          id: 'portal-scaffolder.repository-list.ci-activity-tab',
           kind: 'page-tab',
           surface: 'experience-slot',
           appliesToContentTypes: [CONTENT_TYPES.PLAYBOOK_REPOSITORY],
@@ -143,7 +141,7 @@ export const selfServiceManifest: PluginManifest = {
     },
   ],
 
-  // Self-service does not declare entitlements. Access is controlled via the
-  // Backstage permissions registered in `backstage-rhaap-common/permissions.ts`.
+  // portal-scaffolder does not declare entitlements. Access is controlled via
+  // the Backstage permissions registered in `backstage-rhaap-common/permissions.ts`.
   entitlements: [],
 };

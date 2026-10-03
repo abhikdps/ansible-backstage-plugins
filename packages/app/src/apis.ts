@@ -11,7 +11,7 @@ import {
   oauthRequestApiRef,
 } from '@backstage/core-plugin-api';
 import { OAuth2 } from '@backstage/core-app-api';
-import { rhAapAuthApiRef } from '@ansible/plugin-backstage-self-service';
+import { rhAapAuthApiRef } from '@ansible/portal-scaffolder';
 import { signalsPlugin } from '@backstage/plugin-signals';
 
 export const apis: AnyApiFactory[] = [

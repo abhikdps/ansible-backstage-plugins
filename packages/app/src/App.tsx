@@ -54,7 +54,7 @@ import {
   AdditionalBuildStepsPickerFieldExtension,
   SelfServicePage,
   ScmSelectorFieldExtension,
-} from '@ansible/plugin-backstage-self-service';
+} from '@ansible/portal-scaffolder';
 import { RbacPage } from '@backstage-community/plugin-rbac';
 
 const app = createApp({

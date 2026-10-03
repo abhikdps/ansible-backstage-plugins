@@ -136,7 +136,9 @@ describe('createIdentityMiddleware', () => {
   it('calls next() without setting portalContext when userInfo throws', async () => {
     const options = {
       httpAuth: {
-        credentials: jest.fn().mockResolvedValue({ type: 'user', token: 'tok' }),
+        credentials: jest
+          .fn()
+          .mockResolvedValue({ type: 'user', token: 'tok' }),
       } as any,
       userInfo: {
         getUserInfo: jest.fn().mockRejectedValue(new Error('User not found')),
@@ -181,7 +183,10 @@ describe('HealthRegistry', () => {
     const listener = jest.fn();
     reg.subscribe(listener);
     reg.push({ state: 'DEGRADED', message: 'Slow.' });
-    expect(listener).toHaveBeenCalledWith({ state: 'DEGRADED', message: 'Slow.' });
+    expect(listener).toHaveBeenCalledWith({
+      state: 'DEGRADED',
+      message: 'Slow.',
+    });
   });
 
   it('subscribe() returns an unsubscribe function that stops notifications', () => {
@@ -236,15 +241,15 @@ describe('withOrganization', () => {
   });
 
   it('rejects when organizationId is an empty string', async () => {
-    await expect(withOrganization('', () => Promise.resolve('x'))).rejects.toThrow(
-      'organizationId must not be empty',
-    );
+    await expect(
+      withOrganization('', () => Promise.resolve('x')),
+    ).rejects.toThrow('organizationId must not be empty');
   });
 
   it('rejects when organizationId is whitespace-only', async () => {
-    await expect(withOrganization('   ', () => Promise.resolve('x'))).rejects.toThrow(
-      'organizationId must not be empty',
-    );
+    await expect(
+      withOrganization('   ', () => Promise.resolve('x')),
+    ).rejects.toThrow('organizationId must not be empty');
   });
 
   it('propagates errors thrown by the callback', async () => {
@@ -375,7 +380,10 @@ describe('createPortalPlugin', () => {
       outcome: 'SUCCESS',
     });
     expect(consoleSpy).not.toHaveBeenCalled();
-    expect(mockLogger.info).toHaveBeenCalledWith('[portal-audit]', expect.any(Object));
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      '[portal-audit]',
+      expect.any(Object),
+    );
     consoleSpy.mockRestore();
   });
 

@@ -1,5 +1,5 @@
 /**
- * Types for `@ansible/backstage-rhaap-node`.
+ * Types for `@ansible/portal-plugin-node`.
  *
  * All types here are serialisable and have no runtime dependencies on Express
  * or Backstage services — they can be imported by tests and common libraries

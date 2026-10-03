@@ -23,7 +23,7 @@ import {
   useExtensionTabs,
   EXTENSION_POINTS,
   CONTENT_TYPES,
-} from '@ansible/backstage-rhaap-extension-api';
+} from '@ansible/portal-extension-api';
 import { useSyncStatusPolling } from '../../hooks';
 import { SyncDialog } from '../common';
 import type { SyncStatusMap, StartedSyncInfo } from '../common';

@@ -24,7 +24,7 @@ import {
   useExtensionActions,
   EXTENSION_POINTS,
   CONTENT_TYPES,
-} from '@ansible/backstage-rhaap-extension-api';
+} from '@ansible/portal-extension-api';
 
 import {
   ExtensionTabContent,

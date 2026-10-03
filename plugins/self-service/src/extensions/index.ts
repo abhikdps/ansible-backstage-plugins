@@ -1,12 +1,12 @@
 /**
- * Extension host for the self-service / portal-core plugin.
+ * Extension host shims for the self-service plugin.
  *
- * This directory contains the runtime that renders community plugin
- * contributions into the portal's detail pages and experience slots.
- * It will move to a dedicated `portal-extension-host` package in Phase 7
- * of ANSTRAT-2497 (the rename + restructure phase).
+ * The runtime implementations live in `@ansible/portal-extension-host`.
+ * These files are thin re-exports kept for backwards compatibility so that
+ * existing relative imports (`../../extensions/ExtensionRenderer` etc.) continue
+ * to work without changes while the host package is the single source of truth.
  *
- * Public surface:
+ * Public surface (all forwarded from portal-extension-host):
  * - `ErrorBoundary` — per-contribution crash isolation
  * - `ExtensionRenderer` exports — `ExtensionTabContent`, `ExtensionCardContent`,
  *   `ExtensionActionMenuItem`, `useActionActivation`

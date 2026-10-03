@@ -6,7 +6,7 @@ import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import {
   contributionRegistry,
   EXTENSION_POINTS,
-} from '@ansible/backstage-rhaap-extension-api';
+} from '@ansible/portal-extension-api';
 import { GitRepositoriesPage } from './GitRepositoriesPage';
 
 jest.mock('@backstage/plugin-permission-react', () => ({

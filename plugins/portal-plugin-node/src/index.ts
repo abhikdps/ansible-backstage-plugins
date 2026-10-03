@@ -1,5 +1,5 @@
 /**
- * @ansible/backstage-rhaap-node
+ * @ansible/portal-plugin-node
  *
  * Server-side SDK for Ansible portal backend plugins.
  *
@@ -10,8 +10,7 @@
  * - `HealthRegistry`, `getAllHealthStatuses()` — push-based health reporting
  * - Types: `PortalContext`, `HealthStatus`, `AuditEvent`, `HealthState`
  *
- * Phase 7 rename: `@ansible/backstage-rhaap-node` → `@ansible/portal-plugin-node`.
- * All exports and API surface remain stable across the rename.
+ * All exports and API surface are stable.
  */
 
 // ── Factory ───────────────────────────────────────────────────────────────────

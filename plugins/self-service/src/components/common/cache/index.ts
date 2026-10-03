@@ -6,7 +6,7 @@ export {
   PaginatedEntityCache,
   useCacheSubscription,
   usePagination,
-} from '@ansible/backstage-rhaap-react';
+} from '@ansible/portal-plugin-sdk';
 export type {
   BaseCacheState,
   CacheUpdateListener,
@@ -16,4 +16,4 @@ export type {
   UseCacheSubscriptionResult,
   UsePaginationOptions,
   UsePaginationResult,
-} from '@ansible/backstage-rhaap-react';
+} from '@ansible/portal-plugin-sdk';

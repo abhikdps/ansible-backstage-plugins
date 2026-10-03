@@ -35,7 +35,7 @@ jest.mock('../../hooks', () => ({
 // directly so mockUseIsSuperuser controls all usages synchronously, preserving
 // per-test control over isSuperuser state (e.g. "should hide Sync Now when
 // user is not a superuser" overrides it to isSuperuser: false).
-jest.mock('../../../../backstage-rhaap-react/src/hooks', () => ({
+jest.mock('../../../../portal-plugin-sdk/src/hooks', () => ({
   useIsSuperuser: () => mockUseIsSuperuser(),
   clearSuperuserCache: jest.fn(),
 }));

@@ -1,4 +1,5 @@
 # Picker Operation Contract Proposal
+
 ## ANSTRAT-2497 → ANSTRAT-1758 Boundary
 
 > **From:** Portal Plugin Factory team (ANSTRAT-2497)
@@ -26,10 +27,10 @@ Agreement on this contract unblocks Phase 6 for both teams.
 
 ### The three pickers in scope
 
-| Picker component | Content it queries | Operations needed |
-|---|---|---|
-| `CollectionsPickerExtension` | Ansible collections from PAH / Galaxy / OCI | 3 |
-| `BaseImagePickerExtension` | Built EE images from the EE catalog | 1–2 |
+| Picker component             | Content it queries                          | Operations needed |
+| ---------------------------- | ------------------------------------------- | ----------------- |
+| `CollectionsPickerExtension` | Ansible collections from PAH / Galaxy / OCI | 3                 |
+| `BaseImagePickerExtension`   | Built EE images from the EE catalog         | 1–2               |
 
 ---
 
@@ -60,9 +61,9 @@ The user flow is a three-step cascade: pick a collection name → pick a source 
 
 ```typescript
 interface CollectionItem {
-  name: string;      // collection name, e.g. "community.general"
-  source: string;    // source/repository ID
-  version?: string;  // version string or null for "latest"
+  name: string; // collection name, e.g. "community.general"
+  source: string; // source/repository ID
+  version?: string; // version string or null for "latest"
 }
 ```
 
@@ -72,6 +73,7 @@ Currently **static** — the available base images are provided as a JSON schema
 template YAML and rendered as a radio list. No API call is made at runtime.
 
 The recommended image is hardcoded:
+
 ```
 registry.redhat.io/ansible-automation-platform/ee-minimal-rhel8:2.18
 ```
@@ -95,6 +97,7 @@ All calls go through `automation-content-client`.
 current organization. Powers the first autocomplete in CollectionsPicker.
 
 **Input:**
+
 ```typescript
 interface CollectionSearchInput {
   /** Free-text search. Empty string returns all collections (paginated). */
@@ -107,6 +110,7 @@ interface CollectionSearchInput {
 ```
 
 **Output:**
+
 ```typescript
 interface CollectionSearchOutput {
   items: CollectionSummary[];
@@ -141,6 +145,7 @@ If best-effort, the UI will always do a second call to `content.collections.list
 collection is available. Powers the "Source" autocomplete after a collection is selected.
 
 **Input:**
+
 ```typescript
 interface CollectionSourcesInput {
   /** Fully qualified collection name, e.g. "community.general". */
@@ -149,6 +154,7 @@ interface CollectionSourcesInput {
 ```
 
 **Output:**
+
 ```typescript
 interface CollectionSourcesOutput {
   sources: CollectionSource[];
@@ -174,6 +180,7 @@ interface CollectionSource {
 optional "Version" autocomplete after source selection.
 
 **Input:**
+
 ```typescript
 interface CollectionVersionsInput {
   collectionName: string;
@@ -182,6 +189,7 @@ interface CollectionVersionsInput {
 ```
 
 **Output:**
+
 ```typescript
 interface CollectionVersionsOutput {
   versions: CollectionVersion[];
@@ -210,6 +218,7 @@ interface CollectionVersion {
 Replaces the current static enum in `BaseImagePickerExtension`.
 
 **Input:**
+
 ```typescript
 interface EEBaseImageListInput {
   /** Optional: filter by AAP platform version tag. Default: return all. */
@@ -222,6 +231,7 @@ interface EEBaseImageListInput {
 ```
 
 **Output:**
+
 ```typescript
 interface EEBaseImageListOutput {
   images: EEBaseImage[];
@@ -260,13 +270,13 @@ interface EEBaseImage {
 These five questions **must be answered before Phase 6 begins**. Both teams are blocked
 on them.
 
-| # | Question | Impact |
-|---|---|---|
-| **Q1** | Do all three collection operations go through `automation-content-client`, or is there a separate scaffolder-autocomplete API that proxies to PAH? | Determines what the pickers import and how they authenticate |
-| **Q2** | Is `content.collections.search` backed by PAH's Galaxy v3 search, or by the Backstage catalog index? | Latency, offline behaviour, and whether search is live-typed or request-on-open |
-| **Q3** | Are the `sourceId` values in §3.1–3.3 stable across PAH upgrades? The EE definition stores this ID — a rename would break existing definitions. | Data model stability |
-| **Q4** | What permission gates `content.executionEnvironments.listBaseImages`? Is it the same `ansible.execution-environments.view` permission, or a new one? | RBAC configuration for the scaffolder |
-| **Q5** | Is `listBaseImages` scoped to the user's organization (only images in their org's PAH), or does it include CDN images from `registry.redhat.io` regardless of org? | Affects the `includeRhcdn` input field in §3.4 |
+| #      | Question                                                                                                                                                           | Impact                                                                          |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| **Q1** | Do all three collection operations go through `automation-content-client`, or is there a separate scaffolder-autocomplete API that proxies to PAH?                 | Determines what the pickers import and how they authenticate                    |
+| **Q2** | Is `content.collections.search` backed by PAH's Galaxy v3 search, or by the Backstage catalog index?                                                               | Latency, offline behaviour, and whether search is live-typed or request-on-open |
+| **Q3** | Are the `sourceId` values in §3.1–3.3 stable across PAH upgrades? The EE definition stores this ID — a rename would break existing definitions.                    | Data model stability                                                            |
+| **Q4** | What permission gates `content.executionEnvironments.listBaseImages`? Is it the same `ansible.execution-environments.view` permission, or a new one?               | RBAC configuration for the scaffolder                                           |
+| **Q5** | Is `listBaseImages` scoped to the user's organization (only images in their org's PAH), or does it include CDN images from `registry.redhat.io` regardless of org? | Affects the `includeRhcdn` input field in §3.4                                  |
 
 ### Nice-to-have for Phase 6 planning
 
@@ -294,10 +304,10 @@ Once the five questions above are answered, we commit to:
 
 For completeness, the other five pickers are not part of this boundary agreement:
 
-| Picker | Current data source | Phase 6 fate |
-|---|---|---|
-| `EETagsPicker` | User-provided free text | Stays in self-service → portal-scaffolder |
-| `PackagesPicker` | User-provided free text (pip package names) | Stays in portal-scaffolder |
-| `MCPServersPicker` | Static schema enum from template YAML | Stays in portal-scaffolder |
-| `AAResourcePicker` | AAP API (organizations, inventories, projects) | Stays in portal-scaffolder, continues to use AAP proxy |
-| `ScmSelector` | Static enum (GitHub, GitLab) | Stays in portal-scaffolder; may add Gitea if 1758 supports it |
+| Picker             | Current data source                            | Phase 6 fate                                                  |
+| ------------------ | ---------------------------------------------- | ------------------------------------------------------------- |
+| `EETagsPicker`     | User-provided free text                        | Stays in self-service → portal-scaffolder                     |
+| `PackagesPicker`   | User-provided free text (pip package names)    | Stays in portal-scaffolder                                    |
+| `MCPServersPicker` | Static schema enum from template YAML          | Stays in portal-scaffolder                                    |
+| `AAResourcePicker` | AAP API (organizations, inventories, projects) | Stays in portal-scaffolder, continues to use AAP proxy        |
+| `ScmSelector`      | Static enum (GitHub, GitLab)                   | Stays in portal-scaffolder; may add Gitea if 1758 supports it |

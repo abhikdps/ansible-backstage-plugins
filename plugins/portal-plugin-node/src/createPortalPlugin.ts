@@ -3,10 +3,7 @@ import type { LoggerService } from '@backstage/backend-plugin-api';
 import type { HealthStatus, AuditEvent } from './types';
 import type { IdentityMiddlewareOptions } from './middleware';
 import { createIdentityMiddleware } from './middleware';
-import {
-  HealthRegistry,
-  getOrCreateHealthRegistry,
-} from './healthRegistry';
+import { HealthRegistry, getOrCreateHealthRegistry } from './healthRegistry';
 import { AuditEmitter } from './auditEmitter';
 
 // ── Public interface ──────────────────────────────────────────────────────────
@@ -128,7 +125,7 @@ export interface PortalPlugin {
  *
  * @example
  * ```ts
- * import { createPortalPlugin } from '@ansible/backstage-rhaap-node';
+ * import { createPortalPlugin } from '@ansible/portal-plugin-node';
  *
  * const portalPlugin = createPortalPlugin({ pluginId: 'content-quality' });
  *

@@ -16,7 +16,10 @@ import type { PortalContext } from './types';
  * Falls back to `{ namespace: 'default', name: ref }` for malformed refs
  * rather than throwing — the middleware must never crash the request pipeline.
  */
-function parseEntityRef(entityRef: string): { namespace: string; name: string } {
+function parseEntityRef(entityRef: string): {
+  namespace: string;
+  name: string;
+} {
   const match = entityRef.match(/^[^:]+:([^/]+)\/(.+)$/);
   if (!match) {
     return { namespace: 'default', name: entityRef };
@@ -71,7 +74,9 @@ export function createIdentityMiddleware(
 
   return async (req, _res, next) => {
     try {
-      const credentials = await httpAuth.credentials(req as any, { allow: ['user'] });
+      const credentials = await httpAuth.credentials(req as any, {
+        allow: ['user'],
+      });
       const info = await userInfo.getUserInfo(credentials);
       const { namespace, name } = parseEntityRef(info.userEntityRef);
 

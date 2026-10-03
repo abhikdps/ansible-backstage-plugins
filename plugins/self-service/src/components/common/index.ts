@@ -8,22 +8,22 @@ export {
   SkeletonLoader,
   SyncDialog,
   SyncProgressPopover,
-} from '@ansible/backstage-rhaap-react';
+} from '@ansible/portal-plugin-sdk';
 export type {
   EmptyStateProps,
   PageHeaderSectionProps,
   SyncDialogProps,
-} from '@ansible/backstage-rhaap-react';
+} from '@ansible/portal-plugin-sdk';
 
 // Icons
-export { GitLabIcon, RedHatIcon } from '@ansible/backstage-rhaap-react';
+export { GitLabIcon, RedHatIcon } from '@ansible/portal-plugin-sdk';
 
 // Styles
 export {
   usePageHeaderStyles,
   useSharedStyles,
   useShellPageStyles,
-} from '@ansible/backstage-rhaap-react';
+} from '@ansible/portal-plugin-sdk';
 
 // Sync types
 export type {
@@ -33,7 +33,7 @@ export type {
   StartedSyncInfo,
   SyncOutcome,
   SyncProgressEntry,
-} from '@ansible/backstage-rhaap-react';
+} from '@ansible/portal-plugin-sdk';
 
 // Sync constants
 export {
@@ -44,7 +44,7 @@ export {
   FAST_POLL_INTERVAL_MS,
   SLOW_POLL_INTERVAL_MS,
   TRACKING_TIMEOUT_MS,
-} from '@ansible/backstage-rhaap-react';
+} from '@ansible/portal-plugin-sdk';
 
 // Cache utilities
 export * from './cache';

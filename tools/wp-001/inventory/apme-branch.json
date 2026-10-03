@@ -385,7 +385,7 @@
   },
   {
     "family": "export",
-    "currentId": "@ansible/plugin-backstage-self-service#.",
+    "currentId": "@ansible/portal-scaffolder#.",
     "runtime": "frontend",
     "source": {
       "repository": "ansible-backstage-plugins",
@@ -393,7 +393,7 @@
       "file": "plugins/self-service/package.json",
       "symbol": "."
     },
-    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_plugin-backstage-self-service_..json"
+    "fixture": "tools/wp-001/inventory/fixtures/export/_ansible_portal-scaffolder_..json"
   },
   {
     "family": "config",
