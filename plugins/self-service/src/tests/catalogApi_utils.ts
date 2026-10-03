@@ -34,6 +34,10 @@ export const mockCatalogApi: jest.Mocked<CatalogApi> = {
             'https://github.com//edit/update-urls/generic-seed/template.yaml',
           'backstage.io/source-location':
             'url:https://github.com//tree/update-urls/generic-seed/',
+          // Required by useIsSuperuser (from @ansible/backstage-rhaap-react) so that
+          // PageHeaderSection renders the Sync Now button in tests that use renderInTestApp.
+          // identityApiRef is provided by renderInTestApp; catalogApiRef uses this mock.
+          'aap.platform/is_superuser': 'true',
         },
         name: 'generic-seed',
         title: 'Create wizard use cases',

@@ -1,10 +1,6 @@
 import { contributionRegistry } from './registry';
-import type {
-  TabContribution,
-  CardContribution,
-  ActionContribution,
-} from './types';
-import type { Entity } from '@backstage/catalog-model';
+import { TabContribution, CardContribution, ActionContribution } from './types';
+import { Entity } from '@backstage/catalog-model';
 
 const mockEntity = (kind = 'Component'): Entity => ({
   apiVersion: 'backstage.io/v1alpha1',
@@ -105,6 +101,59 @@ describe('ContributionRegistry', () => {
       spy.mockRestore();
     });
 
+    it('filters tabs by contentType — hides contributions that do not match', () => {
+      contributionRegistry.registerTab(EP, {
+        id: 'for-collection',
+        label: 'Collection Only',
+        component: () => null as any,
+        appliesToContentTypes: ['collection'],
+      });
+      contributionRegistry.registerTab(EP, {
+        id: 'for-any',
+        label: 'Any',
+        component: () => null as any,
+        // no appliesToContentTypes → applies to everything
+      });
+      contributionRegistry.registerTab(EP, {
+        id: 'for-star',
+        label: 'Star',
+        component: () => null as any,
+        appliesToContentTypes: '*',
+      });
+      // Querying for 'collection' should show 'for-collection', 'for-any', 'for-star'
+      const collectionTabs = contributionRegistry
+        .getTabs(EP, undefined, 'collection')
+        .map(t => t.id);
+      expect(collectionTabs).toContain('for-collection');
+      expect(collectionTabs).toContain('for-any');
+      expect(collectionTabs).toContain('for-star');
+
+      // Querying for 'playbook-repository' should hide 'for-collection'
+      const repoTabs = contributionRegistry
+        .getTabs(EP, undefined, 'playbook-repository')
+        .map(t => t.id);
+      expect(repoTabs).not.toContain('for-collection');
+      expect(repoTabs).toContain('for-any');
+      expect(repoTabs).toContain('for-star');
+    });
+
+    it('shows all tabs when no contentType is passed', () => {
+      contributionRegistry.registerTab(EP, {
+        id: 'for-collection',
+        label: 'Collection Only',
+        component: () => null as any,
+        appliesToContentTypes: ['collection'],
+      });
+      contributionRegistry.registerTab(EP, {
+        id: 'for-repo',
+        label: 'Repo Only',
+        component: () => null as any,
+        appliesToContentTypes: ['playbook-repository'],
+      });
+      // No contentType filter → both should appear
+      expect(contributionRegistry.getTabs(EP)).toHaveLength(2);
+    });
+
     it('sorts tabs by priority', () => {
       contributionRegistry.registerTab(EP, {
         id: 'p50',
@@ -146,7 +195,7 @@ describe('ContributionRegistry', () => {
       const action: ActionContribution = {
         id: 'action-1',
         label: 'Run',
-        handler: jest.fn(),
+        onActivate: jest.fn(),
       };
       contributionRegistry.registerAction(EP, action);
       expect(contributionRegistry.getActions(EP)[0].label).toBe('Run');

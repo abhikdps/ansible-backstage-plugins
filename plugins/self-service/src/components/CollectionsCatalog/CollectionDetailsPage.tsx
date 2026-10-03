@@ -31,6 +31,7 @@ import {
   useExtensionCards,
   useExtensionActions,
   EXTENSION_POINTS,
+  CONTENT_TYPES,
 } from '@ansible/backstage-rhaap-extension-api';
 import {
   ExtensionTabContent,
@@ -61,14 +62,17 @@ const CollectionDetailsPageInner = () => {
   const extensionTabs = useExtensionTabs(
     EXTENSION_POINTS.COLLECTION_DETAIL_TABS,
     entity ?? undefined,
+    CONTENT_TYPES.COLLECTION,
   );
   const extensionCards = useExtensionCards(
     EXTENSION_POINTS.COLLECTION_DETAIL_CARDS,
     entity ?? undefined,
+    CONTENT_TYPES.COLLECTION,
   );
   const extensionActions = useExtensionActions(
     EXTENSION_POINTS.COLLECTION_DETAIL_ACTIONS,
     entity ?? undefined,
+    CONTENT_TYPES.COLLECTION,
   );
   const [actionsAnchorEl, setActionsAnchorEl] = useState<null | HTMLElement>(
     null,

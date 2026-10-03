@@ -7,8 +7,14 @@ const mockUseIsSuperuser = jest.fn().mockReturnValue({
   loading: false,
   error: null,
 });
-jest.mock('../../hooks', () => ({
+
+// RepositoriesPageHeaderSection wraps PageHeaderSection from @ansible/backstage-rhaap-react
+// (via '../common'). That component imports useIsSuperuser from its own internal relative
+// path inside the workspace package. Mocking '../../hooks' alone does not intercept it.
+// Target the workspace package hooks directly so mockUseIsSuperuser controls all usages.
+jest.mock('../../../../backstage-rhaap-react/src/hooks', () => ({
   useIsSuperuser: () => mockUseIsSuperuser(),
+  clearSuperuserCache: jest.fn(),
 }));
 
 const theme = createTheme();

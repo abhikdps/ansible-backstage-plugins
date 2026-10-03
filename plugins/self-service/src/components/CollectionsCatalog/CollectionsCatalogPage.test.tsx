@@ -2,6 +2,7 @@ import { screen, fireEvent } from '@testing-library/react';
 import { renderInTestApp, TestApiProvider } from '@backstage/test-utils';
 import { ThemeProvider, createTheme } from '@material-ui/core/styles';
 import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
+import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { CollectionsCatalogPage } from './CollectionsCatalogPage';
 
 jest.mock('@backstage/plugin-permission-react', () => ({
@@ -22,6 +23,40 @@ const mockUseSyncStatusPolling = jest.fn().mockReturnValue({
   startTracking: mockStartTracking,
 });
 
+// CollectionsCatalogPage calls useNotifications() at its root (not inside a
+// NotificationProvider-wrapped child). Mock the notification module at the top
+// level so it's hoisted and applies to ALL tests in this file.
+const mockShowNotification = jest.fn();
+jest.mock('../notifications', () => ({
+  NotificationProvider: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+  NotificationStack: ({
+    notifications,
+    onClose,
+  }: {
+    notifications: Array<{ id: string; message: string; severity: string }>;
+    onClose: (id: string) => void;
+  }) => (
+    <div data-testid="notification-stack">
+      {notifications.map((n: any) => (
+        <div key={n.id} data-testid={`notification-${n.id}`}>
+          {n.message}
+          <button type="button" onClick={() => onClose(n.id)}>
+            Dismiss
+          </button>
+        </div>
+      ))}
+    </div>
+  ),
+  useNotifications: () => ({
+    notifications: [],
+    showNotification: mockShowNotification,
+    removeNotification: jest.fn(),
+    clearAll: jest.fn(),
+  }),
+}));
+
 jest.mock('../../hooks', () => ({
   useIsSuperuser: () => ({
     isSuperuser: true,
@@ -31,7 +66,10 @@ jest.mock('../../hooks', () => ({
   useSyncStatusPolling: () => mockUseSyncStatusPolling(),
 }));
 
-jest.mock('../common/SyncDialog', () => ({
+// SyncDialog moved from ../common/SyncDialog (sub-module) to ../common (flat re-export).
+// We spread requireActual to keep all other common exports intact.
+jest.mock('../common', () => ({
+  ...jest.requireActual('../common'),
   SyncDialog: ({ open, onClose, onSyncsStarted }: any) =>
     open ? (
       <div>
@@ -85,18 +123,35 @@ const mockDiscoveryApi = {
   getBaseUrl: jest.fn().mockResolvedValue('http://localhost:7007/api/catalog'),
 };
 const mockFetchApi = { fetch: jest.fn() };
+// identityApiRef is provided automatically by renderInTestApp.
+// catalogApiRef is needed by useIsSuperuser inside PageHeaderSection
+// from @ansible/backstage-rhaap-react; return a superuser entity so
+// the hook resolves immediately without entering the retry-delay loop.
+const mockCatalogApi = {
+  getEntityByRef: jest.fn().mockResolvedValue({
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'User',
+    metadata: {
+      name: 'test-user',
+      namespace: 'default',
+      annotations: { 'aap.platform/is_superuser': 'true' },
+    },
+    spec: { profile: {} },
+  }),
+};
 
 const theme = createTheme();
+// Base API set shared across all tests in this suite.
+const baseApis = [
+  [discoveryApiRef, mockDiscoveryApi],
+  [fetchApiRef, mockFetchApi],
+  [catalogApiRef, mockCatalogApi],
+] as const;
 
 describe('CollectionsCatalogPage', () => {
   it('renders page with Collections header', async () => {
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <CollectionsCatalogPage />
         </ThemeProvider>
@@ -108,12 +163,7 @@ describe('CollectionsCatalogPage', () => {
 
   it('renders CollectionsContent', async () => {
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <CollectionsCatalogPage />
         </ThemeProvider>
@@ -130,12 +180,7 @@ describe('CollectionsCatalogPage', () => {
     });
 
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <CollectionsCatalogPage />
         </ThemeProvider>
@@ -150,12 +195,7 @@ describe('CollectionsCatalogPage', () => {
 
   it('calls onSourcesStatusChange when CollectionsContent reports source status', async () => {
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <CollectionsCatalogPage />
         </ThemeProvider>
@@ -175,12 +215,7 @@ describe('CollectionsCatalogPage', () => {
 
   it('calls startTracking when sync dialog reports syncs started', async () => {
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <CollectionsCatalogPage />
         </ThemeProvider>
@@ -210,12 +245,7 @@ describe('CollectionsCatalogPage', () => {
     });
 
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <CollectionsCatalogPage />
         </ThemeProvider>
@@ -234,12 +264,7 @@ describe('CollectionsCatalogPage', () => {
 
   it('closes sync dialog when onClose is called (line 61)', async () => {
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <CollectionsCatalogPage />
         </ThemeProvider>
@@ -255,12 +280,7 @@ describe('CollectionsCatalogPage', () => {
 
   it('handles onSourcesStatusChange with null value (line 25-27)', async () => {
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <CollectionsCatalogPage />
         </ThemeProvider>
@@ -278,12 +298,7 @@ describe('CollectionsCatalogPage', () => {
     });
 
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <CollectionsCatalogPage />
         </ThemeProvider>
@@ -302,12 +317,7 @@ describe('CollectionsCatalogPage', () => {
     });
 
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <CollectionsCatalogPage />
         </ThemeProvider>
@@ -324,12 +334,10 @@ describe('CollectionsCatalogPage', () => {
   });
 });
 
+// Note: The '../../notifications' mock is hoisted at the top of this file.
+// This describe block verifies that CollectionsCatalogPage renders correctly
+// inside the notification context (the mock NotificationProvider wraps children).
 describe('CollectionsCatalogPage NotificationStack (lines 65-68)', () => {
-  const mockRemoveNotification = jest.fn();
-  const mockNotifications = [
-    { id: '1', message: 'Test notification', severity: 'success' as const },
-  ];
-
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseSyncStatusPolling.mockReturnValue({
@@ -338,41 +346,9 @@ describe('CollectionsCatalogPage NotificationStack (lines 65-68)', () => {
     });
   });
 
-  jest.mock('../notifications', () => ({
-    NotificationProvider: ({ children }: { children: React.ReactNode }) => (
-      <>{children}</>
-    ),
-    NotificationStack: ({
-      notifications,
-      onClose,
-    }: {
-      notifications: Array<{ id: string; message: string; severity: string }>;
-      onClose: (id: string) => void;
-    }) => (
-      <div data-testid="notification-stack">
-        {notifications.map(n => (
-          <div key={n.id} data-testid={`notification-${n.id}`}>
-            {n.message}
-            <button onClick={() => onClose(n.id)}>Dismiss</button>
-          </div>
-        ))}
-      </div>
-    ),
-    useNotifications: () => ({
-      notifications: mockNotifications,
-      removeNotification: mockRemoveNotification,
-      addNotification: jest.fn(),
-    }),
-  }));
-
   it('renders within NotificationProvider wrapper (lines 73-78)', async () => {
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <CollectionsCatalogPage />
         </ThemeProvider>

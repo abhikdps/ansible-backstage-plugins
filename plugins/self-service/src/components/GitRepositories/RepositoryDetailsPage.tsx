@@ -23,6 +23,7 @@ import {
   useExtensionCards,
   useExtensionActions,
   EXTENSION_POINTS,
+  CONTENT_TYPES,
 } from '@ansible/backstage-rhaap-extension-api';
 
 import {
@@ -201,14 +202,17 @@ const RepositoryDetailsPageInner = () => {
   const extensionTabs = useExtensionTabs(
     EXTENSION_POINTS.GIT_REPO_DETAIL_TABS,
     entity ?? undefined,
+    CONTENT_TYPES.PLAYBOOK_REPOSITORY,
   );
   const extensionCards = useExtensionCards(
     EXTENSION_POINTS.GIT_REPO_DETAIL_CARDS,
     entity ?? undefined,
+    CONTENT_TYPES.PLAYBOOK_REPOSITORY,
   );
   const extensionActions = useExtensionActions(
     EXTENSION_POINTS.GIT_REPO_DETAIL_ACTIONS,
     entity ?? undefined,
+    CONTENT_TYPES.PLAYBOOK_REPOSITORY,
   );
   const [actionsAnchorEl, setActionsAnchorEl] = useState<null | HTMLElement>(
     null,

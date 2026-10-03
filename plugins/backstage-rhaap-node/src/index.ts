@@ -1,0 +1,49 @@
+/**
+ * @ansible/backstage-rhaap-node
+ *
+ * Server-side SDK for Ansible portal backend plugins.
+ *
+ * Provides:
+ * - `createPortalPlugin()` — factory for the plugin SDK object
+ * - `createIdentityMiddleware()` — Express middleware that attaches req.portalContext
+ * - `withOrganization()` — org-keyed DB helper (enforces every query carries the key)
+ * - `HealthRegistry`, `getAllHealthStatuses()` — push-based health reporting
+ * - Types: `PortalContext`, `HealthStatus`, `AuditEvent`, `HealthState`
+ *
+ * Phase 7 rename: `@ansible/backstage-rhaap-node` → `@ansible/portal-plugin-node`.
+ * All exports and API surface remain stable across the rename.
+ */
+
+// ── Factory ───────────────────────────────────────────────────────────────────
+export { createPortalPlugin } from './createPortalPlugin';
+export type {
+  CreatePortalPluginOptions,
+  PortalPlugin,
+} from './createPortalPlugin';
+
+// ── Identity middleware ────────────────────────────────────────────────────────
+export { createIdentityMiddleware, parseEntityRef } from './middleware';
+export type { IdentityMiddlewareOptions } from './middleware';
+
+// ── Health registry ────────────────────────────────────────────────────────────
+export {
+  HealthRegistry,
+  getOrCreateHealthRegistry,
+  getAllHealthStatuses,
+  _resetHealthRegistriesForTests,
+} from './healthRegistry';
+
+// ── Audit emitter ─────────────────────────────────────────────────────────────
+export { AuditEmitter } from './auditEmitter';
+
+// ── Org-keyed DB helper ────────────────────────────────────────────────────────
+export { withOrganization } from './withOrganization';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+export type {
+  PortalContext,
+  HealthState,
+  HealthStatus,
+  AuditEvent,
+  AuditOutcome,
+} from './types';

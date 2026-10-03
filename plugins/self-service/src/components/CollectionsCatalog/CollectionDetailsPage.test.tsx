@@ -3,7 +3,11 @@ import { ThemeProvider, createTheme } from '@material-ui/core/styles';
 import { TestApiProvider } from '@backstage/test-utils';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
-import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
+import {
+  discoveryApiRef,
+  fetchApiRef,
+  identityApiRef,
+} from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
 import { SCM_INTEGRATION_AUTH_FAILED_CODE } from '@ansible/backstage-rhaap-common/constants';
 import { CollectionDetailsPage } from './CollectionDetailsPage';
@@ -58,8 +62,32 @@ const mockEntity: Entity = {
   } as any,
 };
 
+// Return a superuser entity so useIsSuperuser (called internally by EmptyState
+// and ScmIntegrationAuthError from @ansible/backstage-rhaap-react) resolves
+// immediately without entering the retry-delay loop.
+const mockIdentityApi = {
+  getBackstageIdentity: jest.fn().mockResolvedValue({
+    type: 'user',
+    userEntityRef: 'user:default/test-user',
+    ownershipEntityRefs: [],
+  }),
+  getProfileInfo: jest.fn().mockResolvedValue({ displayName: 'Test User' }),
+  getCredentials: jest.fn().mockResolvedValue({ token: 'test-token' }),
+  signOut: jest.fn().mockResolvedValue(undefined),
+};
+
 const mockCatalogApi = {
   getEntities: jest.fn(),
+  getEntityByRef: jest.fn().mockResolvedValue({
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'User',
+    metadata: {
+      name: 'test-user',
+      namespace: 'default',
+      annotations: { 'aap.platform/is_superuser': 'true' },
+    },
+    spec: { profile: {} },
+  }),
 };
 
 const mockDiscoveryApi = {
@@ -78,6 +106,7 @@ const renderWithRouter = (collectionName: string) => {
           [catalogApiRef, mockCatalogApi],
           [discoveryApiRef, mockDiscoveryApi],
           [fetchApiRef, mockFetchApi],
+          [identityApiRef, mockIdentityApi],
         ]}
       >
         <MemoryRouter initialEntries={[`/collections/${collectionName}`]}>

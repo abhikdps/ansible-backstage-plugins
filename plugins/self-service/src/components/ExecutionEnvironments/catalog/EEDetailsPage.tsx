@@ -54,6 +54,7 @@ import {
   useExtensionCards,
   useExtensionActions,
   EXTENSION_POINTS,
+  CONTENT_TYPES,
 } from '@ansible/backstage-rhaap-extension-api';
 import {
   ExtensionTabContent,
@@ -178,14 +179,19 @@ export const EEDetailsPage: React.FC = () => {
   const extensionTabs = useExtensionTabs(
     EXTENSION_POINTS.EE_DETAIL_TABS,
     entity ?? undefined,
+    // EE detail page shows EE definitions (files in source control).
+    // Built EE images have their own type and will get separate detail pages.
+    CONTENT_TYPES.EXECUTION_ENVIRONMENT_DEFINITION,
   );
   const extensionCards = useExtensionCards(
     EXTENSION_POINTS.EE_DETAIL_CARDS,
     entity ?? undefined,
+    CONTENT_TYPES.EXECUTION_ENVIRONMENT_DEFINITION,
   );
   const extensionActions = useExtensionActions(
     EXTENSION_POINTS.EE_DETAIL_ACTIONS,
     entity ?? undefined,
+    CONTENT_TYPES.EXECUTION_ENVIRONMENT_DEFINITION,
   );
   const [menuId, setMenuId] = useState<string>('');
   const [defaultReadme, setDefaultReadme] = useState<string>('');

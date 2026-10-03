@@ -14,6 +14,13 @@
 > implementation boundary. The packages produced here establish the package naming, versioning,
 > and contract patterns that the broader factory SDK will extend.
 
+> **Canonical references for the broader architecture:**
+>
+> - [Ganesh's Content Experience Architecture](https://github.com/ansible/ansible-rhdh-plugins/blob/portal-plugin-research/.sdlc/research/plugin-factory/Content%20Experience%20Architecture.md) — target state, workspace structure, plugin manifest model
+> - [Brad's migration plan (PR #712)](https://github.com/ansible/ansible-backstage-plugins/pull/712) — 45 work packages under `docs/next/`
+>
+> **Alignment review (Oct 1, 2026):** Brad Thornton reviewed this plan against the full architecture and identified six conflicts. Each is documented in §12 with an agreed resolution. The implementation plan below remains valid — §12 records which specific design decisions need updating as we move from PoC to production implementation.
+
 ---
 
 ## 1. Problem Statement
@@ -65,32 +72,32 @@ Reusable, self-contained React components, hooks, and utilities extracted from t
 
 **What moves here:**
 
-| Export | Source in self-service | Description |
-| --- | --- | --- |
-| `PageHeaderSection` | `components/common/PageHeaderSection.tsx` | Page header with sync button, tooltips, progress |
-| `SyncDialog` | `components/common/SyncDialog.tsx` | Sync confirmation/progress dialog |
-| `SyncProgressPopover` | `components/common/SyncProgressPopover.tsx` | Progress tooltip |
-| `EmptyState` | `components/common/EmptyState.tsx` | Empty state component |
-| `EntityLinkButton` | `components/common/EntityLinkButton.tsx` | Link to a catalog entity |
-| `ScmIntegrationAuthError` | `components/common/ScmIntegrationAuthError.tsx` | SCM auth error display |
-| `SkeletonLoader` | `components/Home/SkeletonLoader.tsx` | Card skeleton loading state |
-| `NotificationProvider` | `components/notifications/NotificationContext.tsx` | Toast notification context |
-| `NotificationStack` | `components/notifications/NotificationStack.tsx` | Notification display stack |
-| `NotificationCard` | `components/notifications/NotificationCard.tsx` | Individual notification card |
-| `notificationStore` | `components/notifications/notificationStore.ts` | Notification state store |
-| `syncPollingService` | `components/notifications/syncPollingService.ts` | Sync polling service |
-| `PaginatedEntityCache` | `components/common/cache/PaginatedEntityCache.ts` | Entity caching + pagination |
-| `usePagination` | `components/common/cache/usePagination.ts` | Pagination hook |
-| `useCacheSubscription` | `components/common/cache/useCacheSubscription.ts` | Cache subscription hook |
-| `useIsSuperuser` | `hooks/useIsSuperuser.ts` | Superuser check hook |
-| `useSyncStatusPolling` | `hooks/useSyncStatusPolling.ts` | Polling hook |
-| `GitLabIcon`, `RedHatIcon` | `components/common/icons.tsx` | Icon components |
-| `usePageHeaderStyles` | `components/common/styles.ts` | Page header style hook |
-| `useSharedStyles` | `components/common/styles.ts` | Shared style hook |
-| `useShellPageStyles` | `components/common/styles.ts` | Shell page style hook |
-| `formatRelativeTime` | `utils/timeUtils.ts` | Relative time formatter |
-| All types from `common/types.ts` | `components/common/types.ts` | SyncStatus, SyncStatusMap, etc. |
-| All constants from `common/constants.ts` | `components/common/constants.ts` | Sync category constants, intervals |
+| Export                                   | Source in self-service                             | Description                                      |
+| ---------------------------------------- | -------------------------------------------------- | ------------------------------------------------ |
+| `PageHeaderSection`                      | `components/common/PageHeaderSection.tsx`          | Page header with sync button, tooltips, progress |
+| `SyncDialog`                             | `components/common/SyncDialog.tsx`                 | Sync confirmation/progress dialog                |
+| `SyncProgressPopover`                    | `components/common/SyncProgressPopover.tsx`        | Progress tooltip                                 |
+| `EmptyState`                             | `components/common/EmptyState.tsx`                 | Empty state component                            |
+| `EntityLinkButton`                       | `components/common/EntityLinkButton.tsx`           | Link to a catalog entity                         |
+| `ScmIntegrationAuthError`                | `components/common/ScmIntegrationAuthError.tsx`    | SCM auth error display                           |
+| `SkeletonLoader`                         | `components/Home/SkeletonLoader.tsx`               | Card skeleton loading state                      |
+| `NotificationProvider`                   | `components/notifications/NotificationContext.tsx` | Toast notification context                       |
+| `NotificationStack`                      | `components/notifications/NotificationStack.tsx`   | Notification display stack                       |
+| `NotificationCard`                       | `components/notifications/NotificationCard.tsx`    | Individual notification card                     |
+| `notificationStore`                      | `components/notifications/notificationStore.ts`    | Notification state store                         |
+| `syncPollingService`                     | `components/notifications/syncPollingService.ts`   | Sync polling service                             |
+| `PaginatedEntityCache`                   | `components/common/cache/PaginatedEntityCache.ts`  | Entity caching + pagination                      |
+| `usePagination`                          | `components/common/cache/usePagination.ts`         | Pagination hook                                  |
+| `useCacheSubscription`                   | `components/common/cache/useCacheSubscription.ts`  | Cache subscription hook                          |
+| `useIsSuperuser`                         | `hooks/useIsSuperuser.ts`                          | Superuser check hook                             |
+| `useSyncStatusPolling`                   | `hooks/useSyncStatusPolling.ts`                    | Polling hook                                     |
+| `GitLabIcon`, `RedHatIcon`               | `components/common/icons.tsx`                      | Icon components                                  |
+| `usePageHeaderStyles`                    | `components/common/styles.ts`                      | Page header style hook                           |
+| `useSharedStyles`                        | `components/common/styles.ts`                      | Shared style hook                                |
+| `useShellPageStyles`                     | `components/common/styles.ts`                      | Shell page style hook                            |
+| `formatRelativeTime`                     | `utils/timeUtils.ts`                               | Relative time formatter                          |
+| All types from `common/types.ts`         | `components/common/types.ts`                       | SyncStatus, SyncStatusMap, etc.                  |
+| All constants from `common/constants.ts` | `components/common/constants.ts`                   | Sync category constants, intervals               |
 
 > **Note — domain utilities stay in self-service:**
 > `parseMarkdownLinks` (returns JSX — requires React + MUI `Link`),
@@ -106,10 +113,10 @@ Reusable, self-contained React components, hooks, and utilities extracted from t
 
 **Also includes (new):**
 
-| Export | Description |
-| --- | --- |
-| `RhaapThemeProvider` | MUI v4 theme wrapper (reads from active Backstage theme) |
-| `rhaapTokens` | Static design token constants (spacing, typography, border-radius) |
+| Export                          | Description                                                                               |
+| ------------------------------- | ----------------------------------------------------------------------------------------- |
+| `RhaapThemeProvider`            | MUI v4 theme wrapper (reads from active Backstage theme)                                  |
+| `rhaapTokens`                   | Static design token constants (spacing, typography, border-radius)                        |
 | CSS custom properties injection | `--rhaap-*` tokens dynamically derived from the Backstage theme at render time (see §5.2) |
 
 **Package structure:**
@@ -197,7 +204,9 @@ interface TabContribution {
   icon?: React.ComponentType<{ fontSize?: 'small' | 'default' | 'large' }>;
   /** Accepts lazy-loaded or synchronous components. The renderer wraps
    *  non-lazy components in Suspense only when needed. */
-  component: React.LazyExoticComponent<React.ComponentType<any>> | React.ComponentType<any>;
+  component:
+    | React.LazyExoticComponent<React.ComponentType<any>>
+    | React.ComponentType<any>;
   filter?: (entity: Entity) => boolean;
   /** If set, the tab is hidden from users who lack this permission.
    *  Evaluated by ExtensionRenderer using @backstage/plugin-permission-react.
@@ -213,7 +222,9 @@ interface TabContribution {
 interface CardContribution {
   id: string;
   slot: 'overview-left' | 'overview-right' | 'sidebar' | string;
-  component: React.LazyExoticComponent<React.ComponentType<any>> | React.ComponentType<any>;
+  component:
+    | React.LazyExoticComponent<React.ComponentType<any>>
+    | React.ComponentType<any>;
   filter?: (entity: Entity) => boolean;
   /** If set, the card slot is hidden from users who lack this permission. */
   permission?: BasicPermission;
@@ -287,10 +298,10 @@ Module-level singleton that collects registrations. Supports:
 
 **Handler safety:** `ExtensionRenderer` wraps every `ActionContribution.handler()` invocation in a `try/catch` (including `await` for async handlers that return a rejected promise). On failure, the error is surfaced via `alertApi.post({ message: '...', severity: 'error' })` and logged with the contribution ID + error. The host page is unaffected. This completes the error-handling trifecta for all community-code execution paths:
 
-| Path | Mechanism | Location |
-| --- | --- | --- |
-| Render errors | `ErrorBoundary` per slot | `ExtensionRenderer` (§5.1) |
-| Filter errors | `try/catch` in registry getters | `ContributionRegistry` (§3.2) |
+| Path           | Mechanism                             | Location                              |
+| -------------- | ------------------------------------- | ------------------------------------- |
+| Render errors  | `ErrorBoundary` per slot              | `ExtensionRenderer` (§5.1)            |
+| Filter errors  | `try/catch` in registry getters       | `ContributionRegistry` (§3.2)         |
 | Handler errors | `try/catch` + `alertApi` notification | `ExtensionRenderer` action invocation |
 
 - `subscribe(listener)` → returns unsubscribe function (for React re-renders)
@@ -310,11 +321,11 @@ Module-level singleton that collects registrations. Supports:
 #### Convenience registration helpers
 
 ```typescript
-registerGitRepoDetailTab(tab)
-registerGitRepoDetailCard(card)
-registerGitRepoDetailAction(action)
-registerEEDetailTab(tab)
-registerCollectionDetailTab(tab)
+registerGitRepoDetailTab(tab);
+registerGitRepoDetailCard(card);
+registerGitRepoDetailAction(action);
+registerEEDetailTab(tab);
+registerCollectionDetailTab(tab);
 // ... one per extension point
 ```
 
@@ -362,10 +373,11 @@ plugins/backstage-rhaap-extension-api/
 ```
 
 > **Why these peers are needed:**
+>
 > - `@backstage/core-plugin-api` — `ApiRef<T>` type for the `getApi()` helper
 > - `@backstage/plugin-permission-common` — `BasicPermission` type for the `permission` field on contribution types
 >
-> Permission *evaluation* (`usePermission()`) happens in `ExtensionRenderer` inside
+> Permission _evaluation_ (`usePermission()`) happens in `ExtensionRenderer` inside
 > self-service, which depends on `@backstage/plugin-permission-react`. The contracts
 > package only needs the type (`BasicPermission`), not the evaluation hook.
 
@@ -433,10 +445,10 @@ plugins:
           - extensionPoint: rhaap.git-repository.detail.tabs
             id: acme.security-scan
             importName: SecurityScanTab
-            label: "Security & Compliance"  # override the default label
-            priority: 5                      # move it before CI Activity
+            label: 'Security & Compliance' # override the default label
+            priority: 5 # move it before CI Activity
         disabled:
-          - acme.some-other-tab              # disable a specific contribution
+          - acme.some-other-tab # disable a specific contribution
 ```
 
 **Resolution mechanism:** `DynamicExtensionDiscovery` resolves `importName` to a React component via Scalprum's `useModule` hook (or equivalent `@scalprum/react-core` API). Each dynamic plugin is a federated module with a known scope (the plugin package name). The resolution is:
@@ -533,7 +545,7 @@ MUI-based contributions inherit colors, typography, and spacing from the host th
 > Community developers writing test harnesses for their contributed actions must wrap
 > the component under test in a `TestApiProvider` that supplies the API refs their
 > handler calls `getApi()` with.
-
+>
 > **MUI v5 readiness:** When Backstage completes its upstream MUI v5 migration,
 > `RhaapThemeProvider` will be extended to provide a v5 `ThemeProvider` alongside
 > the v4 one. The `@mui/material` dependency will be added at that time.
@@ -574,7 +586,10 @@ These properties automatically adapt to dark mode, custom Backstage themes, and 
 Community developers can use these from any framework:
 
 ```css
-.my-tab { color: var(--rhaap-color-text); padding: var(--rhaap-spacing-md); }
+.my-tab {
+  color: var(--rhaap-color-text);
+  padding: var(--rhaap-spacing-md);
+}
 ```
 
 ### 5.3 Static design token constants
@@ -767,7 +782,7 @@ Community plugin (e.g. @acme/plugin-security-scan)
 
 **Problem:** A community plugin wants to add a top-level page (e.g., `/self-service/compliance`)
 with its own sidebar link, permission gate, and routed component. The current SDK only supports
-contributions *within* existing pages (tabs, cards, actions).
+contributions _within_ existing pages (tabs, cards, actions).
 
 **Why this is hard:** Backstage's `createRoutableExtension` requires a `RouteRef` at plugin
 creation time. Community plugins can't inject `RouteRef`s into the self-service plugin
@@ -783,7 +798,9 @@ interface SectionContribution {
   icon: React.ComponentType;
   /** Relative path under /self-service/. E.g., 'compliance' → /self-service/compliance */
   path: string;
-  component: React.LazyExoticComponent<React.ComponentType<any>> | React.ComponentType<any>;
+  component:
+    | React.LazyExoticComponent<React.ComponentType<any>>
+    | React.ComponentType<any>;
   /** If set, the sidebar item and route are hidden from users lacking this permission. */
   permission?: BasicPermission;
   priority?: number;
@@ -852,15 +869,15 @@ const ContributedSidebarItems = () => {
 
 ## 9. Documentation Deliverables
 
-| Document | Location | Content |
-| --- | --- | --- |
-| Architecture doc (this file) | `docs/architecture/self-service-extension-sdk.md` | Overall design, rationale, package layout |
-| Component library API reference | `plugins/backstage-rhaap-react/README.md` | All exported components, props, examples |
-| Extension SDK guide | `plugins/backstage-rhaap-extension-api/README.md` | How to register tabs/cards/actions, all extension points |
-| Community developer quickstart | `docs/sdk/quickstart.md` | End-to-end example: build a plugin that adds a tab |
-| Design tokens reference | `docs/sdk/design-tokens.md` | All CSS custom properties (dynamic) + JS tokens (static), theme guidance |
-| RHDH dynamic plugin guide | `docs/sdk/rhdh-dynamic-plugins.md` | Registration via `dynamic-plugins.yaml`, Scalprum resolution, declarative config |
-| Migration guide (internal) | `docs/sdk/migration-from-self-service.md` | How to update self-service imports to use new packages |
+| Document                        | Location                                          | Content                                                                          |
+| ------------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Architecture doc (this file)    | `docs/architecture/self-service-extension-sdk.md` | Overall design, rationale, package layout                                        |
+| Component library API reference | `plugins/backstage-rhaap-react/README.md`         | All exported components, props, examples                                         |
+| Extension SDK guide             | `plugins/backstage-rhaap-extension-api/README.md` | How to register tabs/cards/actions, all extension points                         |
+| Community developer quickstart  | `docs/sdk/quickstart.md`                          | End-to-end example: build a plugin that adds a tab                               |
+| Design tokens reference         | `docs/sdk/design-tokens.md`                       | All CSS custom properties (dynamic) + JS tokens (static), theme guidance         |
+| RHDH dynamic plugin guide       | `docs/sdk/rhdh-dynamic-plugins.md`                | Registration via `dynamic-plugins.yaml`, Scalprum resolution, declarative config |
+| Migration guide (internal)      | `docs/sdk/migration-from-self-service.md`         | How to update self-service imports to use new packages                           |
 
 ---
 
@@ -878,28 +895,124 @@ const ContributedSidebarItems = () => {
 
 ## 11. Risks & Mitigations
 
-| Risk | Mitigation |
-| --- | --- |
-| Circular dependency between new packages and self-service | Strict dependency direction enforcement; re-export shims only in self-service |
-| Breaking existing dynamic plugin artifacts | Phase 1 uses re-exports; no public API changes |
-| Late-loading dynamic plugins cause UI flicker | `useExtensionTabs` subscription + graceful rendering (no layout shift) |
-| Community plugins use incompatible React version | Peer dependency on `react ^18.3.1`; documented requirement |
-| CSS custom property names collide with other plugins | `--rhaap-` prefix is unique; documented naming convention |
-| **Community plugin throws during render** | **Each contribution slot wrapped in its own `ErrorBoundary`; fallback UI instead of page crash** |
-| **Registry state leaks between tests** | **`reset()` method on registry; required in `afterEach` per testing strategy** |
-| **Duplicate registration in HMR / dev mode** | **Second registration replaces first with console warning; deterministic behavior** |
-| **Non-deterministic ordering at equal priority** | **Stable sort guarantees insertion-order tiebreaker; documented** |
-| **DynamicExtensionDiscovery fails in non-RHDH Backstage** | **Scalprum detection; clean no-op when absent** |
-| **Internal dependency chains break during Phase 1 extraction** | **Dependency graph verified from actual imports; extraction order enforced; `syncPollingService` refactor noted as prerequisite** |
-| **Community plugin's filter callback throws inside useMemo** | **Registry getters wrap `filter()` in try/catch; throwing filter omits contribution + logs warning** |
-| **Community plugin's action handler throws or returns rejected promise** | **`ExtensionRenderer` wraps handler invocation in try/catch + await; surfaces error via `alertApi`; host page unaffected** |
-| **Scalprum integration is net-new with no local examples** | **Target `@scalprum/react-core` API documented; RHDH docs linked; higher implementation risk flagged for Phase 3** |
-| **Registry singleton duplicated across dynamic plugins** | **`backstage-rhaap-extension-api` must be in RHDH `sharedPackages` scope; community plugins use peerDep only — no `--embed-package`** |
-| **`syncPollingService` has page-specific hard imports** | **Must refactor to callback-based invalidation before extraction (documented in Phase 1 pre-requisite)** |
+| Risk                                                                     | Mitigation                                                                                                                            |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Circular dependency between new packages and self-service                | Strict dependency direction enforcement; re-export shims only in self-service                                                         |
+| Breaking existing dynamic plugin artifacts                               | Phase 1 uses re-exports; no public API changes                                                                                        |
+| Late-loading dynamic plugins cause UI flicker                            | `useExtensionTabs` subscription + graceful rendering (no layout shift)                                                                |
+| Community plugins use incompatible React version                         | Peer dependency on `react ^18.3.1`; documented requirement                                                                            |
+| CSS custom property names collide with other plugins                     | `--rhaap-` prefix is unique; documented naming convention                                                                             |
+| **Community plugin throws during render**                                | **Each contribution slot wrapped in its own `ErrorBoundary`; fallback UI instead of page crash**                                      |
+| **Registry state leaks between tests**                                   | **`reset()` method on registry; required in `afterEach` per testing strategy**                                                        |
+| **Duplicate registration in HMR / dev mode**                             | **Second registration replaces first with console warning; deterministic behavior**                                                   |
+| **Non-deterministic ordering at equal priority**                         | **Stable sort guarantees insertion-order tiebreaker; documented**                                                                     |
+| **DynamicExtensionDiscovery fails in non-RHDH Backstage**                | **Scalprum detection; clean no-op when absent**                                                                                       |
+| **Internal dependency chains break during Phase 1 extraction**           | **Dependency graph verified from actual imports; extraction order enforced; `syncPollingService` refactor noted as prerequisite**     |
+| **Community plugin's filter callback throws inside useMemo**             | **Registry getters wrap `filter()` in try/catch; throwing filter omits contribution + logs warning**                                  |
+| **Community plugin's action handler throws or returns rejected promise** | **`ExtensionRenderer` wraps handler invocation in try/catch + await; surfaces error via `alertApi`; host page unaffected**            |
+| **Scalprum integration is net-new with no local examples**               | **Target `@scalprum/react-core` API documented; RHDH docs linked; higher implementation risk flagged for Phase 3**                    |
+| **Registry singleton duplicated across dynamic plugins**                 | **`backstage-rhaap-extension-api` must be in RHDH `sharedPackages` scope; community plugins use peerDep only — no `--embed-package`** |
+| **`syncPollingService` has page-specific hard imports**                  | **Must refactor to callback-based invalidation before extraction (documented in Phase 1 pre-requisite)**                              |
 
 ---
 
-## 12. Compatibility Policy
+## 12. Alignment with Full Architecture (Oct 2026)
+
+Brad Thornton reviewed this plan against the full architecture (Ganesh's doc + PR #712) and identified six conflicts. Each has an agreed resolution. The implementation phases above remain the right sequence — the items below are corrections to specific design decisions within those phases.
+
+### 12.1 Who owns the extension host?
+
+**This plan:** `ExtensionRenderer` and `ContributionRegistry` live in self-service. Detail
+pages act as hosts.
+
+**Full architecture:** `portal-core` owns `portal-extension-host`. Self-service is a
+_contributor_ to experiences, not a host. (Ganesh's doc §6.2)
+
+**Resolution:** The PoC's `ContributionRegistry` + `ExtensionRenderer` are the first implementation of `portal-extension-host`. Before production use, they move to a `portal-core` workspace and are published as `@ansible/portal-extension-host`. Self-service becomes a contributor, not a host. The Phase 3 work (§8 Phase 3) is still the right implementation step — it just lands in the right package at the end.
+
+### 12.2 `handler()` vs `CapabilityLaunch`
+
+**This plan:** `ActionContribution.handler({ entity, getApi })` can call any Backstage API.
+
+**Full architecture:** Server-side effects go through `CapabilityLaunch` with constrained types only: `{ type: 'slot' | 'workflow' | 'operation'; operationId?; workflowId? }`. (Ganesh's doc §6.3, §9.2)
+
+**Resolution:**
+
+- Keep `handler()` **for pure UI/navigation only** (open a dialog, navigate, copy to clipboard). Document clearly: no network requests.
+- Server-side effects (start a scan, trigger a build) must use `operationId` or `workflowId` — registered operations with schemas, permissions, and audit records.
+- Update `ActionContribution` to add `launches?: CapabilityLaunch` alongside `handler`. Phase 2 implementation should ship both.
+
+### 12.3 Frozen IDs vs experiences
+
+**This plan:** `EXTENSION_POINTS` constants like `rhaap.collection.detail.tabs` are the primary public contract.
+
+**Full architecture:** Host-owned _experiences_ (Quality, Authoring, Migration) that plugins contribute _capabilities_ into. Per-page IDs are implementation slots inside experiences, not the public API. (Ganesh's doc §6.2)
+
+**Resolution:**
+
+- The `rhaap.*.detail.tabs` IDs become **compatibility aliases** for current pages during the transition, not the primary contract.
+- No new extension point IDs should follow the `rhaap.*` frozen-ID pattern.
+- New capability registrations should target `experienceId` once `portal-core` defines experiences.
+- The `EXTENSION_POINTS` constants in Phase 2 are still the right step for the PoC — just documented as aliases.
+
+### 12.4 `filter?` vs `appliesToContentTypes`
+
+**This plan:** `filter?: (entity: Entity) => boolean` is the content-type gate.
+
+**Full architecture:** `appliesToContentTypes: string[]` is the primary, declarative gate. The host needs this statically — before React renders — to hide MCP tools and filter REST responses. (Ganesh's doc §6.3)
+
+**Resolution:**
+
+- Add `appliesToContentTypes?: string[]` to all contribution types in Phase 2.
+- `filter` stays as an _additional_ UI-side predicate for narrow annotation-level cases.
+- `appliesToContentTypes` is evaluated by the host before the component loads; `filter` runs at render time.
+
+### 12.5 Single EE surface vs definition vs built image
+
+**This plan:** `EE_DETAIL_TABS` / `EE_LIST_TABS` treat EE as one undifferentiated kind.
+
+**Full architecture:** EE definition (the `execution-environment.yml`) and EE built image OCI artifact with digest, trust signals) are two different content types with different entry points. (Ganesh's doc §3.1)
+
+**Resolution:**
+
+- Two content type IDs from day one: `execution-environment-definition` and `execution-environment-image`.
+- Phase 1 wires only the definition pages that exist today.
+- Update Phase 2 to split `EE_DETAIL_TABS` into two constants with the correct type IDs.
+
+### 12.6 Package naming
+
+**This plan:** `@ansible/backstage-rhaap-react`, `@ansible/backstage-rhaap-extension-api`
+
+**Full architecture:** `portal-extension-common`, `portal-extension-api`, `portal-extension-host`, `portal-plugin-sdk` — all in `workspaces/portal-core/`. Repository proposes renaming to `automation-portal-plugins`. (Ganesh's doc §2.2, §2.6)
+
+**Resolution:** Rename before any external publishing. Since the PoC is unpublished this
+costs nothing now.
+
+| PoC name                            | Target name               |
+| ----------------------------------- | ------------------------- |
+| `backstage-rhaap-react`             | `portal-plugin-sdk`       |
+| `backstage-rhaap-extension-api`     | `portal-extension-api`    |
+| _(host, currently in self-service)_ | `portal-extension-host`   |
+| _(contracts, currently inline)_     | `portal-extension-common` |
+
+### 12.7 What the current self-service plugin actually is
+
+Per Brad's analysis — the plugin today bundles four distinct concerns:
+
+| Cluster                | What it does                                                    | Target home                                                        |
+| ---------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Portal chrome          | `SignInPage`, `AAPLogoutButton`, `AppThemeFixer`, `LandingPage` | `portal-core` / `aap`                                              |
+| Content catalogs       | Collections, Git repos, EE catalog, sync                        | `workspaces/content/automation-content`                            |
+| Create / run templates | Templates catalog, `CreateTask`, `RunTask`, task history        | `workspaces/self-service/` (→ `portal-scaffolder`)                 |
+| Scaffolder fields      | 11 field extensions                                             | Stay in `self-service` or `scaffolder-backend-module-self-service` |
+
+After Phase 4 (content extraction), the remaining plugin (templates + tasks + fields) should
+be named `portal-scaffolder` (plugin ID `portal-scaffolder`, package
+`@ansible/backstage-plugin-portal-scaffolder`). Keep `/self-service/*` as redirects.
+
+---
+
+## 13. Compatibility Policy
 
 `@ansible/backstage-rhaap-extension-api` is a public SDK that external consumers depend on. The following semver guarantees apply once the package reaches `1.0.0`:
 
@@ -909,3 +1022,7 @@ const ContributedSidebarItems = () => {
 - **Breaking changes** (removing an extension point, changing a required field type, changing `getApi` signature) require a major version bump with a migration guide.
 
 Pre-`1.0.0` releases follow `0.x.y` semver: minor bumps may include breaking changes, documented in the changelog.
+
+> **Note:** Once packages are renamed to `portal-extension-api` / `portal-plugin-sdk` (§12.6),
+> the semver guarantees above transfer to the new package names. The `backstage-rhaap-*`
+> names become re-export shims and are considered deprecated from that point.

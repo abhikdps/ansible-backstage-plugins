@@ -19,6 +19,11 @@ import {
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
+import {
+  useExtensionTabs,
+  EXTENSION_POINTS,
+  CONTENT_TYPES,
+} from '@ansible/backstage-rhaap-extension-api';
 import { useSyncStatusPolling } from '../../hooks';
 import { SyncDialog } from '../common';
 import type { SyncStatusMap, StartedSyncInfo } from '../common';
@@ -27,6 +32,7 @@ import {
   NotificationStack,
   useNotifications,
 } from '../notifications';
+import { ExtensionTabContent } from '../../extensions/ExtensionRenderer';
 
 import { rootRouteRef } from '../../routes';
 import { RepositoriesPageHeaderSection } from './RepositoriesPageHeaderSection';
@@ -67,6 +73,9 @@ const tabs = [
   { id: 1, label: 'CI Activity', icon: <TimelineIcon />, path: 'ci-activity' },
 ];
 
+/** Number of hardcoded built-in tabs. Extension tabs occupy indices ≥ this. */
+const GIT_REPO_BUILT_IN_TABS = tabs.length;
+
 const getTabIndexFromPath = (pathname: string): number => {
   if (pathname.includes('/repositories/ci-activity')) return 1;
   return 0;
@@ -91,6 +100,26 @@ export const GitRepositoriesPage = () => {
   const prevSyncInProgressRef = useRef(false);
 
   const selectedTab = getTabIndexFromPath(location.pathname);
+
+  // Extension tabs for the list view. Community plugins register contributions
+  // at EXTENSION_POINTS.GIT_REPO_LIST_TABS; they appear after the built-in tabs.
+  const extensionTabs = useExtensionTabs(
+    EXTENSION_POINTS.GIT_REPO_LIST_TABS,
+    undefined,
+    CONTENT_TYPES.PLAYBOOK_REPOSITORY,
+  );
+
+  // Tracks which extension tab (0-based into extensionTabs) is active.
+  // null = a built-in tab is active (URL-driven); number = extension tab active.
+  const [activeExtTabIndex, setActiveExtTabIndex] = useState<number | null>(
+    null,
+  );
+
+  // Reset extension tab selection whenever the URL-driven built-in tab changes
+  // (e.g. browser back/forward, sidebar navigation).
+  useEffect(() => {
+    setActiveExtTabIndex(null);
+  }, [location.pathname]);
 
   const fetchSyncStatus = useCallback(async () => {
     try {
@@ -156,27 +185,53 @@ export const GitRepositoriesPage = () => {
 
   const onTabSelect = useCallback(
     (index: number) => {
-      const tab = tabs[index];
-      if (tab) {
-        navigate(`${rootLink()}/repositories/${tab.path}`);
+      if (index < GIT_REPO_BUILT_IN_TABS) {
+        // Built-in tab: reset extension selection and navigate to the URL route.
+        setActiveExtTabIndex(null);
+        const tab = tabs[index];
+        if (tab) {
+          navigate(`${rootLink()}/repositories/${tab.path}`);
+        }
+      } else {
+        // Extension tab: no URL change, just update local state.
+        setActiveExtTabIndex(index - GIT_REPO_BUILT_IN_TABS);
       }
     },
     [navigate, rootLink],
   );
 
-  const content =
-    selectedTab === 1 ? (
+  let content: React.ReactNode;
+  if (activeExtTabIndex !== null) {
+    // Extension tab is active — render its component.
+    const extContribution = extensionTabs[activeExtTabIndex];
+    content = extContribution ? (
+      <ExtensionTabContent
+        key={extContribution.id}
+        contribution={extContribution}
+      />
+    ) : null;
+  } else if (selectedTab === 1) {
+    content = (
       <RepositoriesCIActivityTab
         key="ci-activity"
         cachedEntities={gitReposCache.getState()?.entities}
       />
-    ) : (
+    );
+  } else {
+    content = (
       <RepositoriesTable
         key="catalog"
         syncStatusMap={syncStatusMap}
         onSourcesStatusChange={handleSourcesStatusChange}
       />
     );
+  }
+
+  // Overall tab index for HeaderTabs: extension tabs sit after built-ins.
+  const activeTabIndex =
+    activeExtTabIndex !== null
+      ? GIT_REPO_BUILT_IN_TABS + activeExtTabIndex
+      : selectedTab;
 
   return (
     <Page themeId="app">
@@ -190,18 +245,32 @@ export const GitRepositoriesPage = () => {
         />
         <Box className={classes.tabsSection}>
           <HeaderTabs
-            selectedIndex={selectedTab}
+            selectedIndex={activeTabIndex}
             onChange={onTabSelect}
             tabs={
-              tabs.map(({ label, icon }) => ({
-                id: label.toLowerCase().replaceAll(/\s+/g, '-'),
-                label: (
-                  <Box className={classes.tabWithIcon}>
-                    {icon}
-                    {label}
-                  </Box>
-                ),
-              })) as any
+              [
+                ...tabs.map(({ label, icon }) => ({
+                  id: label.toLowerCase().replaceAll(/\s+/g, '-'),
+                  label: (
+                    <Box className={classes.tabWithIcon}>
+                      {icon}
+                      {label}
+                    </Box>
+                  ),
+                })),
+                ...extensionTabs.map(et => {
+                  const Icon = et.icon;
+                  return {
+                    id: et.id,
+                    label: (
+                      <Box className={classes.tabWithIcon}>
+                        {Icon && <Icon fontSize="small" />}
+                        {et.label}
+                      </Box>
+                    ),
+                  };
+                }),
+              ] as any
             }
           />
         </Box>

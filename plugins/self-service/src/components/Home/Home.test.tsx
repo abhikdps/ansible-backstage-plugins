@@ -28,6 +28,18 @@ jest.mock('../../hooks', () => ({
   useIsSuperuser: () => mockUseIsSuperuser(),
 }));
 
+// PageHeaderSection (via TemplatesPageHeaderSection → ../common) is from
+// @ansible/backstage-rhaap-react and imports useIsSuperuser from its own
+// internal relative path inside the workspace package. Mocking '../../hooks'
+// alone does not intercept it. Target the workspace package's hooks module
+// directly so mockUseIsSuperuser controls all usages synchronously, preserving
+// per-test control over isSuperuser state (e.g. "should hide Sync Now when
+// user is not a superuser" overrides it to isSuperuser: false).
+jest.mock('../../../../backstage-rhaap-react/src/hooks', () => ({
+  useIsSuperuser: () => mockUseIsSuperuser(),
+  clearSuperuserCache: jest.fn(),
+}));
+
 const mockUsePermission = jest.fn(() => ({
   loading: false,
   allowed: true,
@@ -462,6 +474,23 @@ describe('self-service', () => {
   });
 
   describe('fetchJobTemplates and sync refresh', () => {
+    // Flush pending microtasks then reset getUserJobTemplates before each test
+    // in this block. Sync-operation tests earlier in the suite leave pending
+    // async operations (EntityListProvider remounts) that resolve after the test
+    // ends. Without this flush+reset, those ghost calls contaminate the next
+    // test's call count assertions.
+    beforeEach(async () => {
+      // Yield to let pending promises from the previous test resolve first.
+      await new Promise(resolve => setTimeout(resolve, 0));
+      (mockAnsibleApi.getUserJobTemplates as jest.Mock).mockReset();
+      mockAnsibleApi.getUserJobTemplates.mockResolvedValue({
+        items: [
+          { id: 1, name: 'Template 1' },
+          { id: 2, name: 'Template 2' },
+        ],
+      });
+    });
+
     // Helper: opens sync dialog, selects Job Templates checkbox, clicks Ok
     const triggerTemplateSync = async () => {
       fireEvent.click(screen.getByText('Sync Now'));
@@ -617,6 +646,9 @@ describe('self-service', () => {
 
       const facetCallsBeforeSync =
         mockCatalogApi.getEntityFacets.mock.calls.length;
+      const jtCallsBeforeSync = (
+        mockAnsibleApi.getUserJobTemplates as jest.Mock
+      ).mock.calls.length;
 
       // After sync: IDs 1, 2, 3 — new template added
       (mockAnsibleApi.getUserJobTemplates as jest.Mock).mockResolvedValueOnce({
@@ -631,7 +663,10 @@ describe('self-service', () => {
 
       await waitFor(() => {
         expect(mockAnsibleApi.syncTemplates).toHaveBeenCalled();
-        expect(mockAnsibleApi.getUserJobTemplates).toHaveBeenCalledTimes(2);
+        // Exactly one post-sync fetch — lists differ so no stale-list retry.
+        expect(mockAnsibleApi.getUserJobTemplates).toHaveBeenCalledTimes(
+          jtCallsBeforeSync + 1,
+        );
       });
 
       // EntityListProvider should have remounted — getEntityFacets called again
@@ -667,6 +702,11 @@ describe('self-service', () => {
 
       const facetCallsBeforeSync =
         mockCatalogApi.getEntityFacets.mock.calls.length;
+      // Snapshot call count once the component is stable so any ghost calls
+      // that leaked from a preceding test are excluded from the assertion.
+      const jtCallsBeforeSync = (
+        mockAnsibleApi.getUserJobTemplates as jest.Mock
+      ).mock.calls.length;
 
       // After sync: IDs 1, 2 — template 3 removed
       (mockAnsibleApi.getUserJobTemplates as jest.Mock).mockResolvedValueOnce({
@@ -680,7 +720,10 @@ describe('self-service', () => {
 
       await waitFor(() => {
         expect(mockAnsibleApi.syncTemplates).toHaveBeenCalled();
-        expect(mockAnsibleApi.getUserJobTemplates).toHaveBeenCalledTimes(2);
+        // Exactly one post-sync fetch — lists differ so no stale-list retry.
+        expect(mockAnsibleApi.getUserJobTemplates).toHaveBeenCalledTimes(
+          jtCallsBeforeSync + 1,
+        );
       });
 
       // EntityListProvider should have remounted — getEntityFacets called again
@@ -715,6 +758,9 @@ describe('self-service', () => {
 
       const facetCallsBeforeSync =
         mockCatalogApi.getEntityFacets.mock.calls.length;
+      const jtCallsBeforeSync = (
+        mockAnsibleApi.getUserJobTemplates as jest.Mock
+      ).mock.calls.length;
 
       // After sync: same IDs but template 2 was renamed
       (mockAnsibleApi.getUserJobTemplates as jest.Mock).mockResolvedValueOnce({
@@ -728,7 +774,10 @@ describe('self-service', () => {
 
       await waitFor(() => {
         expect(mockAnsibleApi.syncTemplates).toHaveBeenCalled();
-        expect(mockAnsibleApi.getUserJobTemplates).toHaveBeenCalledTimes(2);
+        // Exactly one post-sync fetch — lists differ so no stale-list retry.
+        expect(mockAnsibleApi.getUserJobTemplates).toHaveBeenCalledTimes(
+          jtCallsBeforeSync + 1,
+        );
       });
 
       // EntityListProvider should have remounted — getEntityFacets called again

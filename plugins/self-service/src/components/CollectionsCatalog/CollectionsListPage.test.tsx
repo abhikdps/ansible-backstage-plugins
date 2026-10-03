@@ -7,7 +7,11 @@ import {
   MockStarredEntitiesApi,
   starredEntitiesApiRef,
 } from '@backstage/plugin-catalog-react';
-import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
+import {
+  discoveryApiRef,
+  fetchApiRef,
+  identityApiRef,
+} from '@backstage/core-plugin-api';
 import { permissionApiRef } from '@backstage/plugin-permission-react';
 
 jest.mock('@backstage/plugin-catalog-react', () => {
@@ -158,6 +162,19 @@ const mockCatalogApi = {
 const mockDiscoveryApi = {
   getBaseUrl: jest.fn().mockResolvedValue('http://localhost:7007/api/catalog'),
 };
+// Needed by useIsSuperuser (called internally by EmptyState and PageHeaderSection
+// from @ansible/backstage-rhaap-react). This test uses plain render() (not
+// renderInTestApp), so identityApiRef is not provided automatically.
+const mockIdentityApi = {
+  getBackstageIdentity: jest.fn().mockResolvedValue({
+    type: 'user',
+    userEntityRef: 'user:default/test-user',
+    ownershipEntityRefs: [],
+  }),
+  getProfileInfo: jest.fn().mockResolvedValue({ displayName: 'Test User' }),
+  getCredentials: jest.fn().mockResolvedValue({ token: 'test-token' }),
+  signOut: jest.fn().mockResolvedValue(undefined),
+};
 
 const mockFetchApi = {
   fetch: jest.fn(),
@@ -179,6 +196,7 @@ const renderListPage = (
           [fetchApiRef, mockFetchApi],
           [starredEntitiesApiRef, starredApi ?? new MockStarredEntitiesApi()],
           [permissionApiRef, mockApis.permission()],
+          [identityApiRef, mockIdentityApi],
         ]}
       >
         <MemoryRouter>
@@ -861,6 +879,7 @@ describe('CollectionsContent', () => {
             [fetchApiRef, mockFetchApi],
             [starredEntitiesApiRef, new MockStarredEntitiesApi()],
             [permissionApiRef, mockApis.permission()],
+            [identityApiRef, mockIdentityApi],
           ]}
         >
           <MemoryRouter>
@@ -909,6 +928,7 @@ describe('CollectionsListPage with filterByRepositoryEntity', () => {
             [fetchApiRef, mockFetchApi],
             [starredEntitiesApiRef, new MockStarredEntitiesApi()],
             [permissionApiRef, mockApis.permission()],
+            [identityApiRef, mockIdentityApi],
           ]}
         >
           <MemoryRouter>

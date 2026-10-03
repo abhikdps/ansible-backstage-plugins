@@ -2,6 +2,11 @@ import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderInTestApp, TestApiProvider } from '@backstage/test-utils';
 import { ThemeProvider, createTheme } from '@material-ui/core/styles';
 import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
+import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import {
+  contributionRegistry,
+  EXTENSION_POINTS,
+} from '@ansible/backstage-rhaap-extension-api';
 import { GitRepositoriesPage } from './GitRepositoriesPage';
 
 jest.mock('@backstage/plugin-permission-react', () => ({
@@ -111,6 +116,24 @@ jest.mock('./RepositoriesCIActivityTab', () => ({
 const mockDiscoveryApi = {
   getBaseUrl: jest.fn().mockResolvedValue('http://localhost:7007/api/catalog'),
 };
+// Needed by useIsSuperuser (called internally by PageHeaderSection from
+// @ansible/backstage-rhaap-react). identityApiRef is provided automatically
+// by renderInTestApp; catalogApiRef must be provided explicitly.
+// Return a superuser entity so the hook resolves immediately without retries.
+// Without a resolved entity, useIsSuperuser keeps loading=true, which disables
+// the Sync Now button in PageHeaderSection and breaks interaction tests.
+const mockCatalogApi = {
+  getEntityByRef: jest.fn().mockResolvedValue({
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'User',
+    metadata: {
+      name: 'test-user',
+      namespace: 'default',
+      annotations: { 'aap.platform/is_superuser': 'true' },
+    },
+    spec: { profile: {} },
+  }),
+};
 const mockFetchApi = {
   fetch: jest.fn().mockResolvedValue({
     ok: true,
@@ -131,6 +154,13 @@ const mockFetchApi = {
 
 const theme = createTheme();
 
+// Base API set shared by every test case. Add new APIs here, not in individual tests.
+const baseApis = [
+  [discoveryApiRef, mockDiscoveryApi],
+  [fetchApiRef, mockFetchApi],
+  [catalogApiRef, mockCatalogApi],
+] as const;
+
 describe('GitRepositoriesPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -142,12 +172,7 @@ describe('GitRepositoriesPage', () => {
 
   it('renders page with Git Repositories header', async () => {
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <GitRepositoriesPage />
         </ThemeProvider>
@@ -159,12 +184,7 @@ describe('GitRepositoriesPage', () => {
 
   it('renders RepositoriesTable by default', async () => {
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <GitRepositoriesPage />
         </ThemeProvider>
@@ -176,12 +196,7 @@ describe('GitRepositoriesPage', () => {
 
   it('renders Sync Now button', async () => {
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <GitRepositoriesPage />
         </ThemeProvider>
@@ -195,12 +210,7 @@ describe('GitRepositoriesPage', () => {
 
   it('opens sync dialog when Sync Now is clicked', async () => {
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <GitRepositoriesPage />
         </ThemeProvider>
@@ -215,12 +225,7 @@ describe('GitRepositoriesPage', () => {
 
   it('closes sync dialog when close button is clicked', async () => {
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <GitRepositoriesPage />
         </ThemeProvider>
@@ -240,12 +245,7 @@ describe('GitRepositoriesPage', () => {
 
   it('calls onSourcesStatusChange when RepositoriesTable reports source status', async () => {
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <GitRepositoriesPage />
         </ThemeProvider>
@@ -265,12 +265,7 @@ describe('GitRepositoriesPage', () => {
 
   it('calls startTracking when sync dialog reports syncs started', async () => {
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <GitRepositoriesPage />
         </ThemeProvider>
@@ -300,12 +295,7 @@ describe('GitRepositoriesPage', () => {
     });
 
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <GitRepositoriesPage />
         </ThemeProvider>
@@ -319,12 +309,7 @@ describe('GitRepositoriesPage', () => {
 
   it('renders tab navigation with Catalog and CI Activity tabs', async () => {
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <GitRepositoriesPage />
         </ThemeProvider>
@@ -342,12 +327,7 @@ describe('GitRepositoriesPage', () => {
     });
 
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <GitRepositoriesPage />
         </ThemeProvider>
@@ -362,12 +342,7 @@ describe('GitRepositoriesPage', () => {
     mockFetchApi.fetch.mockRejectedValue(new Error('Network error'));
 
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <GitRepositoriesPage />
         </ThemeProvider>
@@ -387,12 +362,7 @@ describe('GitRepositoriesPage', () => {
     });
 
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <GitRepositoriesPage />
         </ThemeProvider>
@@ -414,12 +384,7 @@ describe('GitRepositoriesPage', () => {
     });
 
     const { unmount } = await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <GitRepositoriesPage />
         </ThemeProvider>
@@ -440,12 +405,7 @@ describe('GitRepositoriesPage', () => {
     });
 
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <GitRepositoriesPage />
         </ThemeProvider>
@@ -466,12 +426,7 @@ describe('GitRepositoriesPage', () => {
     });
 
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <GitRepositoriesPage />
         </ThemeProvider>
@@ -486,12 +441,7 @@ describe('GitRepositoriesPage', () => {
 
   it('preserves previous hasConfiguredSources when onSourcesStatusChange receives null', async () => {
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <GitRepositoriesPage />
         </ThemeProvider>
@@ -513,12 +463,7 @@ describe('GitRepositoriesPage', () => {
 
   it('navigates to CI Activity tab when selected', async () => {
     await renderInTestApp(
-      <TestApiProvider
-        apis={[
-          [discoveryApiRef, mockDiscoveryApi],
-          [fetchApiRef, mockFetchApi],
-        ]}
-      >
+      <TestApiProvider apis={baseApis}>
         <ThemeProvider theme={theme}>
           <GitRepositoriesPage />
         </ThemeProvider>
@@ -530,5 +475,105 @@ describe('GitRepositoriesPage', () => {
     fireEvent.click(ciActivityTab);
 
     expect(screen.getByTestId('ci-activity-tab')).toBeInTheDocument();
+  });
+
+  describe('extension tabs (GIT_REPO_LIST_TABS)', () => {
+    beforeEach(() => {
+      contributionRegistry.reset();
+    });
+
+    afterEach(() => {
+      contributionRegistry.reset();
+    });
+
+    it('renders no extra tabs when no contributions are registered', async () => {
+      await renderInTestApp(
+        <TestApiProvider apis={baseApis}>
+          <ThemeProvider theme={theme}>
+            <GitRepositoriesPage />
+          </ThemeProvider>
+        </TestApiProvider>,
+      );
+
+      expect(screen.getByText('Catalog')).toBeInTheDocument();
+      expect(screen.getByText('CI Activity')).toBeInTheDocument();
+      expect(screen.queryByText('My Plugin Tab')).not.toBeInTheDocument();
+    });
+
+    it('renders extension tab label when a contribution is registered', async () => {
+      contributionRegistry.registerTab(EXTENSION_POINTS.GIT_REPO_LIST_TABS, {
+        id: 'test.git-list.my-plugin',
+        label: 'My Plugin Tab',
+        component: () => (
+          <div data-testid="ext-tab-content">Plugin content</div>
+        ),
+      });
+
+      await renderInTestApp(
+        <TestApiProvider apis={baseApis}>
+          <ThemeProvider theme={theme}>
+            <GitRepositoriesPage />
+          </ThemeProvider>
+        </TestApiProvider>,
+      );
+
+      expect(screen.getByText('My Plugin Tab')).toBeInTheDocument();
+    });
+
+    it('renders extension tab content when extension tab is clicked', async () => {
+      contributionRegistry.registerTab(EXTENSION_POINTS.GIT_REPO_LIST_TABS, {
+        id: 'test.git-list.my-plugin',
+        label: 'My Plugin Tab',
+        component: () => (
+          <div data-testid="ext-tab-content">Plugin content</div>
+        ),
+      });
+
+      await renderInTestApp(
+        <TestApiProvider apis={baseApis}>
+          <ThemeProvider theme={theme}>
+            <GitRepositoriesPage />
+          </ThemeProvider>
+        </TestApiProvider>,
+      );
+
+      // Initially built-in Catalog content is visible.
+      expect(screen.getByTestId('repositories-table')).toBeInTheDocument();
+
+      // Click the extension tab.
+      fireEvent.click(screen.getByText('My Plugin Tab'));
+
+      expect(screen.getByTestId('ext-tab-content')).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('repositories-table'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('returns to built-in tab content when a built-in tab is clicked after an extension tab', async () => {
+      contributionRegistry.registerTab(EXTENSION_POINTS.GIT_REPO_LIST_TABS, {
+        id: 'test.git-list.my-plugin',
+        label: 'My Plugin Tab',
+        component: () => (
+          <div data-testid="ext-tab-content">Plugin content</div>
+        ),
+      });
+
+      await renderInTestApp(
+        <TestApiProvider apis={baseApis}>
+          <ThemeProvider theme={theme}>
+            <GitRepositoriesPage />
+          </ThemeProvider>
+        </TestApiProvider>,
+      );
+
+      // Switch to extension tab.
+      fireEvent.click(screen.getByText('My Plugin Tab'));
+      expect(screen.getByTestId('ext-tab-content')).toBeInTheDocument();
+
+      // Switch back to a built-in tab.
+      fireEvent.click(screen.getByText('Catalog'));
+      expect(screen.getByTestId('repositories-table')).toBeInTheDocument();
+      expect(screen.queryByTestId('ext-tab-content')).not.toBeInTheDocument();
+    });
   });
 });

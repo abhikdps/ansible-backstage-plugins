@@ -13,6 +13,7 @@ import type {
   CardContribution,
   ActionContribution,
 } from '@ansible/backstage-rhaap-extension-api';
+import { ErrorBoundary } from './ErrorBoundary';
 
 const Fallback = () => (
   <CircularProgress
@@ -40,13 +41,15 @@ export const ExtensionTabContent = ({
     entity?: Entity;
   }>;
   return (
-    <Suspense fallback={<Fallback />}>
-      <Component entity={entity} />
-    </Suspense>
+    <ErrorBoundary contributionId={contribution.id}>
+      <Suspense fallback={<Fallback />}>
+        <Component entity={entity} />
+      </Suspense>
+    </ErrorBoundary>
   );
 };
 
-/** Renders a card contribution's component inside `<Suspense>`.
+/** Renders a card contribution's component inside `<ErrorBoundary>` + `<Suspense>`.
  *  Returns null while loading or if the user lacks the required permission. */
 export const ExtensionCardContent = ({
   contribution,
@@ -65,18 +68,25 @@ export const ExtensionCardContent = ({
     entity?: Entity;
   }>;
   return (
-    <Suspense fallback={<Fallback />}>
-      <Component entity={entity} />
-    </Suspense>
+    <ErrorBoundary contributionId={contribution.id}>
+      <Suspense fallback={<Fallback />}>
+        <Component entity={entity} />
+      </Suspense>
+    </ErrorBoundary>
   );
 };
 
-/** Builds an action handler wrapper that:
- *  1. Evaluates the `permission` gate.
- *  2. Injects `getApi` via `useApiHolder()` into the handler's `ActionContext`.
+/**
+ * Builds an action activation wrapper that:
+ * 1. Evaluates the `permission` gate.
+ * 2. Injects `getApi` via `useApiHolder()` into the `ActionContext`.
  *
- *  Must be called inside a React component (uses hooks). */
-export const useActionHandler = (
+ * Must be called inside a React component (uses hooks).
+ *
+ * Note: `onActivate` is for pure UI effects only (navigation, dialogs).
+ * For server-side effects, the contribution should use `launches` instead.
+ */
+export const useActionActivation = (
   contribution: ActionContribution,
   entity: Entity,
 ) => {
@@ -88,7 +98,7 @@ export const useActionHandler = (
   if (contribution.permission && !allowed) return null;
 
   return () =>
-    contribution.handler({
+    contribution.onActivate({
       entity,
       getApi: apiRef => apiHolder.get(apiRef)!,
     });
@@ -106,16 +116,16 @@ export const ExtensionActionMenuItem = ({
   entity: Entity;
   onMenuClose: () => void;
 }) => {
-  const handler = useActionHandler(contribution, entity);
-  if (!handler) return null;
+  const activate = useActionActivation(contribution, entity);
+  if (!activate) return null;
 
   const Icon = contribution.icon;
   return (
     <MenuItem
       onClick={() => {
-        Promise.resolve(handler()).catch(err =>
+        Promise.resolve(activate()).catch(err =>
           // eslint-disable-next-line no-console
-          console.error('[ExtensionAction] handler threw:', err),
+          console.error('[ExtensionAction] onActivate threw:', err),
         );
         onMenuClose();
       }}

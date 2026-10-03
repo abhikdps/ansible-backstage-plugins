@@ -507,43 +507,57 @@ describe('resolvers', () => {
     });
 
     it('should throw when user still not found after provisioning', async () => {
-      const userProvisioner = makeUserProvisioner(
-        jest.fn().mockResolvedValue(true),
-      );
-      const resolverFactory = AAPAuthSignInResolvers.allowNewAAPUserSignIn({
-        userProvisioner,
-      });
-      const resolver = (resolverFactory as any)();
+      // The retry loop has exponential backoff totalling 5000ms — exactly the
+      // Jest default timeout. Use fake timers so the delays are instant.
+      jest.useFakeTimers();
+      try {
+        const userProvisioner = makeUserProvisioner(
+          jest.fn().mockResolvedValue(true),
+        );
+        const resolverFactory = AAPAuthSignInResolvers.allowNewAAPUserSignIn({
+          userProvisioner,
+        });
+        const resolver = (resolverFactory as any)();
 
-      const info: SignInInfo<OAuthAuthenticatorResult<PassportProfile>> = {
-        profile: {},
-        result: {
-          session: {
-            accessToken: 'at',
-            tokenType: 'Bearer',
-            scope: 'read',
-            expiresInSeconds: 0,
-            refreshToken: 'rt',
+        const info: SignInInfo<OAuthAuthenticatorResult<PassportProfile>> = {
+          profile: {},
+          result: {
+            session: {
+              accessToken: 'at',
+              tokenType: 'Bearer',
+              scope: 'read',
+              expiresInSeconds: 0,
+              refreshToken: 'rt',
+            },
+            fullProfile: {
+              id: '456',
+              provider: 'AAP oauth2',
+              username: 'newUser',
+              displayName: 'newUser',
+            },
           },
-          fullProfile: {
-            id: '456',
-            provider: 'AAP oauth2',
-            username: 'newUser',
-            displayName: 'newUser',
-          },
-        },
-      };
+        };
 
-      const context = {
-        findCatalogUser: jest
-          .fn()
-          .mockRejectedValue(new Error('User not found')),
-        issueToken: jest.fn(),
-      } satisfies Partial<AuthResolverContext>;
+        const context = {
+          findCatalogUser: jest
+            .fn()
+            .mockRejectedValue(new Error('User not found')),
+          issueToken: jest.fn(),
+        } satisfies Partial<AuthResolverContext>;
 
-      await expect(resolver(info, context as any)).rejects.toThrow(
-        'Sign in failed: User newUser not found in catalog after provisioning',
-      );
+        const promise = resolver(info, context as any);
+        // Attach the rejection handler BEFORE advancing timers to prevent an
+        // unhandled-rejection event when the promise rejects during runAllTimersAsync.
+        // eslint-disable-next-line jest/valid-expect
+        const assertion = expect(promise).rejects.toThrow(
+          'Sign in failed: User newUser not found in catalog after provisioning',
+        );
+        // Drain all retry-backoff timers so the loop completes instantly.
+        await jest.runAllTimersAsync();
+        await assertion;
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('should sign in successfully with userID 0', async () => {

@@ -9,12 +9,36 @@ type RegistryListener = () => void;
 
 type ContributionMap<T> = Map<string, Map<string, T>>;
 
-function safeFilter<T extends { filter?: (e: Entity) => boolean }>(
+/**
+ * Returns true when the contribution's `appliesToContentTypes` allows the
+ * given content type. Contributions with no `appliesToContentTypes` field (or
+ * `'*'`) are always shown. If no `contentType` is passed by the caller, the
+ * check is skipped and all contributions are returned.
+ */
+function matchesContentType<
+  T extends { appliesToContentTypes?: string[] | '*' },
+>(contribution: T, contentType: string | undefined): boolean {
+  if (!contentType) return true;
+  const allowed = contribution.appliesToContentTypes;
+  if (!allowed || allowed === '*') return true;
+  return (allowed as string[]).includes(contentType);
+}
+
+function safeFilter<
+  T extends {
+    filter?: (e: Entity) => boolean;
+    appliesToContentTypes?: string[] | '*';
+  },
+>(
   contribution: T,
   entity: Entity | undefined,
+  contentType: string | undefined,
 ): boolean {
   // Disabled contributions are always hidden.
   if ((contribution as any)._disabled) return false;
+  // Primary static gate: content type.
+  if (!matchesContentType(contribution, contentType)) return false;
+  // Additional UI predicate: entity filter.
   if (!contribution.filter || !entity) return true;
   try {
     return contribution.filter(entity);
@@ -80,15 +104,22 @@ class ContributionRegistry {
     };
   }
 
-  private get<T extends { id: string; filter?: (e: Entity) => boolean }>(
+  private get<
+    T extends {
+      id: string;
+      filter?: (e: Entity) => boolean;
+      appliesToContentTypes?: string[] | '*';
+    },
+  >(
     store: ContributionMap<T>,
     extensionPoint: string,
     entity?: Entity,
+    contentType?: string,
   ): T[] {
     const ep = store.get(extensionPoint);
     if (!ep) return [];
     const all = Array.from(ep.values());
-    const filtered = all.filter(c => safeFilter(c, entity));
+    const filtered = all.filter(c => safeFilter(c, entity, contentType));
     return sortByPriority(filtered);
   }
 
@@ -101,8 +132,12 @@ class ContributionRegistry {
     return this.register(this.tabs, extensionPoint, contribution);
   }
 
-  getTabs(extensionPoint: string, entity?: Entity): TabContribution[] {
-    return this.get(this.tabs, extensionPoint, entity);
+  getTabs(
+    extensionPoint: string,
+    entity?: Entity,
+    contentType?: string,
+  ): TabContribution[] {
+    return this.get(this.tabs, extensionPoint, entity, contentType);
   }
 
   // ── Card registration ─────────────────────────────────────────────────────
@@ -114,8 +149,12 @@ class ContributionRegistry {
     return this.register(this.cards, extensionPoint, contribution);
   }
 
-  getCards(extensionPoint: string, entity?: Entity): CardContribution[] {
-    return this.get(this.cards, extensionPoint, entity);
+  getCards(
+    extensionPoint: string,
+    entity?: Entity,
+    contentType?: string,
+  ): CardContribution[] {
+    return this.get(this.cards, extensionPoint, entity, contentType);
   }
 
   // ── Action registration ───────────────────────────────────────────────────
@@ -127,8 +166,12 @@ class ContributionRegistry {
     return this.register(this.actions, extensionPoint, contribution);
   }
 
-  getActions(extensionPoint: string, entity?: Entity): ActionContribution[] {
-    return this.get(this.actions, extensionPoint, entity);
+  getActions(
+    extensionPoint: string,
+    entity?: Entity,
+    contentType?: string,
+  ): ActionContribution[] {
+    return this.get(this.actions, extensionPoint, entity, contentType);
   }
 
   // ── Enable / disable ─────────────────────────────────────────────────────
