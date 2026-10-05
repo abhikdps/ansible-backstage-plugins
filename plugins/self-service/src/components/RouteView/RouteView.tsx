@@ -39,6 +39,8 @@ import {
   useNotifications,
   syncPollingService,
 } from '../notifications';
+import { DynamicExtensionDiscovery } from '../../extensions';
+import { selfServiceManifest } from '../../selfServiceManifest';
 
 const RequireSuperuser = ({ children }: { children: React.ReactNode }) => {
   const { isSuperuser, loading, error } = useIsSuperuser();
@@ -211,6 +213,7 @@ const RouteViewContent = () => {
 export const RouteView = () => {
   return (
     <NotificationProvider>
+      <DynamicExtensionDiscovery manifests={[selfServiceManifest]} />
       <RouteViewContent />
     </NotificationProvider>
   );
