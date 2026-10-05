@@ -26,7 +26,9 @@ const CardContributionContent = ({
   contribution: CardContribution;
   entity?: Entity;
 }) => {
-  const Component = contribution.component as ComponentType<{ entity?: Entity }>;
+  const Component = contribution.component as ComponentType<{
+    entity?: Entity;
+  }>;
   return <Component entity={entity} />;
 };
 
@@ -38,7 +40,9 @@ const TabContributionContent = ({
   contribution: TabContribution;
   entity?: Entity;
 }) => {
-  const Component = contribution.component as ComponentType<{ entity?: Entity }>;
+  const Component = contribution.component as ComponentType<{
+    entity?: Entity;
+  }>;
   return <Component entity={entity} />;
 };
 

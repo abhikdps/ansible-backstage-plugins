@@ -116,10 +116,11 @@ export function validateManifest(
   if (!isApiVersionCompatible(manifest.apiVersion, hostApiVersion)) {
     errors.push(
       `Plugin "${manifest.id}" apiVersion "${manifest.apiVersion}" is incompatible ` +
-        `with host apiVersion "${hostApiVersion}". ${ 
-        parseSemVer(hostApiVersion)?.major === 0
-          ? 'Pre-1.0.0: major and minor must match.'
-          : 'Post-1.0.0: major version must match.'}`,
+        `with host apiVersion "${hostApiVersion}". ${
+          parseSemVer(hostApiVersion)?.major === 0
+            ? 'Pre-1.0.0: major and minor must match.'
+            : 'Post-1.0.0: major version must match.'
+        }`,
     );
     // API version mismatch is fatal — do not validate capabilities.
     return { valid: false, errors, validCapabilities: [] };

@@ -32,21 +32,27 @@ const CardComp = () => <div>card content</div>;
 const mockPermission = { type: 'basic', name: 'test.permission' } as any;
 const entity = { kind: 'Component', metadata: { name: 'my-entity' } } as any;
 
-const makeTab = (overrides: Partial<TabContribution> = {}): TabContribution => ({
+const makeTab = (
+  overrides: Partial<TabContribution> = {},
+): TabContribution => ({
   id: 'test-tab',
   label: 'Test Tab',
   component: TabComp,
   ...overrides,
 });
 
-const makeCard = (overrides: Partial<CardContribution> = {}): CardContribution => ({
+const makeCard = (
+  overrides: Partial<CardContribution> = {},
+): CardContribution => ({
   id: 'test-card',
   slot: 'overview-left',
   component: CardComp,
   ...overrides,
 });
 
-const makeAction = (overrides: Partial<ActionContribution> = {}): ActionContribution => ({
+const makeAction = (
+  overrides: Partial<ActionContribution> = {},
+): ActionContribution => ({
   id: 'test-action',
   label: 'Run Action',
   onActivate: jest.fn(),
@@ -67,14 +73,20 @@ describe('ExtensionTabContent', () => {
 
   it('renders the tab component when permission is granted', () => {
     mockUsePermission.mockReturnValue({ loading: false, allowed: true });
-    render(<ExtensionTabContent contribution={makeTab({ permission: mockPermission })} />);
+    render(
+      <ExtensionTabContent
+        contribution={makeTab({ permission: mockPermission })}
+      />,
+    );
     expect(screen.getByText('tab content')).toBeInTheDocument();
   });
 
   it('returns null when permission is denied', () => {
     mockUsePermission.mockReturnValue({ loading: false, allowed: false });
     const { container } = render(
-      <ExtensionTabContent contribution={makeTab({ permission: mockPermission })} />,
+      <ExtensionTabContent
+        contribution={makeTab({ permission: mockPermission })}
+      />,
     );
     expect(container).toBeEmptyDOMElement();
   });
@@ -84,7 +96,10 @@ describe('ExtensionTabContent', () => {
       <div>entity: {e?.metadata.name}</div>
     );
     render(
-      <ExtensionTabContent contribution={makeTab({ component: EntityTab as any })} entity={entity} />,
+      <ExtensionTabContent
+        contribution={makeTab({ component: EntityTab as any })}
+        entity={entity}
+      />,
     );
     expect(screen.getByText('entity: my-entity')).toBeInTheDocument();
   });
@@ -105,7 +120,10 @@ describe('ExtensionCardContent', () => {
   it('returns null when permission is denied', () => {
     mockUsePermission.mockReturnValue({ loading: false, allowed: false });
     const { container } = render(
-      <ExtensionCardContent contribution={makeCard({ permission: mockPermission })} entity={entity} />,
+      <ExtensionCardContent
+        contribution={makeCard({ permission: mockPermission })}
+        entity={entity}
+      />,
     );
     expect(container).toBeEmptyDOMElement();
   });

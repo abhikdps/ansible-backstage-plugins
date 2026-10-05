@@ -1,12 +1,17 @@
 /* eslint-disable no-console */
 import { render } from '@testing-library/react';
-import { DynamicExtensionDiscovery, useIsDynamicEnvironment } from './DynamicExtensionDiscovery';
+import {
+  DynamicExtensionDiscovery,
+  useIsDynamicEnvironment,
+} from './DynamicExtensionDiscovery';
 import { renderHook } from '@testing-library/react';
 import type { PluginManifest } from '@ansible/portal-extension-api';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const makeManifest = (overrides: Partial<PluginManifest> = {}): PluginManifest => ({
+const makeManifest = (
+  overrides: Partial<PluginManifest> = {},
+): PluginManifest => ({
   id: 'test-plugin',
   version: '0.1.0',
   apiVersion: '0.1.0',
@@ -36,7 +41,12 @@ describe('DynamicExtensionDiscovery', () => {
   });
 
   it('logs console.info when a valid manifest is passed', () => {
-    render(<DynamicExtensionDiscovery manifests={[makeManifest()]} hostApiVersion="0.1.0" />);
+    render(
+      <DynamicExtensionDiscovery
+        manifests={[makeManifest()]}
+        hostApiVersion="0.1.0"
+      />,
+    );
     expect(console.info).toHaveBeenCalledWith(
       expect.stringContaining('"test-plugin" validated'),
     );
@@ -44,7 +54,12 @@ describe('DynamicExtensionDiscovery', () => {
 
   it('logs console.error when an invalid manifest is passed', () => {
     const badManifest = makeManifest({ apiVersion: '9.9.9' });
-    render(<DynamicExtensionDiscovery manifests={[badManifest]} hostApiVersion="0.1.0" />);
+    render(
+      <DynamicExtensionDiscovery
+        manifests={[badManifest]}
+        hostApiVersion="0.1.0"
+      />,
+    );
     expect(console.error).toHaveBeenCalledWith(
       expect.stringContaining('"test-plugin" validation failed'),
       expect.anything(),
@@ -54,7 +69,10 @@ describe('DynamicExtensionDiscovery', () => {
   it('validates multiple manifests independently', () => {
     render(
       <DynamicExtensionDiscovery
-        manifests={[makeManifest({ id: 'plugin-a' }), makeManifest({ id: 'plugin-b' })]}
+        manifests={[
+          makeManifest({ id: 'plugin-a' }),
+          makeManifest({ id: 'plugin-b' }),
+        ]}
         hostApiVersion="0.1.0"
       />,
     );

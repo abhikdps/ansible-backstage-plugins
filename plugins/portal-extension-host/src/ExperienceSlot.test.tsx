@@ -1,6 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import { ExperienceCardSlot, ExperienceTabContent } from './ExperienceSlot';
-import type { CardContribution, TabContribution } from '@ansible/portal-extension-api';
+import type {
+  CardContribution,
+  TabContribution,
+} from '@ansible/portal-extension-api';
 
 // ── Mock portal-extension-api hooks ──────────────────────────────────────────
 
@@ -9,7 +12,10 @@ jest.mock('@ansible/portal-extension-api', () => ({
   useExtensionTabs: jest.fn(() => []),
 }));
 
-import { useExtensionCards, useExtensionTabs } from '@ansible/portal-extension-api';
+import {
+  useExtensionCards,
+  useExtensionTabs,
+} from '@ansible/portal-extension-api';
 
 const mockUseExtensionCards = useExtensionCards as jest.Mock;
 const mockUseExtensionTabs = useExtensionTabs as jest.Mock;
@@ -54,7 +60,9 @@ describe('ExperienceCardSlot', () => {
   });
 
   it('renders a single card contribution', () => {
-    mockUseExtensionCards.mockReturnValue([makeCardContribution('card-a', CardA)]);
+    mockUseExtensionCards.mockReturnValue([
+      makeCardContribution('card-a', CardA),
+    ]);
 
     render(<ExperienceCardSlot extensionPoint="test-ext-point" />);
     expect(screen.getByText('Card A content')).toBeInTheDocument();
@@ -72,14 +80,19 @@ describe('ExperienceCardSlot', () => {
   });
 
   it('wraps contributions in the provided slotWrapper', () => {
-    mockUseExtensionCards.mockReturnValue([makeCardContribution('card-a', CardA)]);
+    mockUseExtensionCards.mockReturnValue([
+      makeCardContribution('card-a', CardA),
+    ]);
 
     const Wrapper = ({ children }: { children: React.ReactNode }) => (
       <section data-testid="slot-wrapper">{children}</section>
     );
 
     render(
-      <ExperienceCardSlot extensionPoint="test-ext-point" slotWrapper={Wrapper} />,
+      <ExperienceCardSlot
+        extensionPoint="test-ext-point"
+        slotWrapper={Wrapper}
+      />,
     );
     expect(screen.getByTestId('slot-wrapper')).toBeInTheDocument();
     expect(screen.getByText('Card A content')).toBeInTheDocument();
@@ -112,7 +125,10 @@ describe('ExperienceTabContent', () => {
   it('returns null when the tab index is out of range', () => {
     mockUseExtensionTabs.mockReturnValue([]);
     const { container } = render(
-      <ExperienceTabContent extensionPoint="test-ext-point" activeTabIndex={0} />,
+      <ExperienceTabContent
+        extensionPoint="test-ext-point"
+        activeTabIndex={0}
+      />,
     );
     expect(container).toBeEmptyDOMElement();
   });
@@ -123,7 +139,10 @@ describe('ExperienceTabContent', () => {
     ]);
 
     render(
-      <ExperienceTabContent extensionPoint="test-ext-point" activeTabIndex={0} />,
+      <ExperienceTabContent
+        extensionPoint="test-ext-point"
+        activeTabIndex={0}
+      />,
     );
     expect(screen.getByText('Tab content')).toBeInTheDocument();
   });
@@ -137,7 +156,10 @@ describe('ExperienceTabContent', () => {
     ]);
 
     render(
-      <ExperienceTabContent extensionPoint="test-ext-point" activeTabIndex={1} />,
+      <ExperienceTabContent
+        extensionPoint="test-ext-point"
+        activeTabIndex={1}
+      />,
     );
     expect(screen.getByText('Tab 1')).toBeInTheDocument();
     expect(screen.queryByText('Tab 0')).not.toBeInTheDocument();

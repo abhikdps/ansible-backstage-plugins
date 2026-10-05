@@ -43,7 +43,9 @@ describe('ErrorBoundary', () => {
         <CrashingComponent />
       </ErrorBoundary>,
     );
-    expect(screen.queryByText('hello from contribution')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('hello from contribution'),
+    ).not.toBeInTheDocument();
   });
 
   it('logs the contributionId and error to console.error', () => {
