@@ -32,14 +32,15 @@ export type ContentTypeId = (typeof CONTENT_TYPES)[keyof typeof CONTENT_TYPES];
  * They are provided here as constants for use in capability contributions.
  */
 export const EXPERIENCE_IDS = {
-  /** Content quality scanning, drift detection, trust signals. */
+  /** Content quality scanning, drift detection, trust signals. APME and future scanners contribute here. */
   CONTENT_QUALITY: 'content-quality-assessment',
-  /** EE definition authoring, collection authoring, source editing. */
+  /** EE definition authoring, collection catalog browsing, source editing. */
   CONTENT_AUTHORING: 'content-authoring',
   /** Migration tooling and guided content promotion workflows. */
   CONTENT_MIGRATION: 'content-migration',
-  /** Templates, tasks, history — the portal-scaffolder experience. */
-  SELF_SERVICE: 'self-service',
+  // NOTE: 'self-service' is intentionally absent. portal-scaffolder is a plugin,
+  // not a host-owned experience. Templates, tasks, and history are capabilities
+  // that portal-scaffolder contributes — they do not constitute an experience.
 } as const;
 
 export type ExperienceId = (typeof EXPERIENCE_IDS)[keyof typeof EXPERIENCE_IDS];

@@ -10,6 +10,9 @@ export type {
   ActionContribution,
   CapabilityLaunch,
   CapabilityLaunchType,
+  SlotLaunch,
+  WorkflowLaunch,
+  OperationLaunch,
 } from './types';
 
 // ── Manifest-level types (experience + capability + entry point model) ─────────

@@ -1,7 +1,5 @@
-import {
-  validateManifest,
-  type ManifestValidationResult,
-} from './validateManifest';
+import { validateManifest } from './validateManifest';
+import type { ManifestValidationResult } from './validateManifest';
 import type {
   PluginManifest,
   CapabilityContribution,
@@ -140,7 +138,6 @@ describe('validateManifest', () => {
         'content-quality-assessment',
         'content-authoring',
         'content-migration',
-        'self-service',
       ];
       for (const experienceId of knownIds) {
         const result = validateManifest(

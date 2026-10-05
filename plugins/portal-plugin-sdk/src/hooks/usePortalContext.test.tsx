@@ -16,12 +16,11 @@ const makeIdentityApi = (userEntityRef: string | undefined) => ({
 
 const makeWrapper =
   (userEntityRef: string | undefined) =>
-  ({ children }: { children: ReactNode }) =>
-    (
-      <TestApiProvider apis={[[identityApiRef, makeIdentityApi(userEntityRef)]]}>
-        {children}
-      </TestApiProvider>
-    );
+  ({ children }: { children: ReactNode }) => (
+    <TestApiProvider apis={[[identityApiRef, makeIdentityApi(userEntityRef)]]}>
+      {children}
+    </TestApiProvider>
+  );
 
 const makeFailWrapper =
   (error: Error) =>
@@ -104,26 +103,27 @@ describe('usePortalContext', () => {
   });
 
   it('wraps non-Error rejections in an Error', async () => {
-    const wrapper =
-      ({ children }: { children: ReactNode }) => {
-        const api = {
-          getBackstageIdentity: jest.fn().mockRejectedValue('string error'),
-          getCredentials: jest.fn(),
-          getProfileInfo: jest.fn(),
-          signOut: jest.fn(),
-        };
-        return (
-          <TestApiProvider apis={[[identityApiRef, api]]}>
-            {children}
-          </TestApiProvider>
-        );
+    const wrapper = ({ children }: { children: ReactNode }) => {
+      const api = {
+        getBackstageIdentity: jest.fn().mockRejectedValue('string error'),
+        getCredentials: jest.fn(),
+        getProfileInfo: jest.fn(),
+        signOut: jest.fn(),
       };
+      return (
+        <TestApiProvider apis={[[identityApiRef, api]]}>
+          {children}
+        </TestApiProvider>
+      );
+    };
 
     const { result } = renderHook(() => usePortalContext(), { wrapper });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(result.current.error).toBeInstanceOf(Error);
-    expect(result.current.error?.message).toBe('Failed to resolve portal context');
+    expect(result.current.error?.message).toBe(
+      'Failed to resolve portal context',
+    );
   });
 });

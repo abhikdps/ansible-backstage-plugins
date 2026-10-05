@@ -35,7 +35,7 @@ export const selfServiceManifest: PluginManifest = {
     {
       id: 'portal-scaffolder.collection-detail',
       ownerPlugin: 'portal-scaffolder',
-      experienceId: EXPERIENCE_IDS.CONTENT_QUALITY,
+      experienceId: EXPERIENCE_IDS.CONTENT_AUTHORING,
       displayName: 'Collection Detail',
       description:
         'Built-in collection detail view providing a README, about card, and resource list.',

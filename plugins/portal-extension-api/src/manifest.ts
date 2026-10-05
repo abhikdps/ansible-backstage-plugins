@@ -47,7 +47,6 @@ export type ContentPredicate = (entity: Entity) => boolean;
  * - `'content-quality-assessment'`
  * - `'content-authoring'`
  * - `'content-migration'`
- * - `'self-service'`
  */
 export interface ExperienceDefinition {
   id: string;
