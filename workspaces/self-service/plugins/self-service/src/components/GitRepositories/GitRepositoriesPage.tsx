@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { Page, Content, HeaderTabs } from '@backstage/core-components';
-import { Box, makeStyles } from '@material-ui/core';
+import { useState, useCallback, useEffect, useRef, Fragment } from 'react';
+import { Page, Content, HeaderTabs, LinkButton } from '@backstage/core-components';
+import { Box, Button, makeStyles } from '@material-ui/core';
 import {
   Navigate,
   Route,
@@ -21,6 +21,7 @@ import {
 } from '@backstage/core-plugin-api';
 import {
   useExtensionTabs,
+  useExtensionActions,
   EXTENSION_POINTS,
   CONTENT_TYPES,
 } from '@ansible/portal-extension-api';
@@ -108,6 +109,9 @@ export const GitRepositoriesPage = () => {
     undefined,
     CONTENT_TYPES.PLAYBOOK_REPOSITORY,
   );
+
+  // Extension actions for the list page header (e.g. "Add repository" from APME).
+  const listActions = useExtensionActions(EXTENSION_POINTS.GIT_REPO_LIST_ACTIONS);
 
   // Tracks which extension tab (0-based into extensionTabs) is active.
   // null = a built-in tab is active (URL-driven); number = extension tab active.
@@ -242,6 +246,35 @@ export const GitRepositoriesPage = () => {
           syncDisabledReason={syncDisabledReason}
           syncInProgress={isSyncInProgress}
           syncProgress={syncProgress}
+          actions={
+            listActions.length > 0 ? (
+              <Fragment>
+                {listActions.map(action =>
+                  action.to ? (
+                    <LinkButton
+                      key={action.id}
+                      variant="contained"
+                      color="primary"
+                      to={action.to}
+                      startIcon={action.icon ? <action.icon /> : undefined}
+                    >
+                      {action.label}
+                    </LinkButton>
+                  ) : (
+                    <Button
+                      key={action.id}
+                      variant="contained"
+                      color="primary"
+                      startIcon={action.icon ? <action.icon /> : undefined}
+                      disabled
+                    >
+                      {action.label}
+                    </Button>
+                  ),
+                )}
+              </Fragment>
+            ) : undefined
+          }
         />
         <Box className={classes.tabsSection}>
           <HeaderTabs

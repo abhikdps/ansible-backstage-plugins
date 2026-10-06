@@ -98,7 +98,7 @@ export const useActionActivation = (
   if (contribution.permission && !allowed) return null;
 
   return () =>
-    contribution.onActivate({
+    contribution.onActivate?.({
       entity,
       getApi: apiRef => apiHolder.get(apiRef)!,
     });

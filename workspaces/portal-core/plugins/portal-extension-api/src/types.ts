@@ -172,13 +172,21 @@ export interface ActionContribution {
   label: string;
   icon?: ComponentType;
   /**
+   * React Router path for link-style actions (e.g. navigating to a
+   * scaffolder template). When provided the host renders the action as a
+   * `LinkButton`; `onActivate` is not called.
+   */
+  to?: string;
+  /**
    * Pure-UI activation callback — navigation, opening a dialog, toggling a
    * state flag. **Must not make server calls or trigger server-side effects.**
    *
    * For server-side effects use `launches` with `type: 'operation'` or
    * `type: 'workflow'`.
+   *
+   * May be omitted when `to` is provided.
    */
-  onActivate: (context: ActionContext) => void | Promise<void>;
+  onActivate?: (context: ActionContext) => void | Promise<void>;
   /**
    * How this action connects to a server-side workflow or operation.
    * Provide this alongside (or instead of) `onActivate` when the action

@@ -63,6 +63,7 @@ export const EXTENSION_POINTS = {
   GIT_REPO_DETAIL_CARDS: 'rhaap.git-repository.detail.cards',
   GIT_REPO_DETAIL_ACTIONS: 'rhaap.git-repository.detail.actions',
   GIT_REPO_LIST_TABS: 'rhaap.git-repository.list.tabs',
+  GIT_REPO_LIST_ACTIONS: 'rhaap.git-repository.list.actions',
 
   // Execution Environments detail page
   EE_DETAIL_TABS: 'rhaap.execution-environment.detail.tabs',

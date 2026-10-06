@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { PageHeaderSection } from '../common';
 import type { SyncProgressEntry } from '../common';
 import { REPO_TOOLTIP, REPO_DESCRIPTION } from './constants';
@@ -8,6 +9,8 @@ interface RepositoriesPageHeaderSectionProps {
   syncDisabledReason?: string;
   syncInProgress?: boolean;
   syncProgress?: SyncProgressEntry[];
+  /** Extra action buttons rendered in the header alongside the sync button. */
+  actions?: ReactNode;
 }
 
 export const RepositoriesPageHeaderSection = ({
@@ -16,6 +19,7 @@ export const RepositoriesPageHeaderSection = ({
   syncDisabledReason,
   syncInProgress = false,
   syncProgress,
+  actions,
 }: RepositoriesPageHeaderSectionProps) => (
   <PageHeaderSection
     title="Git Repositories"
@@ -26,5 +30,6 @@ export const RepositoriesPageHeaderSection = ({
     syncDisabledReason={syncDisabledReason}
     syncInProgress={syncInProgress}
     syncProgress={syncProgress}
+    actions={actions}
   />
 );

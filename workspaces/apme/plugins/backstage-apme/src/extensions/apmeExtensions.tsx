@@ -34,6 +34,7 @@
  * | Dependencies entity tab       | `getDetailTabs()`   | `registerGitRepoDetailTab()` |
  * | Quality overview card         | `getDetailOverviewSlots()` | `registerGitRepoDetailCard()` |
  * | Run scan / deregister actions | `getDetailHeaderMenuItems()` | `registerGitRepoDetailAction()` |
+ * | Add repository (list header) | `getListHeaderActions()`     | `registerGitRepoListAction()`   |
  *
  * ### What still uses ADR-010 (pending Phase 6 slot activation)
  * | Surface                       | Reason not migrated yet                        |
@@ -51,6 +52,7 @@ import {
   registerGitRepoDetailTab,
   registerGitRepoDetailCard,
   registerGitRepoDetailAction,
+  registerGitRepoListAction,
   CONTENT_TYPES,
 } from '@ansible/portal-extension-api';
 import { normalizeRepoUrlFromEntity } from '@ansible/backstage-rhaap-common/catalogEntity';
@@ -214,6 +216,16 @@ export function registerApmeExtensions(): void {
     onActivate: () => {
       /* no-op: launch handled via `launches.operationId` */
     },
+  });
+
+  // ── List page: "Add repository" header button ─────────────────────────────
+  // Renders as a contained button in the Git Repositories list page header,
+  // navigating users to the scaffolder template that registers a repo with APME.
+  registerGitRepoListAction({
+    id: 'apme.register-repository',
+    label: 'Add repository',
+    to: '/self-service/create/templates/default/apme-register-git-repository',
+    priority: 10,
   });
 }
 

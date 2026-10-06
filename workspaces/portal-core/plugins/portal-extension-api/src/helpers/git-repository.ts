@@ -23,3 +23,9 @@ export const registerGitRepoDetailAction = (action: ActionContribution) =>
 
 export const registerGitRepoListTab = (tab: TabContribution) =>
   contributionRegistry.registerTab(EXTENSION_POINTS.GIT_REPO_LIST_TABS, tab);
+
+export const registerGitRepoListAction = (action: ActionContribution) =>
+  contributionRegistry.registerAction(
+    EXTENSION_POINTS.GIT_REPO_LIST_ACTIONS,
+    action,
+  );
