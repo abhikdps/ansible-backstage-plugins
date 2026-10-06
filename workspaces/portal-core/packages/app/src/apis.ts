@@ -12,10 +12,12 @@ import {
 } from '@backstage/core-plugin-api';
 import { OAuth2 } from '@backstage/core-app-api';
 import { rhAapAuthApiRef } from '@ansible/portal-scaffolder';
+import { apmeApiFactory } from '@ansible/plugin-backstage-apme';
 import { signalsPlugin } from '@backstage/plugin-signals';
 
 export const apis: AnyApiFactory[] = [
   ...signalsPlugin.getApis(),
+  apmeApiFactory,
   createApiFactory({
     api: scmIntegrationsApiRef,
     deps: { configApi: configApiRef },

@@ -46,6 +46,7 @@
 
 import { lazy } from 'react';
 import type { Entity } from '@backstage/catalog-model';
+import { EntityProvider } from '@backstage/plugin-catalog-react';
 import {
   registerGitRepoDetailTab,
   registerGitRepoDetailCard,
@@ -139,10 +140,16 @@ export function registerApmeExtensions(): void {
     label: 'Quality activity',
     priority: 15,
     appliesToContentTypes: [CONTENT_TYPES.PLAYBOOK_REPOSITORY],
-    component: ({ entity: _entity }: { entity?: Entity }) => {
-      // ApmeQualityActivityTab reads entity via useEntity() from the entity
-      // page context — no prop needed.
-      return <ApmeQualityActivityTab />;
+    component: ({ entity }: { entity?: Entity }) => {
+      // ApmeQualityActivityTab uses useEntity() internally.
+      // Wrap in EntityProvider so it can access the entity regardless
+      // of whether the portal's ExtensionRenderer provides one.
+      if (!entity) return null;
+      return (
+        <EntityProvider entity={entity}>
+          <ApmeQualityActivityTab />
+        </EntityProvider>
+      );
     },
   });
 

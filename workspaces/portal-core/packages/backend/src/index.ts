@@ -64,6 +64,9 @@ backend.add(
   import('@ansible/backstage-plugin-catalog-backend-module-rhaap-user-provisioner'),
 );
 backend.add(
+  import('@ansible/backstage-plugin-catalog-backend-module-apme'),
+);
+backend.add(
   import('@ansible/plugin-scaffolder-backend-module-backstage-rhaap'),
 );
 backend.start();

@@ -41,6 +41,8 @@ import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
 import { providers } from './identityProviders';
 import { AnsiblePage } from '@ansible/plugin-backstage-rhaap';
+// Side-effect import: triggers registerManifest() + registerApmeExtensions() in plugin.ts
+import '@ansible/plugin-backstage-apme';
 import { DelayingComponentFieldExtension } from './components/scaffolder/customScaffolderExtensions';
 import {
   AAPTokenFieldExtension,

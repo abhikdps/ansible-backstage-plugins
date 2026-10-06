@@ -213,7 +213,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ansible/backstage-plugin-catalog-backend-module-apme@workspace:workspaces/apme/plugins/catalog-backend-module-apme":
+"@ansible/backstage-plugin-catalog-backend-module-apme@workspace:^, @ansible/backstage-plugin-catalog-backend-module-apme@workspace:workspaces/apme/plugins/catalog-backend-module-apme":
   version: 0.0.0-use.local
   resolution: "@ansible/backstage-plugin-catalog-backend-module-apme@workspace:workspaces/apme/plugins/catalog-backend-module-apme"
   dependencies:
@@ -317,7 +317,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ansible/plugin-backstage-apme@workspace:workspaces/apme/plugins/backstage-apme":
+"@ansible/plugin-backstage-apme@workspace:^, @ansible/plugin-backstage-apme@workspace:workspaces/apme/plugins/backstage-apme":
   version: 0.0.0-use.local
   resolution: "@ansible/plugin-backstage-apme@workspace:workspaces/apme/plugins/backstage-apme"
   dependencies:
@@ -24944,6 +24944,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "app@workspace:workspaces/portal-core/packages/app"
   dependencies:
+    "@ansible/plugin-backstage-apme": "workspace:^"
     "@ansible/plugin-backstage-rhaap": "workspace:^"
     "@ansible/portal-scaffolder": "workspace:^"
     "@backstage-community/plugin-github-actions": "npm:^0.11.1"
@@ -25690,6 +25691,7 @@ __metadata:
   resolution: "backend@workspace:workspaces/portal-core/packages/backend"
   dependencies:
     "@ansible/backstage-plugin-auth-backend-module-rhaap-provider": "workspace:^"
+    "@ansible/backstage-plugin-catalog-backend-module-apme": "workspace:^"
     "@ansible/backstage-plugin-catalog-backend-module-rhaap": "workspace:^"
     "@ansible/backstage-plugin-catalog-backend-module-rhaap-user-provisioner": "workspace:^"
     "@ansible/backstage-rhaap-common": "workspace:^"
