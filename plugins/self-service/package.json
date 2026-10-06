@@ -26,8 +26,6 @@
   },
   "dependencies": {
     "@ansible/backstage-rhaap-common": "workspace:^",
-    "@ansible/portal-extension-api": "workspace:^",
-    "@ansible/portal-extension-host": "workspace:^",
     "@ansible/portal-plugin-sdk": "workspace:^",
     "@backstage/catalog-client": "^1.14.0",
     "@backstage/catalog-model": "^1.7.7",
@@ -59,6 +57,8 @@
     "react-use": "^17.2.4"
   },
   "peerDependencies": {
+    "@ansible/portal-extension-api": "workspace:^",
+    "@ansible/portal-extension-host": "workspace:^",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router": "*",

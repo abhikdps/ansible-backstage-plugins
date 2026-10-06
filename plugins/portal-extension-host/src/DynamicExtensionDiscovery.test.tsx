@@ -1,11 +1,14 @@
 /* eslint-disable no-console */
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
 import {
   DynamicExtensionDiscovery,
   useIsDynamicEnvironment,
 } from './DynamicExtensionDiscovery';
 import { renderHook } from '@testing-library/react';
-import type { PluginManifest } from '@ansible/portal-extension-api';
+import {
+  contributionRegistry,
+  type PluginManifest,
+} from '@ansible/portal-extension-api';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -26,13 +29,11 @@ describe('DynamicExtensionDiscovery', () => {
   beforeEach(() => {
     jest.spyOn(console, 'info').mockImplementation(() => {});
     jest.spyOn(console, 'error').mockImplementation(() => {});
-    // Ensure Scalprum is absent (standard Backstage environment)
-    // @ts-ignore
-    delete (window as any).__scalprum;
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+    contributionRegistry.reset();
   });
 
   it('renders null — produces no DOM output', () => {
@@ -40,7 +41,9 @@ describe('DynamicExtensionDiscovery', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('logs console.info when a valid manifest is passed', () => {
+  // ── First-party manifest prop path ─────────────────────────────────────────
+
+  it('logs console.info when a valid manifest is passed via prop', () => {
     render(
       <DynamicExtensionDiscovery
         manifests={[makeManifest()]}
@@ -52,7 +55,7 @@ describe('DynamicExtensionDiscovery', () => {
     );
   });
 
-  it('logs console.error when an invalid manifest is passed', () => {
+  it('logs console.error when an invalid manifest is passed via prop', () => {
     const badManifest = makeManifest({ apiVersion: '9.9.9' });
     render(
       <DynamicExtensionDiscovery
@@ -66,7 +69,7 @@ describe('DynamicExtensionDiscovery', () => {
     );
   });
 
-  it('validates multiple manifests independently', () => {
+  it('validates multiple prop manifests independently', () => {
     render(
       <DynamicExtensionDiscovery
         manifests={[
@@ -79,36 +82,68 @@ describe('DynamicExtensionDiscovery', () => {
     expect(console.info).toHaveBeenCalledTimes(2);
   });
 
-  it('is a no-op when no manifests are provided (standard Backstage)', () => {
+  it('is a no-op when no manifests are provided', () => {
     render(<DynamicExtensionDiscovery />);
     expect(console.info).not.toHaveBeenCalled();
     expect(console.error).not.toHaveBeenCalled();
   });
 
-  it('does not throw when Scalprum is absent', () => {
-    expect(() => render(<DynamicExtensionDiscovery />)).not.toThrow();
+  // ── Third-party manifest subscription path ─────────────────────────────────
+
+  it('validates manifests registered before mount (subscription replay)', () => {
+    contributionRegistry.registerManifest(
+      makeManifest({ id: 'pre-registered' }),
+    );
+    render(<DynamicExtensionDiscovery hostApiVersion="0.1.0" />);
+    expect(console.info).toHaveBeenCalledWith(
+      expect.stringContaining('"pre-registered" validated'),
+    );
+  });
+
+  it('validates manifests registered after mount', () => {
+    render(<DynamicExtensionDiscovery hostApiVersion="0.1.0" />);
+    act(() => {
+      contributionRegistry.registerManifest(
+        makeManifest({ id: 'late-plugin' }),
+      );
+    });
+    expect(console.info).toHaveBeenCalledWith(
+      expect.stringContaining('"late-plugin" validated'),
+    );
+  });
+
+  it('logs errors for invalid manifests arriving via subscription', () => {
+    render(<DynamicExtensionDiscovery hostApiVersion="0.1.0" />);
+    act(() => {
+      contributionRegistry.registerManifest(
+        makeManifest({ id: 'bad-plugin', apiVersion: '9.9.9' }),
+      );
+    });
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining('"bad-plugin" validation failed'),
+      expect.anything(),
+    );
+  });
+
+  it('stops validating manifests after unmount (no memory leak)', () => {
+    const { unmount } = render(
+      <DynamicExtensionDiscovery hostApiVersion="0.1.0" />,
+    );
+    unmount();
+    jest.clearAllMocks();
+    contributionRegistry.registerManifest(
+      makeManifest({ id: 'post-unmount-plugin' }),
+    );
+    expect(console.info).not.toHaveBeenCalled();
+    expect(console.error).not.toHaveBeenCalled();
   });
 });
 
 // ── useIsDynamicEnvironment ───────────────────────────────────────────────────
 
 describe('useIsDynamicEnvironment', () => {
-  afterEach(() => {
-    // @ts-ignore
-    delete (window as any).__scalprum;
-  });
-
-  it('returns false when __scalprum is not present (standard Backstage)', () => {
-    // @ts-ignore
-    delete (window as any).__scalprum;
+  it('returns false — Scalprum removed in RHDH 2.1, no detectable NFS global', () => {
     const { result } = renderHook(() => useIsDynamicEnvironment());
     expect(result.current).toBe(false);
-  });
-
-  it('returns true when __scalprum global is present (RHDH environment)', () => {
-    // @ts-ignore
-    (window as any).__scalprum = {};
-    const { result } = renderHook(() => useIsDynamicEnvironment());
-    expect(result.current).toBe(true);
   });
 });

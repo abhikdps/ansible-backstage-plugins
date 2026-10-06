@@ -1,313 +1,196 @@
-# Picker Operation Contract Proposal
+# Picker Content Boundary: Query Dimensions + Write Schema
 
 ## ANSTRAT-2497 → ANSTRAT-1758 Boundary
 
 > **From:** Portal Plugin Factory team (ANSTRAT-2497)
 > **To:** Content Management team (ANSTRAT-1758)
-> **Date:** 2026-10-01
-> **Status:** Draft — awaiting ANSTRAT-1758 feedback
+> **Date:** 2026-10-06
+> **Status:** Draft — supersedes previous "operation contract" proposal
 > **Context:** §7.5 of the implementation guide (`docs/next/anstrat-2497-implementation-guide.md`)
 
 ---
 
 ## 1. Background
 
-The self-service plugin currently contains seven scaffolder field pickers. During Phase 6
-of ANSTRAT-2497 (content extraction), these pickers are split:
+The self-service plugin contains seven scaffolder field pickers. During Phase 6 of
+ANSTRAT-2497 (content extraction), these are split by data ownership:
 
-- Pickers that query **Ansible content** (collections, EE images) will be re-implemented
-  against operations that ANSTRAT-1758 declares.
-- Pickers that query **AAP resources** (organizations, inventories, projects) continue to
-  use the existing AAP API routes and are not part of this contract.
+- Pickers that query **Ansible content** (collections, EE images) — the content boundary
+  defined in this document. ANSTRAT-1758 owns the data; we own the picker widget.
+- Pickers that query **AAP resources** (organizations, inventories, projects) — continue
+  to use existing AAP API routes. Not part of this contract.
 - Pickers that are **pure user-input** (tags, pip package names, file names, MCP servers,
-  SCM choices) require no content operation and are out of scope here.
+  SCM choices) — free text or template-enum. No content boundary. Not part of this contract.
 
-**This document defines the operation contract for the content-facing pickers only.**
-Agreement on this contract unblocks Phase 6 for both teams.
+**What we are agreeing on here:**
 
-### The three pickers in scope
+- The **query dimensions** each picker needs (what fields are queryable on each content type)
+- The **write schema** (what the template form persists after a picker selection)
+- The **authz** requirement per query
+- The **`sourceId` stability** invariant (non-negotiable — stored values must survive upgrades)
 
-| Picker component             | Content it queries                          | Operations needed |
-| ---------------------------- | ------------------------------------------- | ----------------- |
-| `CollectionsPickerExtension` | Ansible collections from PAH / Galaxy / OCI | 3                 |
-| `BaseImagePickerExtension`   | Built EE images from the EE catalog         | 1–2               |
+**What we are NOT prescribing:** how the query is implemented. Whether sources and versions
+arrive as facets on a search query, relations, or a separate index is ANSTRAT-1758's
+decision. The picker is a widget; we do not own the query engine.
+
+### The two pickers in scope
+
+| Picker component             | Content it queries                          |
+| ---------------------------- | ------------------------------------------- |
+| `CollectionsPickerExtension` | Ansible collections from PAH / Galaxy / OCI |
+| `BaseImagePickerExtension`   | Built EE images available as base images    |
 
 ---
 
 ## 2. Current Behaviour (What We Ship Today)
 
-Understanding the current implementation makes the required API surface explicit.
+Understanding the current implementation makes the required data surface explicit.
 
 ### 2.1 CollectionsPicker
 
-The picker calls `scaffolderApi.autocomplete` with three separate `resource` strings:
+The picker today calls `scaffolderApi.autocomplete` with three resource strings in a
+cascade: name → source → version. The user flow is:
 
-```
-resource: 'collections',
-  context: { searchQuery: 'spec.type=ansible-collection' }
-  → returns: [{ name, namespace?, sources?: string[], versions?: SourceVersionDetail[] | string[], sourceVersions?: Record<sourceId, string[]> }]
+1. Type to search collection names → select one
+2. Select a source (PAH instance, Galaxy, OCI registry) where that collection is available
+3. Optionally select a version at that source (or leave blank for "latest")
 
-resource: 'collection_sources',
-  context: { collection: collectionName }
-  → returns: [{ name: string, id: string }]
-
-resource: 'collection_versions',
-  context: { collection: collectionName, source: sourceId }
-  → returns: [{ name: string, label?: string, version: string | null }]
-```
-
-The user flow is a three-step cascade: pick a collection name → pick a source →
-(optionally) pick a version. The output stored in the template form is:
+The value stored in the template form is:
 
 ```typescript
 interface CollectionItem {
-  name: string; // collection name, e.g. "community.general"
-  source: string; // source/repository ID
-  version?: string; // version string or null for "latest"
+  name: string; // e.g. "community.general"
+  source: string; // source ID — stored in the EE definition file
+  version?: string; // version string, or null for "latest"
 }
 ```
 
 ### 2.2 BaseImagePicker
 
-Currently **static** — the available base images are provided as a JSON schema `enum` in the
-template YAML and rendered as a radio list. No API call is made at runtime.
+Currently **static** — available base images are hardcoded as a JSON schema `enum` in
+the template YAML. No API call is made at runtime.
 
-The recommended image is hardcoded:
+Phase 6 requires this to become dynamic — fetching available base images from the content
+catalog so that new AAP releases appear automatically without template edits.
 
+The value stored in the template form is:
+
+```typescript
+interface EEBaseImageRef {
+  imageRef: string; // fully qualified: "registry/image:tag"
+  digest?: string; // sha256:... for reproducible pinning (preferred for production)
+}
 ```
-registry.redhat.io/ansible-automation-platform/ee-minimal-rhel8:2.18
-```
-
-Phase 6 requires this to become **dynamic** — fetching available base images from the EE
-content catalog so that new AAP releases appear automatically without template edits.
 
 ---
 
-## 3. Proposed Operation Contract
+## 3. Content Boundary: Query Dimensions + Write Schema
 
-We propose the following operation IDs and schemas. These follow the `operationId` model
-from §4.3 of the implementation guide — no raw HTTP endpoint, no plugin-provided handler URL.
-All calls go through `automation-content-client`.
+### 3.1 Collection type
+
+**What the picker needs to query:**
+
+| Dimension  | Description                                                               | Notes                                                                    |
+| ---------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `name`     | Full-text / prefix search on collection name (e.g. "community.general")   | Powers the first autocomplete                                            |
+| `sources`  | For a selected collection: what sources carry it (PAH, Galaxy, OCI, etc.) | A relation or facet — not a separate RPC. Sources are IDs + human labels |
+| `versions` | For a selected collection + source: available versions                    | May be live-fetched or indexed — freshness is 1758's concern, not ours   |
+
+**Write schema (what we store and what must stay stable):**
+
+```typescript
+interface CollectionItem {
+  name: string; // fully qualified collection name — stable
+  source: string; // opaque source ID — MUST survive PAH upgrades (see §4)
+  version?: string; // version string, or null/omitted for "latest"
+}
+```
+
+**Authorization:** `ansible.collections.view` (already declared in `backstage-rhaap-common`)
 
 ---
 
-### 3.1 `content.collections.search`
+### 3.2 Execution environment image type
 
-**Purpose:** Full-text / name-filtered search across all collections available to the
-current organization. Powers the first autocomplete in CollectionsPicker.
+**What the picker needs to query:**
 
-**Input:**
+| Dimension      | Description                                                       | Notes                                              |
+| -------------- | ----------------------------------------------------------------- | -------------------------------------------------- |
+| `usableAsBase` | Filter to images that can act as a base image in an EE definition | Boolean facet — not all EEs are usable as base     |
+| `imageRef`     | Fully qualified pull reference (`registry/image:tag`)             | Written into `execution-environment.yml`           |
+| `digest`       | OCI digest (`sha256:...`) for reproducible pinning                | Optional but preferred for production definitions  |
+| `recommended`  | Whether this is the RH-recommended base for new definitions       | UI renders a "Recommended" badge; at most one true |
+
+**Write schema:**
 
 ```typescript
-interface CollectionSearchInput {
-  /** Free-text search. Empty string returns all collections (paginated). */
-  query?: string;
-  /** Max results to return. Default: 50, max: 200. */
-  limit?: number;
-  /** Cursor for pagination (opaque string from previous response). */
-  cursor?: string;
+interface EEBaseImageRef {
+  imageRef: string; // written directly into execution-environment.yml
+  digest?: string; // sha256:... for reproducible pinning
 }
 ```
 
-**Output:**
-
-```typescript
-interface CollectionSearchOutput {
-  items: CollectionSummary[];
-  /** Present when more results are available. */
-  nextCursor?: string;
-}
-
-interface CollectionSummary {
-  /** Fully qualified name, e.g. "community.general". */
-  name: string;
-  /** Human-readable description (optional). */
-  description?: string;
-  /**
-   * Known source IDs for this collection — allows the UI to pre-populate the
-   * source dropdown without a second round-trip.
-   * May be omitted if the backend cannot determine this cheaply.
-   */
-  knownSourceIds?: string[];
-}
-```
-
-**Permission:** `ansible.collections.view` (already declared in `backstage-rhaap-common`).
-
-**Question for 1758:** Should `knownSourceIds` be a guaranteed field or best-effort?
-If best-effort, the UI will always do a second call to `content.collections.listSources`.
+**Authorization:** `ansible.execution-environments.view` (already declared)
 
 ---
 
-### 3.2 `content.collections.listSources`
+## 4. Non-Negotiable: `sourceId` Stability
 
-**Purpose:** List the sources (PAH instances, Galaxy, OCI registries) where a specific
-collection is available. Powers the "Source" autocomplete after a collection is selected.
+The `source` field in `CollectionItem` is stored inside `execution-environment.yml` files
+committed to source control. If ANSTRAT-1758 changes the opaque ID for a source across
+PAH upgrades (e.g. during a re-registration), existing EE definitions silently reference
+a source that no longer exists.
 
-**Input:**
+**We need one of:**
 
-```typescript
-interface CollectionSourcesInput {
-  /** Fully qualified collection name, e.g. "community.general". */
-  collectionName: string;
-}
-```
+1. A **stability guarantee**: source IDs are immutable once assigned. Decommissioned sources
+   get a tombstone (still resolvable, marked deprecated) rather than a deletion.
+2. A **migration event**: an observable signal we can subscribe to when a source ID changes,
+   so we can update stored EE definitions proactively.
 
-**Output:**
-
-```typescript
-interface CollectionSourcesOutput {
-  sources: CollectionSource[];
-}
-
-interface CollectionSource {
-  /** Opaque ID used to fetch versions and identify the source at EE build time. */
-  id: string;
-  /** Human-readable label, e.g. "Red Hat Automation Hub", "Galaxy". */
-  label: string;
-  /** Short URL shown as secondary text in the dropdown (optional). */
-  url?: string;
-}
-```
-
-**Permission:** `ansible.collections.view`.
+This is the single hardest dependency between our teams. Everything else in this document
+is a fresh build; this one touches committed customer files.
 
 ---
 
-### 3.3 `content.collections.listVersions`
+## 5. Open Questions
 
-**Purpose:** List available versions of a collection at a specific source. Powers the
-optional "Version" autocomplete after source selection.
-
-**Input:**
-
-```typescript
-interface CollectionVersionsInput {
-  collectionName: string;
-  sourceId: string;
-}
-```
-
-**Output:**
-
-```typescript
-interface CollectionVersionsOutput {
-  versions: CollectionVersion[];
-}
-
-interface CollectionVersion {
-  /** The version string, e.g. "1.4.2" or null for "latest". */
-  version: string | null;
-  /** Human-readable label shown in the dropdown. */
-  label: string;
-  /**
-   * Optional: git ref or OCI digest this version resolves to.
-   * Used for reproducible builds. If present, stored in the EE definition.
-   */
-  ref?: string;
-}
-```
-
-**Permission:** `ansible.collections.view`.
+| #      | Question                                                                                                                                                                                                | Impact                    |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| **Q1** | Is `Collection.providedBy` in the current `AutomationContentClient` the stable source ID, or a display label? Determines whether we can use it as the stored `source` field.                            | Write schema stability    |
+| **Q2** | Is collection/version data served from a live PAH query or from a Backstage Search index (collator)? Determines picker latency, offline behaviour, and whether search is live-typed or request-on-open. | UX + freshness model      |
+| **Q3** | For `usableAsBase` — is this a computed field (introspection-derived) or manually curated? Affects whether new Red Hat EE releases appear automatically or require a catalog update.                    | BaseImagePicker accuracy  |
+| **Q4** | Is `digest` always available for catalog-indexed images, or only after a live registry fetch?                                                                                                           | Reproducibility guarantee |
 
 ---
 
-### 3.4 `content.executionEnvironments.listBaseImages`
+## 6. What We Commit To (ANSTRAT-2497 Side)
 
-**Purpose:** List built EE images that can be used as a base image in an EE definition.
-Replaces the current static enum in `BaseImagePickerExtension`.
+Once the open questions above are answered:
 
-**Input:**
-
-```typescript
-interface EEBaseImageListInput {
-  /** Optional: filter by AAP platform version tag. Default: return all. */
-  platformVersion?: string;
-  /** Whether to include images from Red Hat CDN (registry.redhat.io). Default: true. */
-  includeRhcdn?: boolean;
-  /** Whether to include custom/org-managed images from org's PAH. Default: true. */
-  includeCustom?: boolean;
-}
-```
-
-**Output:**
-
-```typescript
-interface EEBaseImageListOutput {
-  images: EEBaseImage[];
-}
-
-interface EEBaseImage {
-  /**
-   * Fully qualified image reference: `registry/image:tag`.
-   * This is the value written into `execution-environment.yml`.
-   */
-  imageRef: string;
-  /** Human-readable name, e.g. "EE Minimal RHEL 8 (2.18)". */
-  label: string;
-  /** Short description of what ansible-core version / platform this image includes. */
-  description?: string;
-  /**
-   * True if this is the Red Hat-recommended base image for new EE definitions.
-   * The UI renders this with a "Recommended" badge.
-   * At most one image should have this set to true per query.
-   */
-  recommended?: boolean;
-  /**
-   * OCI digest (sha256:...) for reproducible pinning. Optional but preferred
-   * for production EE definitions.
-   */
-  digest?: string;
-}
-```
-
-**Permission:** `ansible.execution-environments.view` (already declared).
+1. Implementing `CollectionsPicker` against the agreed query API — the cascade (name →
+   source → version) maps to the declared query dimensions regardless of how 1758
+   implements the underlying query.
+2. Implementing `BaseImagePicker` dynamic fetching against the `usableAsBase` filter.
+3. Publishing `CollectionItem` and `EEBaseImageRef` in `portal-extension-common` as the
+   stable write schemas both teams import.
+4. **Not coupling picker internals to RHDH APIs.** The picker calls our abstraction layer;
+   that layer calls 1758's client. When RHDH changes the search seam, we update the
+   adapter — not the picker widget and not the template authors.
 
 ---
 
-## 4. Open Questions for ANSTRAT-1758
+## 7. Non-Content Pickers (Out of Scope for This Contract)
 
-These five questions **must be answered before Phase 6 begins**. Both teams are blocked
-on them.
+The remaining five pickers have no content ownership dependency:
 
-| #      | Question                                                                                                                                                           | Impact                                                                          |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| **Q1** | Do all three collection operations go through `automation-content-client`, or is there a separate scaffolder-autocomplete API that proxies to PAH?                 | Determines what the pickers import and how they authenticate                    |
-| **Q2** | Is `content.collections.search` backed by PAH's Galaxy v3 search, or by the Backstage catalog index?                                                               | Latency, offline behaviour, and whether search is live-typed or request-on-open |
-| **Q3** | Are the `sourceId` values in §3.1–3.3 stable across PAH upgrades? The EE definition stores this ID — a rename would break existing definitions.                    | Data model stability                                                            |
-| **Q4** | What permission gates `content.executionEnvironments.listBaseImages`? Is it the same `ansible.execution-environments.view` permission, or a new one?               | RBAC configuration for the scaffolder                                           |
-| **Q5** | Is `listBaseImages` scoped to the user's organization (only images in their org's PAH), or does it include CDN images from `registry.redhat.io` regardless of org? | Affects the `includeRhcdn` input field in §3.4                                  |
+| Picker             | Data source                                    | Phase 6 fate                                               |
+| ------------------ | ---------------------------------------------- | ---------------------------------------------------------- |
+| `EETagsPicker`     | User-provided free text                        | Stays in portal-scaffolder                                 |
+| `PackagesPicker`   | User-provided free text (pip package names)    | Stays in portal-scaffolder                                 |
+| `MCPServersPicker` | Static schema enum from template YAML          | Stays in portal-scaffolder                                 |
+| `AAResourcePicker` | AAP API (organizations, inventories, projects) | Stays in portal-scaffolder, continues to use AAP proxy     |
+| `ScmSelector`      | Static enum (GitHub, GitLab)                   | Stays in portal-scaffolder; may add Gitea if 1758 ships it |
 
-### Nice-to-have for Phase 6 planning
-
-- **Gitea support for `playbook-repository`:** Will ANSTRAT-1758 deliver Gitea as a
-  supported SCM provider, or is it a deferred deviation? This determines whether the
-  `ScmSelector` picker stays static (GitHub/GitLab only) or needs a dynamic list.
-
----
-
-## 5. What We Commit To (ANSTRAT-2497 Side)
-
-Once the five questions above are answered, we commit to:
-
-1. Implementing the three CollectionsPicker operations against the agreed client within
-   Phase 6 (no changes to the picker UI — only the data-fetching layer changes).
-2. Implementing `BaseImagePicker` dynamic fetching against `content.executionEnvironments.listBaseImages`.
-3. Publishing the `CollectionItem` and `EEBaseImage` types in `portal-extension-common`
-   so both teams can import from a single source.
-4. Not calling any PAH or content API directly from a frontend picker — all calls go
-   through the registered operation pipeline.
-
----
-
-## 6. Non-Content Pickers (Out of Scope for This Contract)
-
-For completeness, the other five pickers are not part of this boundary agreement:
-
-| Picker             | Current data source                            | Phase 6 fate                                                  |
-| ------------------ | ---------------------------------------------- | ------------------------------------------------------------- |
-| `EETagsPicker`     | User-provided free text                        | Stays in self-service → portal-scaffolder                     |
-| `PackagesPicker`   | User-provided free text (pip package names)    | Stays in portal-scaffolder                                    |
-| `MCPServersPicker` | Static schema enum from template YAML          | Stays in portal-scaffolder                                    |
-| `AAResourcePicker` | AAP API (organizations, inventories, projects) | Stays in portal-scaffolder, continues to use AAP proxy        |
-| `ScmSelector`      | Static enum (GitHub, GitLab)                   | Stays in portal-scaffolder; may add Gitea if 1758 supports it |
+ANSTRAT-1758 is not blocked on any of these five. They are entirely portal-scaffolder
+owned and require no content boundary agreement.

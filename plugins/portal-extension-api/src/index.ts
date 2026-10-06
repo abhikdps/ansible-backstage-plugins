@@ -2,6 +2,8 @@
 // Used by the lower-level ContributionRegistry API (registerTab/registerCard/
 // registerAction). These are the backward-compatible PoC types. In Phase 4
 // they will be wrapped by CapabilityContribution + CapabilityEntryPoint.
+import { contributionRegistry as _registry } from './registry';
+
 export type {
   ContributionComponent,
   ActionContext,
@@ -47,6 +49,25 @@ export type {
 // ── Registry singleton + type ─────────────────────────────────────────────────
 export { contributionRegistry } from './registry';
 export type { ContributionRegistry } from './registry';
+
+/**
+ * Registers a plugin manifest with the host's `ContributionRegistry`.
+ *
+ * Call this from your plugin's `dynamic/index.ts` alongside your `register*`
+ * calls. `DynamicExtensionDiscovery` subscribes to the registry and validates
+ * each arriving manifest, logging the result.
+ *
+ * @example
+ * // In your plugin's dynamic/index.ts
+ * import { registerManifest, registerGitRepoDetailTab } from '@ansible/portal-extension-api';
+ * registerManifest(myPluginManifest);
+ * registerGitRepoDetailTab({ id: 'my-plugin.trust-signals', ... });
+ */
+export function registerManifest(
+  manifest: import('./manifest').PluginManifest,
+): void {
+  _registry.registerManifest(manifest);
+}
 
 // ── React hooks (tree-shaken if unused) ───────────────────────────────────────
 export {

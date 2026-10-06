@@ -4,8 +4,10 @@ import type {
   CardContribution,
   ActionContribution,
 } from './types';
+import type { PluginManifest } from './manifest';
 
 type RegistryListener = () => void;
+type ManifestListener = (manifest: PluginManifest) => void;
 
 type ContributionMap<T> = Map<string, Map<string, T>>;
 
@@ -65,6 +67,8 @@ class ContributionRegistry {
   private readonly cards: ContributionMap<CardContribution> = new Map();
   private readonly actions: ContributionMap<ActionContribution> = new Map();
   private readonly listeners: Set<RegistryListener> = new Set();
+  private readonly manifests: Map<string, PluginManifest> = new Map();
+  private readonly manifestListeners: Set<ManifestListener> = new Set();
 
   // ── Subscription ──────────────────────────────────────────────────────────
 
@@ -174,6 +178,62 @@ class ContributionRegistry {
     return this.get(this.actions, extensionPoint, entity, contentType);
   }
 
+  // ── Manifest registration ─────────────────────────────────────────────────
+
+  /**
+   * Registers a plugin manifest with the host.
+   *
+   * Call this from your plugin's `dynamic/index.ts` (or module entry point)
+   * alongside your `register*` calls. The host's `DynamicExtensionDiscovery`
+   * subscribes to this and validates each arriving manifest.
+   *
+   * Registering the same `manifest.id` twice replaces the previous entry and
+   * notifies all subscribers again.
+   *
+   * @example
+   * // In your plugin's dynamic/index.ts
+   * import { registerManifest } from '@ansible/portal-extension-api';
+   * registerManifest(myPluginManifest);
+   */
+  registerManifest(manifest: PluginManifest): void {
+    if (this.manifests.has(manifest.id)) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[ContributionRegistry] Manifest "${manifest.id}" already registered — replacing.`,
+      );
+    }
+    this.manifests.set(manifest.id, manifest);
+    this.manifestListeners.forEach(l => l(manifest));
+  }
+
+  /**
+   * Returns all currently registered manifests.
+   */
+  getManifests(): PluginManifest[] {
+    return Array.from(this.manifests.values());
+  }
+
+  /**
+   * Subscribes to manifest registrations.
+   *
+   * The callback is invoked immediately for all already-registered manifests
+   * (replay), and then again for every future `registerManifest()` call.
+   * This ensures `DynamicExtensionDiscovery` never misses a manifest
+   * regardless of load order.
+   *
+   * Returns an unsubscribe function — call it in `useEffect` cleanup.
+   */
+  subscribeToManifests(callback: ManifestListener): () => void {
+    // Replay manifests that were registered before this subscription.
+    for (const manifest of this.manifests.values()) {
+      callback(manifest);
+    }
+    this.manifestListeners.add(callback);
+    return () => {
+      this.manifestListeners.delete(callback);
+    };
+  }
+
   // ── Enable / disable ─────────────────────────────────────────────────────
 
   disable(contributionId: string): void {
@@ -208,6 +268,8 @@ class ContributionRegistry {
     this.cards.clear();
     this.actions.clear();
     this.listeners.clear();
+    this.manifests.clear();
+    this.manifestListeners.clear();
   }
 }
 

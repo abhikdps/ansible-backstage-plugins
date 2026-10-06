@@ -7,135 +7,100 @@ import { validateManifest } from './validateManifest';
 
 interface DynamicExtensionDiscoveryProps {
   /**
-   * First-party manifests to validate on mount. Each manifest is validated
-   * against `hostApiVersion` and the result is logged. This decouples the
-   * extension host from any specific plugin's manifest — the host consumer
-   * (e.g. self-service) passes its own manifest(s) here.
+   * First-party manifests to validate immediately on mount (e.g.
+   * `selfServiceManifest`). These are validated once before any third-party
+   * plugin has had a chance to register.
    *
-   * Defaults to `[]` (no validation).
+   * Defaults to `[]`.
    */
   manifests?: PluginManifest[];
   /**
    * The host's current contract API version. Defaults to `'0.1.0'`.
-   * Must match the version used when building the extension SDK packages.
    */
   hostApiVersion?: string;
 }
 
 /**
- * Side-effect component that discovers and loads dynamic plugin contributions
- * in RHDH deployments.
+ * Side-effect component that validates plugin manifests as they arrive.
  *
- * **Standard Backstage:** This component is a no-op. Plugins register
- * contributions synchronously at module load time via the `contributionRegistry`
- * singleton — no dynamic discovery is needed.
+ * **First-party manifests** (passed via the `manifests` prop) are validated
+ * once on mount. This covers the host plugin's own capabilities and proves
+ * the manifest pipeline works end-to-end.
  *
- * **RHDH with Scalprum:** Dynamic plugins are loaded asynchronously by
- * Scalprum (Webpack Module Federation). This component would enumerate loaded
- * plugin modules and call each plugin's initialiser, which registers its
- * contributions into the shared `contributionRegistry` singleton.
+ * **Third-party manifests** are discovered via the `ContributionRegistry`
+ * subscription. When an external plugin calls `registerManifest(manifest)`
+ * from its `dynamic/index.ts`, this component receives and validates it
+ * immediately. The subscription replays any manifests that were registered
+ * before this component mounted — so load order does not matter.
  *
- * **Open question (architecture §8):** The exact Scalprum API for resolving a
- * federated module by plugin ID is not yet finalised. This component will be
- * completed once `@scalprum/react-core` usage is confirmed with the RHDH team.
- * Tracked in: ANSTRAT-2497 Phase 3.
+ * **What validation produces today:** logged output only. Full slot-based
+ * activation (translating validated `CapabilityEntryPoints` into mounted
+ * components) is deferred to Phase 6, pending the NFS mount-point design.
  *
- * **Why a React component and not a plain function?**
- * Scalprum's module resolution is async and React lifecycle gives us a clean
- * place to run it once after mount without adding a global singleton that
- * conflicts with SSR or test isolation.
+ * **Why a React component?**
+ * The registry subscription must be cleaned up on unmount to avoid memory
+ * leaks and stale callbacks in tests. `useEffect` gives us that lifecycle
+ * for free.
  */
 export const DynamicExtensionDiscovery = ({
   manifests = [],
   hostApiVersion = '0.1.0',
 }: DynamicExtensionDiscoveryProps = {}) => {
+  // ── First-party manifests ─────────────────────────────────────────────────
   useEffect(() => {
-    // ── First-party manifest validation ────────────────────────────────────
-    //
-    // Validate each manifest passed by the host consumer. These are
-    // first-party manifests (e.g. self-service's own manifest) that prove the
-    // manifest pipeline works end-to-end.
-    //
-    // The result is logged only — no activation of contributions happens here.
-    // Full slot-based activation (translating CapabilityEntryPoints into
-    // TabContributions in the registry) is deferred to Phase 6 when the
-    // content pages are extracted and their components can be provided.
     for (const manifest of manifests) {
-      const result = validateManifest(manifest, hostApiVersion);
-      if (!result.valid) {
-        // eslint-disable-next-line no-console
-        console.error(
-          `[DynamicExtensionDiscovery] Manifest "${manifest.id}" validation failed:`,
-          result.errors,
-        );
-      } else {
-        // eslint-disable-next-line no-console
-        console.info(
-          `[DynamicExtensionDiscovery] Manifest "${manifest.id}" validated: ` +
-            `${result.validCapabilities.length} capabilities declared.`,
-        );
-      }
+      validateAndLog(manifest, hostApiVersion);
     }
-
-    // Detect whether Scalprum is present in the runtime environment.
-    // In standard Backstage it is not; in RHDH it is injected globally.
-    const isRHDH =
-      typeof window !== 'undefined' &&
-      // @ts-ignore — Scalprum injects this global; it is absent in standard Backstage.
-      typeof (window as any).__scalprum !== 'undefined';
-
-    if (!isRHDH) {
-      // Standard Backstage: contributions are registered synchronously at
-      // module import time. Nothing to do.
-      return;
-    }
-
-    // ── RHDH path (stub — to be completed) ────────────────────────────────
-    //
-    // When Scalprum is present, enumerate its loaded plugin modules and call
-    // each plugin's `initializePlugin()` export, which registers contributions
-    // into the shared contributionRegistry.
-    //
-    // Expected implementation (pending Scalprum API confirmation):
-    //
-    // const scalprum = (window as any).__scalprum;
-    // const pluginModules: Record<string, any> = scalprum.getPluginModules?.() ?? {};
-    // for (const [pluginId, module] of Object.entries(pluginModules)) {
-    //   if (typeof module.initializePlugin === 'function') {
-    //     try {
-    //       module.initializePlugin({ registry: contributionRegistry });
-    //     } catch (err) {
-    //       console.error(
-    //         `[DynamicExtensionDiscovery] Failed to initialise plugin "${pluginId}":`,
-    //         err,
-    //       );
-    //     }
-    //   }
-    // }
-    //
-    // eslint-disable-next-line no-console
-    console.info(
-      '[DynamicExtensionDiscovery] RHDH/Scalprum environment detected. ' +
-        'Dynamic extension loading is not yet implemented. ' +
-        'Tracked in ANSTRAT-2497 Phase 3.',
-    );
   }, [manifests, hostApiVersion]);
 
-  // This component renders nothing — it is a pure side-effect.
+  // ── Third-party manifests (registry subscription) ─────────────────────────
+  useEffect(() => {
+    // subscribeToManifests replays already-registered manifests immediately,
+    // then fires for each future registerManifest() call.
+    const unsubscribe = contributionRegistry.subscribeToManifests(manifest => {
+      validateAndLog(manifest, hostApiVersion);
+    });
+    return unsubscribe;
+  }, [hostApiVersion]);
+
   return null;
 };
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function validateAndLog(
+  manifest: PluginManifest,
+  hostApiVersion: string,
+): void {
+  const result = validateManifest(manifest, hostApiVersion);
+  if (!result.valid) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `[DynamicExtensionDiscovery] Manifest "${manifest.id}" validation failed:`,
+      result.errors,
+    );
+  } else {
+    // eslint-disable-next-line no-console
+    console.info(
+      `[DynamicExtensionDiscovery] Manifest "${manifest.id}" validated: ` +
+        `${result.validCapabilities.length} capabilities declared.`,
+    );
+  }
+}
+
 /**
- * Hook for components that need to know whether the dynamic extension
- * environment is active. Returns `false` in standard Backstage; `true` in RHDH.
+ * Returns true when the portal is running in an RHDH dynamic plugin
+ * environment (NFS module federation active).
  *
- * Useful for showing "Loading plugins..." UI while Scalprum is still
- * resolving modules.
+ * Currently returns false in standard Backstage since there is no
+ * detectable global marker in NFS as there was with Scalprum's
+ * `window.__scalprum`. Use the presence of registered third-party manifests
+ * (`contributionRegistry.getManifests().length > 0`) as a proxy if needed.
  */
 export function useIsDynamicEnvironment(): boolean {
-  if (typeof window === 'undefined') return false;
-  // @ts-ignore
-  return typeof (window as any).__scalprum !== 'undefined';
+  // NFS (RHDH 2.1+) does not inject a detectable global.
+  // Scalprum's window.__scalprum is no longer present.
+  return false;
 }
 
 // Keep the registry accessible for any module that imports this file.
