@@ -14,16 +14,28 @@
  */
 
 import type { Entity } from '@backstage/catalog-model';
-import type { BasicPermission } from '@backstage/plugin-permission-common';
+import type {
+  BasicPermission,
+  ResourcePermission,
+} from '@backstage/plugin-permission-common';
 import type { CapabilityLaunch } from './types';
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
 
 /**
- * A Backstage permission required to gate access to a capability or entry
- * point. Aliased from `BasicPermission` for clarity at the manifest level.
+ * A Backstage permission gate for a capability or entry point.
+ *
+ * Supports both basic permissions (no resource type, e.g. `gitRepositoriesViewPermission`)
+ * and resource-scoped permissions (e.g. `ansibleSettingsViewPermission` which
+ * gates by `resourceRef: 'apme'`). When `permission` is a `ResourcePermission`,
+ * supply `resourceRef` so the host can authorize against the correct resource instance.
  */
-export type PermissionRequirement = BasicPermission;
+export type PermissionRequirement =
+  | BasicPermission
+  | {
+      permission: ResourcePermission<string>;
+      resourceRef: string;
+    };
 
 /**
  * An additional entity-level predicate, evaluated after `appliesToContentTypes`
@@ -119,6 +131,8 @@ export interface CapabilityEntryPoint {
   /** Button or tab label shown to the user. */
   label: string;
   description?: string;
+  /** Display order within the capability's entry points on this surface. Lower = first. */
+  order?: number;
   /**
    * How this entry point connects to a UI workflow or server-side operation.
    * The host passes the current content subject as context. Plugins do not

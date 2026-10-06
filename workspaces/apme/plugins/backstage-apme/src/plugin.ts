@@ -19,10 +19,27 @@ import {
   createComponentExtension,
   createRouteRef,
 } from '@backstage/core-plugin-api';
+import { registerManifest } from '@ansible/portal-extension-api';
+import { apmeManifest } from './apmeManifest';
 
 export const rootRouteRef = createRouteRef({
   id: 'apme',
 });
+
+/**
+ * Register the APME manifest with the Portal extension host.
+ *
+ * This is the only SDK integration point needed at plugin-load time.
+ * `registerManifest()` is idempotent — re-registering the same manifest ID
+ * is a no-op. The host's `DynamicExtensionDiscovery` validates the manifest
+ * and wires contributions into the appropriate experience slots.
+ *
+ * Migration note (ANSTRAT-2497): this replaces the ADR-010
+ * `gitRepositoriesExtensionsApiRef` factory. The API ref registration in
+ * `apis/` is kept temporarily for backward compatibility with existing
+ * host pages that still call `gitRepositoriesExtensionsApiRef.get*()`.
+ */
+registerManifest(apmeManifest);
 
 /**
  * API factories are registered by the composition root, not createPlugin:
