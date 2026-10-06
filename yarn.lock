@@ -349,6 +349,7 @@ __metadata:
     react-use: "npm:^17.4.0"
     typescript: "npm:^5.0.0"
   peerDependencies:
+    "@ansible/portal-extension-api": "workspace:^"
     react: ^17.0.0 || ^18.0.0
     react-dom: ^17.0.0 || ^18.0.0
     react-router-dom: ^6.0.0

@@ -139,9 +139,10 @@ export function registerApmeExtensions(): void {
     label: 'Quality activity',
     priority: 15,
     appliesToContentTypes: [CONTENT_TYPES.PLAYBOOK_REPOSITORY],
-    component: ({ entity }: { entity?: Entity }) => {
-      if (!entity) return null;
-      return <ApmeQualityActivityTab entity={entity} />;
+    component: ({ entity: _entity }: { entity?: Entity }) => {
+      // ApmeQualityActivityTab reads entity via useEntity() from the entity
+      // page context — no prop needed.
+      return <ApmeQualityActivityTab />;
     },
   });
 
