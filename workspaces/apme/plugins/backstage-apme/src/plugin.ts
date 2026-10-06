@@ -21,6 +21,7 @@ import {
 } from '@backstage/core-plugin-api';
 import { registerManifest } from '@ansible/portal-extension-api';
 import { apmeManifest } from './apmeManifest';
+import { registerApmeExtensions } from './extensions/apmeExtensions';
 
 export const rootRouteRef = createRouteRef({
   id: 'apme',
@@ -40,6 +41,15 @@ export const rootRouteRef = createRouteRef({
  * host pages that still call `gitRepositoriesExtensionsApiRef.get*()`.
  */
 registerManifest(apmeManifest);
+
+/**
+ * Register APME's React components into the portal contribution registry.
+ * Entity-level tabs (Quality, Quality Activity, Dependencies), the overview
+ * card, and detail actions are migrated. List-level tabs (Fleet Quality,
+ * Quality Settings) and catalog contributions remain on ADR-010 until
+ * Phase 6 slot activation is implemented.
+ */
+registerApmeExtensions();
 
 /**
  * API factories are registered by the composition root, not createPlugin:
