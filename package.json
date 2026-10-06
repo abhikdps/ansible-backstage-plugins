@@ -32,8 +32,10 @@
   },
   "workspaces": {
     "packages": [
-      "packages/*",
-      "plugins/*",
+      "workspaces/portal-core/packages/*",
+      "workspaces/portal-core/plugins/*",
+      "workspaces/self-service/plugins/*",
+      "workspaces/aap/plugins/*",
       "e2e-tests/*"
     ]
   },

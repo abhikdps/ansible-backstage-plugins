@@ -163,9 +163,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ansible/backstage-plugin-auth-backend-module-rhaap-provider@workspace:^, @ansible/backstage-plugin-auth-backend-module-rhaap-provider@workspace:plugins/auth-backend-module-rhaap-provider":
+"@ansible/backstage-plugin-auth-backend-module-rhaap-provider@workspace:^, @ansible/backstage-plugin-auth-backend-module-rhaap-provider@workspace:workspaces/aap/plugins/auth-backend-module-rhaap-provider":
   version: 0.0.0-use.local
-  resolution: "@ansible/backstage-plugin-auth-backend-module-rhaap-provider@workspace:plugins/auth-backend-module-rhaap-provider"
+  resolution: "@ansible/backstage-plugin-auth-backend-module-rhaap-provider@workspace:workspaces/aap/plugins/auth-backend-module-rhaap-provider"
   dependencies:
     "@ansible/backstage-rhaap-common": "workspace:^"
     "@backstage/backend-defaults": "npm:^0.16.0"
@@ -196,9 +196,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ansible/backstage-plugin-catalog-backend-module-rhaap-user-provisioner@workspace:^, @ansible/backstage-plugin-catalog-backend-module-rhaap-user-provisioner@workspace:plugins/catalog-backend-module-rhaap-user-provisioner":
+"@ansible/backstage-plugin-catalog-backend-module-rhaap-user-provisioner@workspace:^, @ansible/backstage-plugin-catalog-backend-module-rhaap-user-provisioner@workspace:workspaces/aap/plugins/catalog-backend-module-rhaap-user-provisioner":
   version: 0.0.0-use.local
-  resolution: "@ansible/backstage-plugin-catalog-backend-module-rhaap-user-provisioner@workspace:plugins/catalog-backend-module-rhaap-user-provisioner"
+  resolution: "@ansible/backstage-plugin-catalog-backend-module-rhaap-user-provisioner@workspace:workspaces/aap/plugins/catalog-backend-module-rhaap-user-provisioner"
   dependencies:
     "@ansible/backstage-rhaap-common": "workspace:^"
     "@backstage/backend-plugin-api": "npm:^1.8.0"
@@ -213,9 +213,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ansible/backstage-plugin-catalog-backend-module-rhaap@workspace:^, @ansible/backstage-plugin-catalog-backend-module-rhaap@workspace:plugins/catalog-backend-module-rhaap":
+"@ansible/backstage-plugin-catalog-backend-module-rhaap@workspace:^, @ansible/backstage-plugin-catalog-backend-module-rhaap@workspace:workspaces/aap/plugins/catalog-backend-module-rhaap":
   version: 0.0.0-use.local
-  resolution: "@ansible/backstage-plugin-catalog-backend-module-rhaap@workspace:plugins/catalog-backend-module-rhaap"
+  resolution: "@ansible/backstage-plugin-catalog-backend-module-rhaap@workspace:workspaces/aap/plugins/catalog-backend-module-rhaap"
   dependencies:
     "@ansible/backstage-rhaap-common": "workspace:^"
     "@backstage/backend-defaults": "npm:^0.16.0"
@@ -247,9 +247,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ansible/backstage-rhaap-common@workspace:^, @ansible/backstage-rhaap-common@workspace:plugins/backstage-rhaap-common":
+"@ansible/backstage-rhaap-common@workspace:^, @ansible/backstage-rhaap-common@workspace:workspaces/aap/plugins/backstage-rhaap-common":
   version: 0.0.0-use.local
-  resolution: "@ansible/backstage-rhaap-common@workspace:plugins/backstage-rhaap-common"
+  resolution: "@ansible/backstage-rhaap-common@workspace:workspaces/aap/plugins/backstage-rhaap-common"
   dependencies:
     "@backstage/backend-dynamic-feature-service": "npm:^0.8.0"
     "@backstage/backend-plugin-api": "npm:^1.8.0"
@@ -273,9 +273,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ansible/plugin-backstage-rhaap@workspace:^, @ansible/plugin-backstage-rhaap@workspace:plugins/backstage-rhaap":
+"@ansible/plugin-backstage-rhaap@workspace:^, @ansible/plugin-backstage-rhaap@workspace:workspaces/aap/plugins/backstage-rhaap":
   version: 0.0.0-use.local
-  resolution: "@ansible/plugin-backstage-rhaap@workspace:plugins/backstage-rhaap"
+  resolution: "@ansible/plugin-backstage-rhaap@workspace:workspaces/aap/plugins/backstage-rhaap"
   dependencies:
     "@backstage/catalog-model": "npm:^1.7.7"
     "@backstage/cli": "npm:^0.36.0"
@@ -312,9 +312,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ansible/plugin-scaffolder-backend-module-backstage-rhaap@workspace:^, @ansible/plugin-scaffolder-backend-module-backstage-rhaap@workspace:plugins/scaffolder-backend-module-backstage-rhaap":
+"@ansible/plugin-scaffolder-backend-module-backstage-rhaap@workspace:^, @ansible/plugin-scaffolder-backend-module-backstage-rhaap@workspace:workspaces/aap/plugins/scaffolder-backend-module-backstage-rhaap":
   version: 0.0.0-use.local
-  resolution: "@ansible/plugin-scaffolder-backend-module-backstage-rhaap@workspace:plugins/scaffolder-backend-module-backstage-rhaap"
+  resolution: "@ansible/plugin-scaffolder-backend-module-backstage-rhaap@workspace:workspaces/aap/plugins/scaffolder-backend-module-backstage-rhaap"
   dependencies:
     "@ansible/backstage-rhaap-common": "workspace:^"
     "@backstage/backend-defaults": "npm:^0.16.0"
@@ -357,9 +357,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ansible/portal-core@workspace:plugins/portal-core":
+"@ansible/portal-core@workspace:workspaces/portal-core/plugins/portal-core":
   version: 0.0.0-use.local
-  resolution: "@ansible/portal-core@workspace:plugins/portal-core"
+  resolution: "@ansible/portal-core@workspace:workspaces/portal-core/plugins/portal-core"
   dependencies:
     "@ansible/portal-extension-api": "workspace:^"
     "@ansible/portal-extension-host": "workspace:^"
@@ -385,9 +385,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ansible/portal-extension-api@workspace:^, @ansible/portal-extension-api@workspace:plugins/portal-extension-api":
+"@ansible/portal-extension-api@workspace:^, @ansible/portal-extension-api@workspace:workspaces/portal-core/plugins/portal-extension-api":
   version: 0.0.0-use.local
-  resolution: "@ansible/portal-extension-api@workspace:plugins/portal-extension-api"
+  resolution: "@ansible/portal-extension-api@workspace:workspaces/portal-core/plugins/portal-extension-api"
   dependencies:
     "@backstage/catalog-model": "npm:^1.7.7"
     "@backstage/cli": "npm:^0.36.0"
@@ -406,9 +406,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ansible/portal-extension-host@workspace:^, @ansible/portal-extension-host@workspace:plugins/portal-extension-host":
+"@ansible/portal-extension-host@workspace:^, @ansible/portal-extension-host@workspace:workspaces/portal-core/plugins/portal-extension-host":
   version: 0.0.0-use.local
-  resolution: "@ansible/portal-extension-host@workspace:plugins/portal-extension-host"
+  resolution: "@ansible/portal-extension-host@workspace:workspaces/portal-core/plugins/portal-extension-host"
   dependencies:
     "@ansible/portal-extension-api": "workspace:^"
     "@backstage/catalog-model": "npm:^1.7.7"
@@ -430,9 +430,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ansible/portal-plugin-node@workspace:plugins/portal-plugin-node":
+"@ansible/portal-plugin-node@workspace:workspaces/portal-core/plugins/portal-plugin-node":
   version: 0.0.0-use.local
-  resolution: "@ansible/portal-plugin-node@workspace:plugins/portal-plugin-node"
+  resolution: "@ansible/portal-plugin-node@workspace:workspaces/portal-core/plugins/portal-plugin-node"
   dependencies:
     "@backstage/backend-plugin-api": "npm:^1.8.0"
     "@backstage/backend-test-utils": "npm:^1.11.1"
@@ -446,9 +446,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ansible/portal-plugin-sdk@workspace:^, @ansible/portal-plugin-sdk@workspace:plugins/portal-plugin-sdk":
+"@ansible/portal-plugin-sdk@workspace:^, @ansible/portal-plugin-sdk@workspace:workspaces/portal-core/plugins/portal-plugin-sdk":
   version: 0.0.0-use.local
-  resolution: "@ansible/portal-plugin-sdk@workspace:plugins/portal-plugin-sdk"
+  resolution: "@ansible/portal-plugin-sdk@workspace:workspaces/portal-core/plugins/portal-plugin-sdk"
   dependencies:
     "@backstage/catalog-model": "npm:^1.7.7"
     "@backstage/cli": "npm:^0.36.0"
@@ -479,9 +479,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ansible/portal-scaffolder@workspace:^, @ansible/portal-scaffolder@workspace:plugins/self-service":
+"@ansible/portal-scaffolder@workspace:^, @ansible/portal-scaffolder@workspace:workspaces/self-service/plugins/self-service":
   version: 0.0.0-use.local
-  resolution: "@ansible/portal-scaffolder@workspace:plugins/self-service"
+  resolution: "@ansible/portal-scaffolder@workspace:workspaces/self-service/plugins/self-service"
   dependencies:
     "@ansible/backstage-rhaap-common": "workspace:^"
     "@ansible/portal-plugin-sdk": "workspace:^"
@@ -22482,15 +22482,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"app@link:../app::locator=backend%40workspace%3Apackages%2Fbackend":
+"app@link:../app::locator=backend%40workspace%3Aworkspaces%2Fportal-core%2Fpackages%2Fbackend":
   version: 0.0.0-use.local
-  resolution: "app@link:../app::locator=backend%40workspace%3Apackages%2Fbackend"
+  resolution: "app@link:../app::locator=backend%40workspace%3Aworkspaces%2Fportal-core%2Fpackages%2Fbackend"
   languageName: node
   linkType: soft
 
-"app@workspace:packages/app":
+"app@workspace:workspaces/portal-core/packages/app":
   version: 0.0.0-use.local
-  resolution: "app@workspace:packages/app"
+  resolution: "app@workspace:workspaces/portal-core/packages/app"
   dependencies:
     "@ansible/plugin-backstage-rhaap": "workspace:^"
     "@ansible/portal-scaffolder": "workspace:^"
@@ -23180,9 +23180,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"backend@workspace:packages/backend":
+"backend@workspace:workspaces/portal-core/packages/backend":
   version: 0.0.0-use.local
-  resolution: "backend@workspace:packages/backend"
+  resolution: "backend@workspace:workspaces/portal-core/packages/backend"
   dependencies:
     "@ansible/backstage-plugin-auth-backend-module-rhaap-provider": "workspace:^"
     "@ansible/backstage-plugin-catalog-backend-module-rhaap": "workspace:^"
