@@ -102,15 +102,21 @@ rendering infrastructure, and shared utilities.
 |---|---|---|
 | `portal-extension-common` | `common-library` | Serializable plugin contract types. `PluginManifest`, `CapabilityContribution`, `OperationDescriptor`, `CONTENT_TYPES`, `EXTENSION_POINTS`. No React, no Node — safe in both frontend and backend. |
 | `portal-extension-api` | `web-library` | Frontend registration SDK. `ContributionRegistry` singleton, `useExtensionTabs/Cards/Actions` hooks, `registerManifest()`, convenience helpers (`registerGitRepoDetailTab` etc.). Re-exports all of `portal-extension-common`. |
-| `portal-extension-host` | `web-library` | Rendering runtime. `ExperienceSlot`, `ExtensionRenderer`, `ErrorBoundary`, `DynamicExtensionDiscovery`, manifest validation. Used by host pages, not by content plugins directly. |
+| `portal-extension-host` | `web-library` | Rendering runtime. `ExperienceSlot`, `ExtensionRenderer`, `ErrorBoundary`, `DynamicExtensionDiscovery`, manifest validation, `ContributionWrapper` (CSS token injection), `PortalHealthStatus` (health dashboard), `SettingsShell` (RJSF settings form). Used by host pages, not by content plugins directly. |
 | `portal-core` | `frontend-plugin` | RHDH module federation singleton provider. No UI — its sole job is to bundle `portal-extension-api` and `portal-extension-host` into one MF remote so all portal plugins share a single `ContributionRegistry` instance. Must load first in `dynamic-plugins.yaml`. |
 | `portal-plugin-sdk` | `web-library` | Shared UI component library for plugin authors. `usePortalContext()` (resolves `organizationId` from Backstage identity), notification utilities, cache helpers, theme tokens, common UI widgets. |
 | `portal-plugin-node` | `node-library` | Backend SDK. `createPortalPlugin()` factory providing Express identity middleware (`req.portalContext`), push-based health reporting, structured audit event emission, and org-keyed DB helpers. |
+| `portal-health-backend` | `backend-plugin` | Health aggregation endpoint. Exposes `GET /api/portal-health/status` — a JSON snapshot of all registered portal plugin health states from the process-level `HealthRegistry` (populated by `portal-plugin-node`'s `pushHealthStatus()`). Consumed by `PortalHealthStatus` in `portal-extension-host`. |
 
 **Key rule:** `portal-extension-common` has no React or Node dependency. Any type
 that needs to be shared between a frontend plugin and its backend sibling belongs
 here. Types that need React (e.g. `ComponentType`, hooks) stay in
 `portal-extension-api`.
+
+**Phase 3 components (now implemented):**
+- `ContributionWrapper` / `usePortalCssTokens` — injects 10 `--portal-color-*` CSS custom properties derived from `useTheme()` on a `display: contents` wrapper, enabling contributed components to use theme-adaptive colours without importing MUI.
+- `PortalHealthStatus` / `usePortalHealthStatus` — polls `portal-health-backend` every 30 s and renders a table of per-plugin health states with coloured status chips.
+- `SettingsShell<T>` — generic RJSF v5 form shell for plugin settings pages. Accepts `schema`, `uiSchema`, `onLoad`, and `onSave` callbacks; handles load/save lifecycle, reset, and Backstage alert feedback.
 
 ---
 
@@ -201,12 +207,22 @@ opens a repository detail page in `portal-scaffolder`:
    └─▶ returns [{ id: 'apme.quality-tab', label: 'Quality', ... }]
 
 5. <ExperienceTabContent contribution={apmeTab} />
-   └─▶ portal-extension-host wraps in ErrorBoundary + Suspense
+   └─▶ portal-extension-host wraps in ContributionWrapper (CSS tokens) + ErrorBoundary + Suspense
    └─▶ lazy ApmeEntityTab renders inside portal-scaffolder's page
+   └─▶ ApmeEntityTab can use var(--portal-color-primary) etc. — no MUI import needed
 ```
 
 `portal-scaffolder` and `plugin-backstage-apme` have no direct compile-time
 import relationship. The registry is the only coupling.
+
+**Health data flow** (separate from the contribution rendering path):
+```
+portal-plugin-node.pushHealthStatus({ state: 'READY', message: '...' })
+   └─▶ process-level HealthRegistry (keyed by pluginId)
+          └─▶ GET /api/portal-health/status (portal-health-backend)
+                 └─▶ usePortalHealthStatus() hook (portal-extension-host)
+                        └─▶ <PortalHealthStatus /> renders status table
+```
 
 ---
 

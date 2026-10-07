@@ -118,10 +118,16 @@ workspaces/portal-core/
     │     BUI design tokens, RJSF custom widget registration.
     │     What plugin authors import for consistent UI and auth context.
     │
-    └── portal-plugin-node/              node-library  ← SDK boundary
-          Identity middleware (organizationId, userId from Backstage auth),
-          audit event emitter, health push to host status registry.
-          createPortalPlugin(), portalPlugin.middleware.
+    ├── portal-plugin-node/              node-library  ← SDK boundary
+    │     Identity middleware (organizationId, userId from Backstage auth),
+    │     audit event emitter, health push to host status registry.
+    │     createPortalPlugin(), portalPlugin.middleware.
+    │
+    └── portal-health-backend/           backend-plugin
+          Health aggregation endpoint. GET /api/portal-health/status
+          returns a JSON snapshot of all plugin HealthRegistry states
+          (populated via portal-plugin-node's pushHealthStatus()).
+          Consumed by PortalHealthStatus in portal-extension-host.
 ```
 
 ---
@@ -297,7 +303,7 @@ published to the workspace. Component library and hooks that any plugin can impo
 | Style hooks, icons, types, constants                             | `self-service/components/common/`        | ✅ Done — `backstage-rhaap-react/src/styles/`, `icons/`, `types.ts`, `utils/constants.ts`                                      |
 | `RhaapThemeProvider` (MUI v4 → `PortalThemeProvider`)            | New                                      | ✅ Done — `backstage-rhaap-react/src/theme/RhaapThemeProvider.tsx`; rename to `PortalThemeProvider` in Phase 7                 |
 | Static design tokens (`rhaapTokens`)                             | New                                      | ✅ Done — `backstage-rhaap-react/src/theme/tokens.ts`                                                                          |
-| CSS custom properties from `useTheme()` (`--rhaap-*` vars)       | New                                      | ❌ Not implemented — `tokens.ts` comments describe the spec but no runtime CSS var injection in `ExtensionRenderer` yet        |
+| CSS custom properties from `useTheme()` (`--portal-color-*` vars) | New                                      | ✅ Done — `ContributionWrapper` in `portal-extension-host` injects 10 `--portal-color-*` vars; `tokens.ts` has full JSDoc reference table                                 |
 | `usePortalContext()` (organizationId, apiClient)                 | New                                      | ⚠️ Partial — `organizationId` done (`portal-plugin-sdk/src/hooks/usePortalContext.ts`); `apiClient` blocked on ANSTRAT-1758    |
 | BUI design tokens                                                | New                                      | ❌ Not started                                                                                                                 |
 | RJSF widget registration                                         | New                                      | ❌ Not started                                                                                                                 |
@@ -354,10 +360,10 @@ Lives in `portal-core`, not in self-service.
 | `filter()` as additional predicate              | Applied after `appliesToContentTypes` static gate                                       | ✅ Done — `safeFilter()` in `registry.ts`                                                                                                                                                                       |
 | `onActivate` for pure-UI slot launches          | Thin callback for navigation/dialog only; no network                                    | ✅ Done — `useActionActivation` in `ExtensionRenderer.tsx`                                                                                                                                                      |
 | Error boundary per slot                         | Individual contribution crash does not take down the page                               | ✅ Done — `ErrorBoundary.tsx` (class component, `getDerivedStateFromError`)                                                                                                                                     |
-| CSS custom properties injection                 | Via `useTheme()`, theme-adaptive                                                        | ❌ Not implemented — spec is in `tokens.ts` comments but runtime `--rhaap-*` injection into wrapper element is not yet done                                                                                     |
+| CSS custom properties injection                 | Via `useTheme()`, theme-adaptive `--portal-color-*` vars on `display: contents` wrapper | ✅ Done — `ContributionWrapper.tsx` + `usePortalCssTokens()` in `portal-extension-host`; both `ExtensionTabContent` and `ExtensionCardContent` wrapped; 10 vars documented in `tokens.ts` JSDoc                |
 | Handler safety (`try/catch` + error logging)    | For `onActivate` callbacks                                                              | ✅ Done — `ExtensionActionMenuItem` catches and logs `onActivate` rejections                                                                                                                                    |
-| RJSF settings shell                             | Renders `SettingsContribution` schema with custom widget registry                       | ❌ Not started                                                                                                                                                                                                  |
-| Health display aggregator                       | Receives `pushHealthStatus` from plugins                                                | ❌ Not started                                                                                                                                                                                                  |
+| RJSF settings shell                             | Renders `SettingsContribution` schema; `onLoad`/`onSave` callbacks; RJSF v5 + ajv8     | ✅ Done — `SettingsShell<T>` in `portal-extension-host`; exported with `SettingsShellProps`, `SettingsLoader`, `SettingsSaver` types; `@rjsf/*` in peerDeps                                                    |
+| Health display aggregator                       | `portal-health-backend` exposes `GET /api/portal-health/status`; `PortalHealthStatus` component polls every 30 s | ✅ Done — `portal-health-backend` Backstage backend plugin + `PortalHealthStatus`/`usePortalHealthStatus` in `portal-extension-host`                                      |
 | `DynamicExtensionDiscovery` no-op fallback      | Detects Scalprum absence cleanly                                                        | ✅ Done — `useIsDynamicEnvironment()` hook; `DynamicExtensionDiscovery` is a no-op in standard Backstage                                                                                                        |
 
 ---

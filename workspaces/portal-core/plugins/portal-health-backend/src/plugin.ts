@@ -29,6 +29,9 @@ export const portalHealthPlugin = createBackendPlugin({
       },
       async init({ httpRouter, logger }) {
         logger.info('portal-health: starting health aggregation endpoint');
+        // express-promise-router vs passport/node_modules/@types/express-serve-static-core
+        // variance causes a spurious type mismatch; the runtime value is valid.
+        // @ts-expect-error See above
         httpRouter.use(createRouter());
       },
     });

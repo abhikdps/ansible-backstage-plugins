@@ -537,6 +537,114 @@ So `portal-plugin-node` is concerned with **runtime backend behavior**.
 
 * * *
 
+## **10b\. `portal-health-backend` — the health aggregation endpoint**
+
+`portal-plugin-node` provides `pushHealthStatus()` so each backend plugin can
+**report** its health. But where does that data go? Into `portal-health-backend`.
+
+```text
+APME backend
+      │
+      └── portalPlugin.pushHealthStatus({ state: 'READY', message: '...' })
+                  │
+                  ▼
+         process-level HealthRegistry (key: 'apme')
+                  │
+                  ▼
+         GET /api/portal-health/status
+         (portal-health-backend Backstage plugin)
+                  │
+                  ▼
+         usePortalHealthStatus() hook
+         (in portal-extension-host)
+                  │
+                  ▼
+         <PortalHealthStatus />
+         (renders table of plugin health states)
+```
+
+`portal-health-backend` is a thin Backstage backend plugin — it simply reads
+from the same in-process `HealthRegistry` and exposes it over HTTP. No database,
+no async scheduling, no external calls. Register it in `backend/src/index.ts`:
+
+```ts
+backend.add(import('@ansible/portal-health-backend'));
+```
+
+The frontend `PortalHealthStatus` component (in `portal-extension-host`) polls
+`/api/portal-health/status` every 30 seconds and renders per-plugin status chips:
+**Ready** (green), **Degraded** (amber), **Unavailable** (red), **Unknown** (grey).
+
+* * *
+
+## **10c\. Phase 3 host components in `portal-extension-host`**
+
+Three components were added to complete the Phase 3 host infrastructure:
+
+### `ContributionWrapper` / `usePortalCssTokens`
+
+Every contributed component (tab, card) is now wrapped in a `display: contents`
+div that injects 10 CSS custom properties derived from `useTheme()`:
+
+```text
+--portal-color-primary         palette.primary.main
+--portal-color-primary-light   palette.primary.light
+--portal-color-primary-dark    palette.primary.dark
+--portal-color-error           palette.error.main
+--portal-color-warning         palette.warning.main
+--portal-color-success         palette.success.main
+--portal-color-text-primary    palette.text.primary
+--portal-color-text-secondary  palette.text.secondary
+--portal-color-background      palette.background.default
+--portal-color-surface         palette.background.paper
+```
+
+Plugin authors use them without importing MUI or Backstage theme utilities:
+
+```tsx
+<div style={{ color: 'var(--portal-color-primary)' }}>
+  <span style={{ color: 'var(--portal-color-text-secondary)' }}>…</span>
+</div>
+```
+
+`display: contents` means the wrapper generates no layout box — it doesn't
+break flexbox/grid containers while still allowing CSS variables to cascade.
+
+### `PortalHealthStatus` / `usePortalHealthStatus`
+
+See §10b above. Import from `@ansible/portal-extension-host`:
+
+```tsx
+import { PortalHealthStatus } from '@ansible/portal-extension-host';
+// Drop anywhere a host page needs to surface plugin operational health
+<PortalHealthStatus pollIntervalMs={30_000} />
+```
+
+### `SettingsShell<T>`
+
+A generic RJSF v5 settings form for plugin settings pages. Portal plugins that
+contribute a `SettingsContribution` render their settings as a `<SettingsShell>`:
+
+```tsx
+import { SettingsShell } from '@ansible/portal-extension-host';
+
+export const MyPluginSettings = () => (
+  <SettingsShell
+    schema={myJsonSchema7}
+    uiSchema={{ apiToken: { 'ui:widget': 'password' } }}
+    onLoad={async () => myApi.getSettings()}
+    onSave={async data => myApi.saveSettings(data)}
+  />
+);
+```
+
+Lifecycle: `onLoad()` on mount → RJSF validates in real-time → `onSave(data)` on
+submit → Backstage `alertApiRef` feedback (success or error). Reset button
+re-calls `onLoad()` to discard local edits.
+
+
+* * *
+
 ## **11\. Where does** **`portal-plugin-sdk`****fit?**
 
 That’s basically the frontend equivalent of `portal-plugin-node`.
@@ -555,7 +663,7 @@ Frontend plugin
 
 So:
 
-<div class="joplin-table-wrapper"><table border="1" cellspacing="0" cellpadding="8" width="100%" style="width: 100%; border-collapse: collapse; border: 1px solid;" class="jop-noMdConv"><thead class="jop-noMdConv"><tr class="jop-noMdConv"><th style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><b class="jop-noMdConv">Package</b></p></th><th style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><b class="jop-noMdConv">Think of it as</b></p></th></tr></thead><tbody class="jop-noMdConv"><tr class="jop-noMdConv"><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><code class="jop-noMdConv">portal-extension-common</code></p></td><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p>Shared vocabulary</p></td></tr><tr class="jop-noMdConv"><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><code class="jop-noMdConv">portal-extension-api</code></p></td><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p>Frontend registration API</p></td></tr><tr class="jop-noMdConv"><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><code class="jop-noMdConv">portal-extension-host</code></p></td><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p>Frontend rendering engine</p></td></tr><tr class="jop-noMdConv"><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><code class="jop-noMdConv">portal-core</code></p></td><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p>Singleton/glue for RHDH</p></td></tr><tr class="jop-noMdConv"><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><code class="jop-noMdConv">portal-plugin-sdk</code></p></td><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p>Frontend developer toolkit</p></td></tr><tr class="jop-noMdConv"><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><code class="jop-noMdConv">portal-plugin-node</code></p></td><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p>Backend developer toolkit</p></td></tr></tbody></table></div>
+<div class="joplin-table-wrapper"><table border="1" cellspacing="0" cellpadding="8" width="100%" style="width: 100%; border-collapse: collapse; border: 1px solid;" class="jop-noMdConv"><thead class="jop-noMdConv"><tr class="jop-noMdConv"><th style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><b class="jop-noMdConv">Package</b></p></th><th style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><b class="jop-noMdConv">Think of it as</b></p></th></tr></thead><tbody class="jop-noMdConv"><tr class="jop-noMdConv"><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><code class="jop-noMdConv">portal-extension-common</code></p></td><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p>Shared vocabulary</p></td></tr><tr class="jop-noMdConv"><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><code class="jop-noMdConv">portal-extension-api</code></p></td><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p>Frontend registration API</p></td></tr><tr class="jop-noMdConv"><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><code class="jop-noMdConv">portal-extension-host</code></p></td><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p>Frontend rendering engine</p></td></tr><tr class="jop-noMdConv"><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><code class="jop-noMdConv">portal-core</code></p></td><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p>Singleton/glue for RHDH</p></td></tr><tr class="jop-noMdConv"><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><code class="jop-noMdConv">portal-plugin-sdk</code></p></td><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p>Frontend developer toolkit</p></td></tr><tr class="jop-noMdConv"><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><code class="jop-noMdConv">portal-plugin-node</code></p></td><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p>Backend developer toolkit</p></td></tr><tr class="jop-noMdConv"><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><code class="jop-noMdConv">portal-health-backend</code></p></td><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p>Health aggregation HTTP endpoint</p></td></tr></tbody></table></div>
 
 * * *
 

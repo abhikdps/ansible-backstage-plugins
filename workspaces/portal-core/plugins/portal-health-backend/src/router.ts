@@ -1,3 +1,4 @@
+import express from 'express';
 import Router from 'express-promise-router';
 import { getAllHealthStatuses } from '@ansible/portal-plugin-node';
 
@@ -20,7 +21,7 @@ import { getAllHealthStatuses } from '@ansible/portal-plugin-node';
  * per-plugin status chips. The endpoint is unauthenticated by default — add
  * auth middleware in the plugin factory if needed.
  */
-export function createRouter() {
+export function createRouter(): express.Router {
   const router = Router();
 
   router.get('/status', (_req, res) => {
