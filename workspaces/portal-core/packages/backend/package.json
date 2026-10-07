@@ -17,12 +17,12 @@
   },
   "dependencies": {
     "@ansible/backstage-plugin-auth-backend-module-rhaap-provider": "workspace:^",
-    "@ansible/portal-health-backend": "workspace:^",
     "@ansible/backstage-plugin-catalog-backend-module-apme": "workspace:^",
     "@ansible/backstage-plugin-catalog-backend-module-rhaap": "workspace:^",
     "@ansible/backstage-plugin-catalog-backend-module-rhaap-user-provisioner": "workspace:^",
     "@ansible/backstage-rhaap-common": "workspace:^",
     "@ansible/plugin-scaffolder-backend-module-backstage-rhaap": "workspace:^",
+    "@ansible/portal-health-backend": "workspace:^",
     "@backstage-community/plugin-rbac-backend": "7.12.1",
     "@backstage/backend-defaults": "^0.16.0",
     "@backstage/backend-plugin-api": "^1.8.0",
