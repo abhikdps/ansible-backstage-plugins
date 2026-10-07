@@ -114,7 +114,9 @@ export function registerApmeCatalogSyncTasks(
           }
         } catch (err) {
           const error = err instanceof Error ? err : new Error(String(err));
-          taskLogger.error(`APME catalog sync failed for env=${env}: ${error.message}`);
+          taskLogger.error(
+            `APME catalog sync failed for env=${env}: ${error.message}`,
+          );
           failedEnvs.add(env);
           onSyncError?.(env, error);
           // Re-throw so Backstage scheduler can log and track the failure
