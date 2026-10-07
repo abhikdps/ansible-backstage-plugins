@@ -2,10 +2,7 @@
  * Copyright Red Hat
  */
 
-import {
-  assertSafeAbbenayProviderId,
-  assertSafeHttpUrl,
-} from './urlSafety';
+import { assertSafeAbbenayProviderId, assertSafeHttpUrl } from './urlSafety';
 
 describe('urlSafety', () => {
   it('rejects unsafe provider ids', () => {
@@ -17,9 +14,9 @@ describe('urlSafety', () => {
 
   it('assertSafeHttpUrl rejects private hosts and non-https', () => {
     expect(() => assertSafeHttpUrl('http://evil.com', 'url')).toThrow(/https/);
-    expect(() =>
-      assertSafeHttpUrl('https://127.0.0.1/x', 'url'),
-    ).toThrow(/private/);
+    expect(() => assertSafeHttpUrl('https://127.0.0.1/x', 'url')).toThrow(
+      /private/,
+    );
     expect(
       assertSafeHttpUrl('https://galaxy.ansible.com/api/', 'url').host,
     ).toBe('galaxy.ansible.com');

@@ -74,7 +74,8 @@ export const ApmeRepositoryHeaderActions = ({
       event.stopPropagation();
       onCloseMenu();
 
-      const redirectPath = context.repositoriesCatalogPath ?? '/repositories/catalog';
+      const redirectPath =
+        context.repositoriesCatalogPath ?? '/repositories/catalog';
 
       window.setTimeout(() => {
         deregisterRepositoryDialogStore.open(context.entity, redirectPath);

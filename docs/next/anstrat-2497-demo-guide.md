@@ -9,6 +9,7 @@
 ## 0. Before You Present
 
 ### Files to have open in your IDE
+
 - `plugins/portal-extension-api/src/` — the shared contract
 - `plugins/portal-extension-host/src/` — the runtime host
 - `plugins/portal-plugin-sdk/src/hooks/usePortalContext.ts` — freshest addition
@@ -16,13 +17,16 @@
 - `plugins/self-service/src/components/GitRepositories/GitRepositoriesPage.tsx` — first working extensible page
 
 ### What to run beforehand
+
 ```bash
 cd ansible-backstage-plugins
 yarn start   # frontend on :3000
 ```
+
 Navigate to the Git Repositories page — you'll use it for the live demo.
 
 ### One-sentence version (use this to open)
+
 > "We've built the plumbing that lets any future plugin add a tab, a card, or an action
 > to any Portal page — without touching the page's source code. Today I'll show you
 > how it works and what we've shipped."
@@ -150,6 +154,7 @@ They only know the shared contract — an extension point ID like
 **File: `plugins/portal-extension-api/src/types.ts`**
 
 Walk through `TabContribution`:
+
 - `id` — unique identifier for this tab across all plugins
 - `label` — what the user sees in the tab strip
 - `component` — the React component to render when selected
@@ -161,6 +166,7 @@ Walk through `TabContribution`:
 **File: `plugins/portal-extension-api/src/registry.ts` (lines 60–120)**
 
 Show `ContributionRegistry`:
+
 - `registerTab(extensionPoint, contribution)` — how plugins add their tabs
 - `getMatchingTabs(extensionPoint, entity?, contentType?)` — how the host reads them
 - Filtering chain: disabled → contentType → entity filter → sort by priority
@@ -170,7 +176,7 @@ Show `ContributionRegistry`:
 
 "You'll notice we have two sets of types: the lower-level `TabContribution` / `CardContribution` /
 `ActionContribution` that the registry directly uses, and a higher-level `PluginManifest` /
-`CapabilityContribution` in `manifest.ts`. 
+`CapabilityContribution` in `manifest.ts`.
 
 The lower-level types are the PoC model — they map directly onto UI slots. The higher-level
 manifest model maps onto the architecture doc's 'experience + capability + entry point' model.
@@ -191,6 +197,7 @@ with the switch not yet moved over."
 **File: `plugins/portal-extension-host/src/ExperienceSlot.tsx`**
 
 Show `ExperienceCardSlot`:
+
 - Takes an `extensionPoint` string and an optional `entity` + `contentType`
 - Calls `useExtensionCards(extensionPoint, entity, contentType)` — the hook asks the registry
 - If no contributions are registered, returns `null` (no empty state — the page decides that)
@@ -200,10 +207,11 @@ Show `ExperienceCardSlot`:
 It just says 'render whatever is registered for this slot'. This is the whole point."
 
 Show `ExperienceTabContent`:
+
 - Takes `extensionPoint` and `activeTabIndex`
-- The tab *strip* (the tab labels) is still owned by the page, because it has to interleave
+- The tab _strip_ (the tab labels) is still owned by the page, because it has to interleave
   built-in tabs and extension tabs in the right visual order
-- This component renders the *content panel* for the selected extension tab
+- This component renders the _content panel_ for the selected extension tab
 
 ### 4.2 ErrorBoundary
 
@@ -223,6 +231,7 @@ This is why we wrap at the contribution level, not at the page level."
 **File: `plugins/portal-extension-host/src/ExtensionRenderer.tsx`**
 
 Show `ExtensionTabContent`:
+
 - Uses `usePermission(contribution.permission)` from Backstage permission framework
 - If `loading` — renders null (prevents a flash of unauthorized content)
 - If `!allowed` — renders null (silently hidden, not an error)
@@ -232,6 +241,7 @@ Show `ExtensionTabContent`:
 doing anything else. The plugin author doesn't write any permission-checking code."
 
 Show `useActionActivation`:
+
 - Actions can have an `onActivate` callback for pure UI effects (navigation, opening a dialog)
 - The callback receives `entity` and `getApi` — it can open a Backstage dialog or navigate
 - For server-side effects, the plugin uses `launches.type: 'operation'` instead, not a URL
@@ -259,6 +269,7 @@ the RHDH team."
 **File: `plugins/portal-extension-api/src/manifest.ts`**
 
 Walk through the shape:
+
 ```typescript
 {
   id: 'portal-scaffolder',
@@ -278,6 +289,7 @@ rendering broken UI."
 ### 5.2 CapabilityContribution
 
 Walk through a real example from `selfServiceManifest.ts`:
+
 ```typescript
 {
   id: 'portal-scaffolder.collection-detail',
@@ -294,6 +306,7 @@ Walk through a real example from `selfServiceManifest.ts`:
 ```
 
 Key points to call out:
+
 - `experienceId` must match a value the host has declared — unknown IDs are rejected
 - `appliesToContentTypes` is evaluated statically before any component mounts — it's a
   declarative filter, not a runtime predicate
@@ -306,6 +319,7 @@ Key points to call out:
 **File: `plugins/portal-extension-host/src/validateManifest.ts`**
 
 "This runs on every manifest before its capabilities are accepted. It checks:
+
 1. Is the `apiVersion` compatible with the host's version?
 2. Does each capability's `experienceId` match a known experience?
 3. Does each capability's `minimumHostApiVersion` fit within the current host?
@@ -321,6 +335,7 @@ Invalid capabilities are skipped individually. The plugin doesn't fail to load."
 "The backend SDK is what plugin backends use. It gives a plugin three things out of the box."
 
 **Identity middleware:**
+
 ```typescript
 const portalPlugin = createPortalPlugin({ pluginId: 'my-plugin' });
 app.use(portalPlugin.createMiddleware({ httpAuth, userInfo, logger }));
@@ -337,14 +352,17 @@ query parameters or headers the caller supplies. This is a security invariant: y
 cannot elevate to another tenant by adding `?org=red-hat` to a request."
 
 **Health push:**
+
 ```typescript
 portalPlugin.pushHealthStatus({ state: 'READY', message: 'All workers up.' });
 ```
+
 "Plugins push their health to a registry on the host side. The portal can aggregate
 these into a status panel — 'N of 10 plugins healthy'. The display aggregator isn't
 built yet, but the push pipeline works end to end."
 
 **Audit emit:**
+
 ```typescript
 portalPlugin.emitAuditEvent({
   operationId: 'content.collections.publish',
@@ -353,6 +371,7 @@ portalPlugin.emitAuditEvent({
   outcome: 'success',
 });
 ```
+
 "Every server-side operation is audited. Today this goes to structured logs. The
 durable store (so you can query 'show me all publish operations in the last 7 days')
 is a later phase."
@@ -362,6 +381,7 @@ is a later phase."
 ## 7. Live Demo — 15 minutes
 
 ### Setup
+
 - Browser: Portal running at localhost:3000
 - IDE: `plugins/self-service/src/components/GitRepositories/GitRepositoriesPage.tsx`
   and `plugins/portal-extension-api/src/helpers/git-repository.ts` open side by side
@@ -392,11 +412,13 @@ alongside the built-in "Catalog" and "CI Activity" tabs.
 > entire integration surface."
 
 **Then open `packages/app/src/demoExtensions.tsx`** and walk through it:
+
 - Two `register*` calls, each with an `id`, a `label`, a `component`, and a `priority`
 - No routing config, no plugin manifest file, no PR into self-service
 - The `priority: 99` places it after the built-in tabs (which use 0–20)
 
 **Then open `packages/app/src/App.tsx`** and show the single import line:
+
 ```typescript
 import './demoExtensions';
 ```
@@ -421,6 +443,7 @@ the tab strip position; `ExperienceTabContent` renders the content.
 Open the browser **DevTools → Console tab**. Reload the page (Cmd+R / Ctrl+R).
 
 You should see:
+
 ```
 [DynamicExtensionDiscovery] Manifest "portal-scaffolder" validated: 4 capabilities declared.
 ```
@@ -461,25 +484,25 @@ middleware uses — so the frontend and backend always agree on which org they'r
 
 ### Production-quality (can be depended on now)
 
-| What | Why it's solid |
-|---|---|
-| `portal-extension-api` types and registry | Full test coverage; API is stable |
+| What                                       | Why it's solid                                      |
+| ------------------------------------------ | --------------------------------------------------- |
+| `portal-extension-api` types and registry  | Full test coverage; API is stable                   |
 | `portal-extension-host` rendering pipeline | ErrorBoundary, permission gating, Suspense all work |
-| `portal-plugin-node` identity + audit | 34 tests; security invariants enforced |
-| `usePortalContext()` with `organizationId` | Unblocked; straightforward identity API usage |
+| `portal-plugin-node` identity + audit      | 34 tests; security invariants enforced              |
+| `usePortalContext()` with `organizationId` | Unblocked; straightforward identity API usage       |
 | `validateManifest` + `selfServiceManifest` | Works end-to-end; real manifest validates correctly |
-| Tab extension on GitRepositoriesPage | First live proof of the model |
+| Tab extension on GitRepositoriesPage       | First live proof of the model                       |
 
 ### Still scaffolding / pending
 
-| What | Status | Blocker |
-|---|---|---|
-| Scalprum dynamic plugin loading | Stub — logs RHDH detection, no actual module enumeration | Need RHDH team to confirm `@scalprum/react-core` API |
-| Full slot-based activation | Capabilities declared in manifest, but rendering still uses page-level imports | Phase 6 + content extraction |
-| `usePortalContext().apiClient` | Not implemented | ANSTRAT-1758 must publish `automation-content-client` |
-| RJSF settings shell | Not started | Design not finalised |
-| Health display aggregator | Push side works; host display side not built | — |
-| CSS custom property injection | Spec written in `tokens.ts` comments | Low priority — needed when non-MUI plugin contributors arrive |
+| What                            | Status                                                                         | Blocker                                                       |
+| ------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| Scalprum dynamic plugin loading | Stub — logs RHDH detection, no actual module enumeration                       | Need RHDH team to confirm `@scalprum/react-core` API          |
+| Full slot-based activation      | Capabilities declared in manifest, but rendering still uses page-level imports | Phase 6 + content extraction                                  |
+| `usePortalContext().apiClient`  | Not implemented                                                                | ANSTRAT-1758 must publish `automation-content-client`         |
+| RJSF settings shell             | Not started                                                                    | Design not finalised                                          |
+| Health display aggregator       | Push side works; host display side not built                                   | —                                                             |
+| CSS custom property injection   | Spec written in `tokens.ts` comments                                           | Low priority — needed when non-MUI plugin contributors arrive |
 
 ---
 
@@ -488,14 +511,14 @@ middleware uses — so the frontend and backend always agree on which org they'r
 "Our implementation tracks §6 of the Content Experience Architecture document exactly.
 Let me show you where each major decision comes from."
 
-| Architecture doc rule | Where we enforce it |
-|---|---|
-| "Plugins contribute to experiences; they do not own them" (§1.3) | `experienceId` must match a known `ExperienceDefinition`; unknown IDs rejected at validation |
-| "Operations are registered, not proxied" (§1.3) | `CapabilityLaunch` has no `apiEndpoint` or `handlerUrl`; `onActivate` is pure-UI only |
-| "portal-core is stateless" (§6.6) | `portal-extension-host` has no database; all state is in the registry singleton |
-| "Plugins declare `appliesToContentTypes`; host evaluates it statically" (§6.3) | `matchesContentType()` in registry; checked before any component mounts |
-| `portal-extension-api` as `sharedPackage` (§6.4) | Documented in `sharedPackages` section; singleton pattern enforced |
-| Organization-keyed backend state (§6.6) | `withOrganization()` in `portal-plugin-node` rejects empty `orgId` at call site |
+| Architecture doc rule                                                          | Where we enforce it                                                                          |
+| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| "Plugins contribute to experiences; they do not own them" (§1.3)               | `experienceId` must match a known `ExperienceDefinition`; unknown IDs rejected at validation |
+| "Operations are registered, not proxied" (§1.3)                                | `CapabilityLaunch` has no `apiEndpoint` or `handlerUrl`; `onActivate` is pure-UI only        |
+| "portal-core is stateless" (§6.6)                                              | `portal-extension-host` has no database; all state is in the registry singleton              |
+| "Plugins declare `appliesToContentTypes`; host evaluates it statically" (§6.3) | `matchesContentType()` in registry; checked before any component mounts                      |
+| `portal-extension-api` as `sharedPackage` (§6.4)                               | Documented in `sharedPackages` section; singleton pattern enforced                           |
+| Organization-keyed backend state (§6.6)                                        | `withOrganization()` in `portal-plugin-node` rejects empty `orgId` at call site              |
 
 ### What the doc says we still need to build
 
@@ -522,6 +545,7 @@ need to call a content service operation instead of calling AAP directly.
 We've sent a draft contract proposal to the content team in
 `docs/next/anstrat-1758-picker-contract-proposal.md`. We're waiting on their feedback.
 The five questions that need answers:
+
 1. Operation IDs and schemas for `content.collections.list` and the EE list variants
 2. Whether these go through `automation-content-client` or a separate picker API
 3. Permission requirement for each
@@ -584,7 +608,7 @@ of the repo URL. It's not blocking any technical work."
 "An experience is a host-owned UX region — think of it as a named section of the portal
 that groups related content and capabilities. We have four right now: `content-quality-assessment`,
 `content-authoring`, `content-migration`, and `self-service`. Plugins don't create experiences;
-they register capabilities *into* an experience. An unknown experience ID is rejected, which
+they register capabilities _into_ an experience. An unknown experience ID is rejected, which
 prevents plugins from inventing their own uncontrolled pages. The host always decides what
 experiences exist."
 
@@ -610,12 +634,14 @@ permission gating, backend identity middleware, and now `usePortalContext`."
 ### Talking points for closing
 
 "So to summarize what we've shipped:
+
 - The contract that any plugin must follow to contribute to Portal
 - The runtime that reads those contracts and renders them safely
 - The frontend and backend SDKs that make building a plugin straightforward
 - Self-service wired as the first real plugin using the contract, proving it end-to-end
 
 The two things that will unlock the most progress:
+
 1. **RHDH team confirms the Scalprum API** → we can complete dynamic extension discovery
 2. **Content team responds to the picker contract proposal** → Phase 6 can start
 
@@ -626,29 +652,29 @@ the content team specifically on the seven picker contracts. That's the critical
 
 ## Appendix: Package Quick Reference
 
-| Package | Directory | Key exports | Used by |
-|---|---|---|---|
-| `@ansible/portal-extension-api` | `plugins/portal-extension-api/` | `contributionRegistry`, `useExtensionTabs`, `PluginManifest`, `EXPERIENCE_IDS`, `CONTENT_TYPES`, `EXTENSION_POINTS` | All plugins, portal-extension-host |
-| `@ansible/portal-extension-host` | `plugins/portal-extension-host/` | `ExperienceCardSlot`, `ExperienceTabContent`, `ExtensionRenderer`, `DynamicExtensionDiscovery`, `ErrorBoundary`, `validateManifest` | Shell / host app |
-| `@ansible/portal-plugin-sdk` | `plugins/portal-plugin-sdk/` | `usePortalContext`, `PageHeaderSection`, `useIsSuperuser`, `syncPollingService`, `PaginatedEntityCache` | All frontend plugins |
-| `@ansible/portal-plugin-node` | `plugins/portal-plugin-node/` | `createPortalPlugin`, `createIdentityMiddleware`, `HealthRegistry`, `AuditEmitter`, `withOrganization` | All backend plugins |
-| `@ansible/portal-scaffolder` | `plugins/self-service/` | Self-service pages, scaffolder templates, `selfServiceManifest` | Portal shell |
+| Package                          | Directory                        | Key exports                                                                                                                         | Used by                            |
+| -------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `@ansible/portal-extension-api`  | `plugins/portal-extension-api/`  | `contributionRegistry`, `useExtensionTabs`, `PluginManifest`, `EXPERIENCE_IDS`, `CONTENT_TYPES`, `EXTENSION_POINTS`                 | All plugins, portal-extension-host |
+| `@ansible/portal-extension-host` | `plugins/portal-extension-host/` | `ExperienceCardSlot`, `ExperienceTabContent`, `ExtensionRenderer`, `DynamicExtensionDiscovery`, `ErrorBoundary`, `validateManifest` | Shell / host app                   |
+| `@ansible/portal-plugin-sdk`     | `plugins/portal-plugin-sdk/`     | `usePortalContext`, `PageHeaderSection`, `useIsSuperuser`, `syncPollingService`, `PaginatedEntityCache`                             | All frontend plugins               |
+| `@ansible/portal-plugin-node`    | `plugins/portal-plugin-node/`    | `createPortalPlugin`, `createIdentityMiddleware`, `HealthRegistry`, `AuditEmitter`, `withOrganization`                              | All backend plugins                |
+| `@ansible/portal-scaffolder`     | `plugins/self-service/`          | Self-service pages, scaffolder templates, `selfServiceManifest`                                                                     | Portal shell                       |
 
 ## Appendix: Key File Map
 
-| File | What to show |
-|---|---|
-| `portal-extension-api/src/types.ts` | `TabContribution`, `CardContribution`, `ActionContribution` — the lower-level API |
-| `portal-extension-api/src/manifest.ts` | `PluginManifest`, `CapabilityContribution` — the higher-level manifest model |
-| `portal-extension-api/src/registry.ts` | `ContributionRegistry` — the singleton bus; filtering chain |
-| `portal-extension-api/src/extensionPoints.ts` | `EXTENSION_POINTS`, `EXPERIENCE_IDS`, `CONTENT_TYPES` |
-| `portal-extension-host/src/ExperienceSlot.tsx` | How pages consume contributions |
-| `portal-extension-host/src/ExtensionRenderer.tsx` | Permission gating, Suspense, `onActivate` safety |
-| `portal-extension-host/src/ErrorBoundary.tsx` | Per-contribution crash isolation |
-| `portal-extension-host/src/DynamicExtensionDiscovery.tsx` | RHDH hook + manifest validation on mount |
-| `portal-extension-host/src/validateManifest.ts` | API version compat + known experience check |
-| `portal-plugin-node/src/middleware.ts` | `organizationId` derivation from entity ref namespace |
-| `portal-plugin-node/src/withOrganization.ts` | Tenant isolation enforcement |
-| `portal-plugin-sdk/src/hooks/usePortalContext.ts` | Frontend `organizationId` |
-| `self-service/src/selfServiceManifest.ts` | Real manifest declaration — Phase 4 proof |
-| `self-service/src/components/GitRepositories/GitRepositoriesPage.tsx` | First live extensible page |
+| File                                                                  | What to show                                                                      |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `portal-extension-api/src/types.ts`                                   | `TabContribution`, `CardContribution`, `ActionContribution` — the lower-level API |
+| `portal-extension-api/src/manifest.ts`                                | `PluginManifest`, `CapabilityContribution` — the higher-level manifest model      |
+| `portal-extension-api/src/registry.ts`                                | `ContributionRegistry` — the singleton bus; filtering chain                       |
+| `portal-extension-api/src/extensionPoints.ts`                         | `EXTENSION_POINTS`, `EXPERIENCE_IDS`, `CONTENT_TYPES`                             |
+| `portal-extension-host/src/ExperienceSlot.tsx`                        | How pages consume contributions                                                   |
+| `portal-extension-host/src/ExtensionRenderer.tsx`                     | Permission gating, Suspense, `onActivate` safety                                  |
+| `portal-extension-host/src/ErrorBoundary.tsx`                         | Per-contribution crash isolation                                                  |
+| `portal-extension-host/src/DynamicExtensionDiscovery.tsx`             | RHDH hook + manifest validation on mount                                          |
+| `portal-extension-host/src/validateManifest.ts`                       | API version compat + known experience check                                       |
+| `portal-plugin-node/src/middleware.ts`                                | `organizationId` derivation from entity ref namespace                             |
+| `portal-plugin-node/src/withOrganization.ts`                          | Tenant isolation enforcement                                                      |
+| `portal-plugin-sdk/src/hooks/usePortalContext.ts`                     | Frontend `organizationId`                                                         |
+| `self-service/src/selfServiceManifest.ts`                             | Real manifest declaration — Phase 4 proof                                         |
+| `self-service/src/components/GitRepositories/GitRepositoriesPage.tsx` | First live extensible page                                                        |

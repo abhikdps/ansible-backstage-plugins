@@ -72,7 +72,9 @@ export function usePreviewFeedbackUrl(): string | null {
   if (!enabled) {
     return null;
   }
-  const configured = configApi.getOptionalString('ansible.apme.feedbackFormUrl');
+  const configured = configApi.getOptionalString(
+    'ansible.apme.feedbackFormUrl',
+  );
   if (configured === '') {
     return null;
   }
@@ -146,7 +148,9 @@ export interface PreviewLabelRowProps {
 }
 
 /** Early-access chip plus optional feedback link (ADR-012 placement). */
-export const PreviewLabelRow = ({ variant = 'default' }: PreviewLabelRowProps) => {
+export const PreviewLabelRow = ({
+  variant = 'default',
+}: PreviewLabelRowProps) => {
   const classes = useChipStyles();
   return (
     <Box className={classes.labelRow}>

@@ -4,10 +4,7 @@
 
 import '@testing-library/jest-dom';
 import { screen, fireEvent, waitFor, act } from '@testing-library/react';
-import {
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
 import { TestApiProvider, renderInTestApp } from '@backstage/test-utils';
 import { Entity } from '@backstage/catalog-model';
 import { gitRepositoriesCatalogApiRef } from '@ansible/backstage-rhaap-common/gitRepositoriesCatalog';
@@ -64,10 +61,7 @@ const renderOverlay = async (entity: Entity = mockEntity) => {
       apis={[
         [discoveryApiRef, mockDiscoveryApi],
         [fetchApiRef, mockFetchApi],
-        [
-          gitRepositoriesCatalogApiRef,
-          { invalidateCatalogCache: jest.fn() },
-        ],
+        [gitRepositoriesCatalogApiRef, { invalidateCatalogCache: jest.fn() }],
       ]}
     >
       <ApmeDeregisterRepositoryOverlay context={context} />
@@ -83,9 +77,7 @@ describe('ApmeDeregisterRepositoryOverlay', () => {
 
   it('renders dialog closed when store has no open entity', async () => {
     await renderOverlay();
-    expect(
-      screen.queryByText('Remove repository?'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Remove repository?')).not.toBeInTheDocument();
   });
 
   it('opens dialog when store entity matches context entity', async () => {
@@ -113,9 +105,7 @@ describe('ApmeDeregisterRepositoryOverlay', () => {
       );
     });
 
-    expect(
-      screen.queryByText('Remove repository?'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Remove repository?')).not.toBeInTheDocument();
   });
 
   it('closes dialog and clears store on Cancel', async () => {
@@ -135,9 +125,7 @@ describe('ApmeDeregisterRepositoryOverlay', () => {
     fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
 
     await waitFor(() => {
-      expect(
-        screen.queryByText('Remove repository?'),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('Remove repository?')).not.toBeInTheDocument();
     });
     expect(deregisterRepositoryDialogStore.getState().open).toBe(false);
   });
@@ -148,10 +136,7 @@ describe('ApmeDeregisterRepositoryOverlay', () => {
         apis={[
           [discoveryApiRef, mockDiscoveryApi],
           [fetchApiRef, mockFetchApi],
-          [
-            gitRepositoriesCatalogApiRef,
-            { invalidateCatalogCache: jest.fn() },
-          ],
+          [gitRepositoriesCatalogApiRef, { invalidateCatalogCache: jest.fn() }],
         ]}
       >
         <ApmeDeregisterRepositoryOverlay />
@@ -208,7 +193,10 @@ describe('ApmeDeregisterRepositoryOverlay', () => {
     await renderOverlay();
 
     act(() => {
-      deregisterRepositoryDialogStore.open(mockEntity, null as unknown as string);
+      deregisterRepositoryDialogStore.open(
+        mockEntity,
+        null as unknown as string,
+      );
     });
 
     await waitFor(() => {

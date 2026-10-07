@@ -8,14 +8,14 @@ Imagine the Portal is a **shopping mall**:
 - The **frontend** is the shop’s display/UI.
 - The **backend** is the shop’s staff/services.
 - The **host** is the mall infrastructure that decides where and how shops appear.
-- The **manifest** is the shop’s registration form: *“I’m called APME, I provide these things, and I can perform these operations.”*
-- An **operation** is something the shop can actually do: *“trigger a scan”, “create a repository”, etc.*
+- The **manifest** is the shop’s registration form: _“I’m called APME, I provide these things, and I can perform these operations.”_
+- An **operation** is something the shop can actually do: _“trigger a scan”, “create a repository”, etc._
 
 The important architectural rule is:
 
 **Plugins tell the Portal what they can do through a common contract, and the Portal decides how those capabilities are exposed.**
 
-* * *
+---
 
 ## **1\. Why do we need** **`portal-extension-common`****?**
 
@@ -63,7 +63,7 @@ No Node-specific code.
 
 Just the **shared language**.
 
-* * *
+---
 
 ## **2\. Think of** **`portal-extension-common`** **as the dictionary**
 
@@ -102,7 +102,7 @@ It just says:
 
 That’s why both frontend and backend can depend on it.
 
-* * *
+---
 
 ## **3\. Now look at** **`portal-extension-api`**
 
@@ -155,7 +155,7 @@ common = WHAT
 api    = HOW frontend plugins register it
 ```
 
-* * *
+---
 
 ## **4\. And then** **`portal-extension-host`**
 
@@ -206,7 +206,7 @@ The host says:
 
 “Okay, I’ll render it.”
 
-* * *
+---
 
 ## **5\. So what’s** **`portal-core`** **doing?**
 
@@ -272,7 +272,7 @@ So `portal-core` is basically saying:
 
 That’s why it’s a **singleton provider**, not really a UI plugin.
 
-* * *
+---
 
 ## **6\. Now the backend side**
 
@@ -329,7 +329,7 @@ So:
 
 This is the main reason the new package exists.
 
-* * *
+---
 
 ## **7\. What is an** **`OperationDescriptor`** **actually doing?**
 
@@ -344,7 +344,7 @@ POST /api/apme/scans
 A naive frontend might directly call:
 
 ```ts
-fetch('/api/apme/scans')
+fetch('/api/apme/scans');
 ```
 
 But your architecture doesn’t want plugins doing that.
@@ -393,7 +393,7 @@ So the descriptor is essentially:
 
 **“Here is a machine-readable description of an action my backend supports.”**
 
-* * *
+---
 
 ## **8\. Why is** **`operationId`** **better than a hardcoded URL?**
 
@@ -442,7 +442,7 @@ That’s what your statement means by:
 
 It creates a controlled boundary between the frontend and backend.
 
-* * *
+---
 
 ## **9\. Then what’s** **`portal-plugin-node`** **?**
 
@@ -460,8 +460,8 @@ For example:
 
 ```ts
 createPortalPlugin({
-  pluginId: 'apme'
-})
+  pluginId: 'apme',
+});
 ```
 
 Then it gives you things like:
@@ -488,7 +488,7 @@ How do I implement my backend plugin?
 
 That’s an important distinction.
 
-* * *
+---
 
 ## **10.** **`req.portalContext`** **is another useful example**
 
@@ -535,7 +535,7 @@ So `portal-plugin-node` is concerned with **runtime backend behavior**.
 
 `portal-extension-common` is concerned with **shared contracts**.
 
-* * *
+---
 
 ## **10b\. `portal-health-backend` — the health aggregation endpoint**
 
@@ -575,7 +575,7 @@ The frontend `PortalHealthStatus` component (in `portal-extension-host`) polls
 `/api/portal-health/status` every 30 seconds and renders per-plugin status chips:
 **Ready** (green), **Degraded** (amber), **Unavailable** (red), **Unknown** (grey).
 
-* * *
+---
 
 ## **10c\. Phase 3 host components in `portal-extension-host`**
 
@@ -617,7 +617,7 @@ See §10b above. Import from `@ansible/portal-extension-host`:
 ```tsx
 import { PortalHealthStatus } from '@ansible/portal-extension-host';
 // Drop anywhere a host page needs to surface plugin operational health
-<PortalHealthStatus pollIntervalMs={30_000} />
+<PortalHealthStatus pollIntervalMs={30_000} />;
 ```
 
 ### `SettingsShell<T>`
@@ -642,8 +642,7 @@ Lifecycle: `onLoad()` on mount → RJSF validates in real-time → `onSave(data)
 submit → Backstage `alertApiRef` feedback (success or error). Reset button
 re-calls `onLoad()` to discard local edits.
 
-
-* * *
+---
 
 ## **11\. Where does** **`portal-plugin-sdk`****fit?**
 
@@ -665,7 +664,7 @@ So:
 
 <div class="joplin-table-wrapper"><table border="1" cellspacing="0" cellpadding="8" width="100%" style="width: 100%; border-collapse: collapse; border: 1px solid;" class="jop-noMdConv"><thead class="jop-noMdConv"><tr class="jop-noMdConv"><th style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><b class="jop-noMdConv">Package</b></p></th><th style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><b class="jop-noMdConv">Think of it as</b></p></th></tr></thead><tbody class="jop-noMdConv"><tr class="jop-noMdConv"><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><code class="jop-noMdConv">portal-extension-common</code></p></td><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p>Shared vocabulary</p></td></tr><tr class="jop-noMdConv"><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><code class="jop-noMdConv">portal-extension-api</code></p></td><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p>Frontend registration API</p></td></tr><tr class="jop-noMdConv"><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><code class="jop-noMdConv">portal-extension-host</code></p></td><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p>Frontend rendering engine</p></td></tr><tr class="jop-noMdConv"><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><code class="jop-noMdConv">portal-core</code></p></td><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p>Singleton/glue for RHDH</p></td></tr><tr class="jop-noMdConv"><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><code class="jop-noMdConv">portal-plugin-sdk</code></p></td><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p>Frontend developer toolkit</p></td></tr><tr class="jop-noMdConv"><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><code class="jop-noMdConv">portal-plugin-node</code></p></td><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p>Backend developer toolkit</p></td></tr><tr class="jop-noMdConv"><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p><code class="jop-noMdConv">portal-health-backend</code></p></td><td style="border: 1px solid; padding: 8px 12px; white-space: nowrap;" class="jop-noMdConv"><p>Health aggregation HTTP endpoint</p></td></tr></tbody></table></div>
 
-* * *
+---
 
 ## **12\. The whole architecture in one picture**
 
@@ -705,7 +704,7 @@ extension-host         │          │               │
 
 With `portal-core` sitting underneath the frontend side as the RHDH federation glue.
 
-* * *
+---
 
 ## **13\. The most important distinction**
 
@@ -771,7 +770,7 @@ Audit
 Module Federation singleton
 ```
 
-* * *
+---
 
 ## **14\. And finally, what happens with APME?**
 

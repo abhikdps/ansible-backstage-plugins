@@ -729,7 +729,10 @@ export const ApmeAiProvidersSection = ({
                 {configProviders.map((p, idx) => (
                   <div key={p.id}>
                     {idx > 0 && <Divider component="li" />}
-                    <ListItem disableGutters className={classes.providerListItem}>
+                    <ListItem
+                      disableGutters
+                      className={classes.providerListItem}
+                    >
                       <ListItemText
                         primary={
                           <Box display="flex" alignItems="center">

@@ -9,7 +9,11 @@ import {
   Typography,
   Chip,
 } from '@material-ui/core';
-import { useApi, discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
+import {
+  useApi,
+  discoveryApiRef,
+  fetchApiRef,
+} from '@backstage/core-plugin-api';
 
 // ── Types (mirrored from portal-plugin-node to avoid a frontend dependency) ───
 
@@ -75,7 +79,9 @@ export function usePortalHealthStatus(intervalMs = 30_000): {
       } catch (err) {
         if (mounted) {
           setError(
-            err instanceof Error ? err : new Error('Failed to fetch health status'),
+            err instanceof Error
+              ? err
+              : new Error('Failed to fetch health status'),
           );
           setLoading(false);
         }
@@ -127,7 +133,10 @@ export const PortalHealthStatus = ({
 
   if (loading) {
     return (
-      <CircularProgress size={24} style={{ display: 'block', margin: '16px auto' }} />
+      <CircularProgress
+        size={24}
+        style={{ display: 'block', margin: '16px auto' }}
+      />
     );
   }
 

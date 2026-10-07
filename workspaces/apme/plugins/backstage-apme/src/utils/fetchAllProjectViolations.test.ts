@@ -40,7 +40,10 @@ describe('fetchAllProjectViolations', () => {
       violation(i + 1, i === VIOLATIONS_PAGE_SIZE ? 1 : 2),
     );
     const getViolations = jest.fn(
-      async (_projectId: string, options?: { limit?: number; offset?: number }) => {
+      async (
+        _projectId: string,
+        options?: { limit?: number; offset?: number },
+      ) => {
         const offset = options?.offset ?? 0;
         const limit = options?.limit ?? pages.length;
         return pages.slice(offset, offset + limit);

@@ -30,10 +30,7 @@ jest.mock('@apme/ui-workflow', () => ({
     <div data-testid="assess-findings">
       {findings.length} findings
       {resolveRuleHref ? (
-        <a
-          href={resolveRuleHref('L001') ?? undefined}
-          target={ruleHrefTarget}
-        >
+        <a href={resolveRuleHref('L001') ?? undefined} target={ruleHrefTarget}>
           L001
         </a>
       ) : null}
@@ -104,7 +101,9 @@ describe('QualityFindingsSection', () => {
     await waitFor(() => {
       expect(getRules).toHaveBeenCalled();
     });
-    expect(screen.queryByRole('link', { name: 'L001' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'L001' }),
+    ).not.toBeInTheDocument();
   });
 
   it('links findings when catalog rule IDs use the native: prefix', async () => {

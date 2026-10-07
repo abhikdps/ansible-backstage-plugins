@@ -104,7 +104,9 @@ describe('ApmeAiProvidersSection', () => {
     renderSection();
     expect(await screen.findByText('No providers added')).toBeInTheDocument();
     expect(
-      screen.getByText(/configure an AI provider to enable AI-assisted remediation/i),
+      screen.getByText(
+        /configure an AI provider to enable AI-assisted remediation/i,
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByText(/deploy-time config/i)).not.toBeInTheDocument();
   });
@@ -113,7 +115,9 @@ describe('ApmeAiProvidersSection', () => {
     renderSection({ fillHeight: true });
     expect(await screen.findByText('Supported engines')).toBeInTheDocument();
     expect(screen.getByTitle('openai (API key required)')).toBeInTheDocument();
-    expect(screen.getByTitle('anthropic (API key required)')).toBeInTheDocument();
+    expect(
+      screen.getByTitle('anthropic (API key required)'),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Getting started')).not.toBeInTheDocument();
   });
 
@@ -225,7 +229,9 @@ describe('ApmeAiProvidersSection', () => {
     renderSection();
 
     fireEvent.click(
-      await screen.findByRole('button', { name: /view all 4 available models/i }),
+      await screen.findByRole('button', {
+        name: /view all 4 available models/i,
+      }),
     );
 
     const dialog = await screen.findByRole('dialog');
@@ -410,7 +416,9 @@ describe('ApmeAiProvidersSection', () => {
 
     const card = container.querySelector('.MuiCard-root');
     const cardContent = container.querySelector('.MuiCardContent-root');
-    expect(card?.className).not.toEqual(expect.stringMatching(/fillHeightCard/));
+    expect(card?.className).not.toEqual(
+      expect.stringMatching(/fillHeightCard/),
+    );
     expect(cardContent?.className).not.toEqual(
       expect.stringMatching(/fillHeightContent/),
     );
@@ -476,12 +484,11 @@ describe('ApmeAiProvidersSection', () => {
     );
 
     await waitFor(() => {
-      expect(screen.queryByRole('heading', { name: 'AI providers' })).not
-        .toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', { name: 'AI providers' }),
+      ).not.toBeInTheDocument();
     });
-    expect(
-      screen.getByText('Edit provider: provider-3'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Edit provider: provider-3')).toBeInTheDocument();
   });
 
   it('opens remove confirm from view-all providers modal', async () => {

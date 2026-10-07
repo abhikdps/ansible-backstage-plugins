@@ -35,10 +35,13 @@ jest.mock('../../hooks', () => ({
 // directly so mockUseIsSuperuser controls all usages synchronously, preserving
 // per-test control over isSuperuser state (e.g. "should hide Sync Now when
 // user is not a superuser" overrides it to isSuperuser: false).
-jest.mock('../../../../../../portal-core/plugins/portal-plugin-sdk/src/hooks', () => ({
-  useIsSuperuser: () => mockUseIsSuperuser(),
-  clearSuperuserCache: jest.fn(),
-}));
+jest.mock(
+  '../../../../../../portal-core/plugins/portal-plugin-sdk/src/hooks',
+  () => ({
+    useIsSuperuser: () => mockUseIsSuperuser(),
+    clearSuperuserCache: jest.fn(),
+  }),
+);
 
 const mockUsePermission = jest.fn(() => ({
   loading: false,

@@ -87,7 +87,10 @@ const renderComponent = async (entity: Entity = baseEntity) => {
         [fetchApiRef, mockFetchApi],
       ]}
     >
-      <ApmeRepositoryHeaderActions context={context} onCloseMenu={onCloseMenu} />
+      <ApmeRepositoryHeaderActions
+        context={context}
+        onCloseMenu={onCloseMenu}
+      />
       <ApmeDeregisterRepositoryOverlay context={context} />
     </TestApiProvider>,
   );
@@ -210,7 +213,10 @@ describe('ApmeRepositoryHeaderActions', () => {
           [fetchApiRef, mockFetchApi],
         ]}
       >
-        <ApmeRepositoryHeaderActions context={context} onCloseMenu={onCloseMenu} />
+        <ApmeRepositoryHeaderActions
+          context={context}
+          onCloseMenu={onCloseMenu}
+        />
       </TestApiProvider>,
     );
     expect(container).toBeEmptyDOMElement();

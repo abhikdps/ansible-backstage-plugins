@@ -71,7 +71,9 @@ jest.mock('@apme/ui-workflow', () => ({
     onEnableAiChange: (checked: boolean) => void;
   }) => (
     <div data-testid="check-options">
-      <span data-testid="show-collections">{String(props.showCollections ?? true)}</span>
+      <span data-testid="show-collections">
+        {String(props.showCollections ?? true)}
+      </span>
       <span data-testid="show-ai-options">{String(!!props.showAiOptions)}</span>
       <span data-testid="form-enable-ai">{String(props.enableAi)}</span>
       <span data-testid="form-auto-apply">

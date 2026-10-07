@@ -44,8 +44,7 @@ export interface PortalProjectWorkflowPanelProps {
   hostShipActions?: ReactNode;
 }
 
-const PR_LINK_SELECTOR =
-  'a[href*="/pull/"], a[href*="/merge_requests/"]';
+const PR_LINK_SELECTOR = 'a[href*="/pull/"], a[href*="/merge_requests/"]';
 
 /**
  * Locate the View pull request control rendered by `@apme/ui-workflow`.
@@ -163,11 +162,7 @@ export function PortalProjectWorkflowPanel({
         <CardBody style={{ textAlign: 'center', padding: '48px 24px' }}>
           <Spinner size="lg" />
           <div style={{ marginTop: 12, fontSize: 16 }}>Stopping session…</div>
-          <Button
-            variant="link"
-            onClick={dismiss}
-            style={{ marginTop: 16 }}
-          >
+          <Button variant="link" onClick={dismiss} style={{ marginTop: 16 }}>
             Dismiss
           </Button>
         </CardBody>
@@ -181,11 +176,7 @@ export function PortalProjectWorkflowPanel({
         <CardBody style={{ textAlign: 'center', padding: '48px 24px' }}>
           <Spinner size="lg" />
           <div style={{ marginTop: 12, fontSize: 16 }}>Starting scan…</div>
-          <Button
-            variant="link"
-            onClick={dismiss}
-            style={{ marginTop: 16 }}
-          >
+          <Button variant="link" onClick={dismiss} style={{ marginTop: 16 }}>
             Dismiss
           </Button>
         </CardBody>

@@ -241,14 +241,16 @@ describe('portalGalaxyServers', () => {
     });
 
     it('updates URL when changed', async () => {
-      const listGalaxyServers = jest.fn().mockResolvedValue([
-        emptyServer(
-          3,
-          'portal_hub_published',
-          'https://old.example.com/api/galaxy/content/published/',
-          true,
-        ),
-      ]);
+      const listGalaxyServers = jest
+        .fn()
+        .mockResolvedValue([
+          emptyServer(
+            3,
+            'portal_hub_published',
+            'https://old.example.com/api/galaxy/content/published/',
+            true,
+          ),
+        ]);
       const createGalaxyServer = jest.fn();
       const updateGalaxyServer = jest.fn().mockResolvedValue({});
       const deleteGalaxyServer = jest.fn().mockResolvedValue(undefined);
@@ -280,21 +282,23 @@ describe('portalGalaxyServers', () => {
     });
 
     it('prunes obsolete portal_hub servers and leaves manual ones', async () => {
-      const listGalaxyServers = jest.fn().mockResolvedValue([
-        emptyServer(1, 'galaxy', 'https://galaxy.ansible.com/api/'),
-        emptyServer(
-          2,
-          'portal_hub_validated',
-          'https://aap.example.com/api/galaxy/content/validated/',
-          true,
-        ),
-        emptyServer(
-          3,
-          'portal_hub_published',
-          'https://aap.example.com/api/galaxy/content/published/',
-          true,
-        ),
-      ]);
+      const listGalaxyServers = jest
+        .fn()
+        .mockResolvedValue([
+          emptyServer(1, 'galaxy', 'https://galaxy.ansible.com/api/'),
+          emptyServer(
+            2,
+            'portal_hub_validated',
+            'https://aap.example.com/api/galaxy/content/validated/',
+            true,
+          ),
+          emptyServer(
+            3,
+            'portal_hub_published',
+            'https://aap.example.com/api/galaxy/content/published/',
+            true,
+          ),
+        ]);
       const createGalaxyServer = jest.fn();
       const updateGalaxyServer = jest.fn().mockResolvedValue({});
       const deleteGalaxyServer = jest.fn().mockResolvedValue(undefined);
@@ -322,15 +326,17 @@ describe('portalGalaxyServers', () => {
     });
 
     it('prunes all portal_hub servers when desired is empty', async () => {
-      const listGalaxyServers = jest.fn().mockResolvedValue([
-        emptyServer(1, 'galaxy', 'https://galaxy.ansible.com/api/'),
-        emptyServer(
-          2,
-          'portal_hub_published',
-          'https://aap.example.com/api/galaxy/content/published/',
-          true,
-        ),
-      ]);
+      const listGalaxyServers = jest
+        .fn()
+        .mockResolvedValue([
+          emptyServer(1, 'galaxy', 'https://galaxy.ansible.com/api/'),
+          emptyServer(
+            2,
+            'portal_hub_published',
+            'https://aap.example.com/api/galaxy/content/published/',
+            true,
+          ),
+        ]);
       const createGalaxyServer = jest.fn();
       const updateGalaxyServer = jest.fn();
       const deleteGalaxyServer = jest.fn().mockResolvedValue(undefined);

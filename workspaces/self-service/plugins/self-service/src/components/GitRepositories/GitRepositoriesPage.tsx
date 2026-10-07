@@ -1,5 +1,10 @@
 import { useState, useCallback, useEffect, useRef, Fragment } from 'react';
-import { Page, Content, HeaderTabs, LinkButton } from '@backstage/core-components';
+import {
+  Page,
+  Content,
+  HeaderTabs,
+  LinkButton,
+} from '@backstage/core-components';
 import { Box, Button, makeStyles } from '@material-ui/core';
 import {
   Navigate,
@@ -111,7 +116,9 @@ export const GitRepositoriesPage = () => {
   );
 
   // Extension actions for the list page header (e.g. "Add repository" from APME).
-  const listActions = useExtensionActions(EXTENSION_POINTS.GIT_REPO_LIST_ACTIONS);
+  const listActions = useExtensionActions(
+    EXTENSION_POINTS.GIT_REPO_LIST_ACTIONS,
+  );
 
   // Tracks which extension tab (0-based into extensionTabs) is active.
   // null = a built-in tab is active (URL-driven); number = extension tab active.

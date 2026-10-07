@@ -47,7 +47,8 @@ export const DeregisterRepositoryDialog = ({
   onConfirm,
 }: DeregisterRepositoryDialogProps) => {
   const { deregister, loading } = useDeregisterRepository(entity);
-  const invalidateGitRepositoriesCatalog = useInvalidateGitRepositoriesCatalog();
+  const invalidateGitRepositoriesCatalog =
+    useInvalidateGitRepositoriesCatalog();
   const [error, setError] = useState<string | null>(null);
 
   const displayName =
@@ -84,13 +85,11 @@ export const DeregisterRepositoryDialog = ({
       aria-labelledby="deregister-dialog-title"
       aria-describedby="deregister-dialog-description"
     >
-      <DialogTitle id="deregister-dialog-title">
-        Remove repository?
-      </DialogTitle>
+      <DialogTitle id="deregister-dialog-title">Remove repository?</DialogTitle>
       <DialogContent>
         <DialogContentText id="deregister-dialog-description">
-          Are you sure you want to remove <strong>{displayName}</strong> from the
-          catalog?
+          Are you sure you want to remove <strong>{displayName}</strong> from
+          the catalog?
         </DialogContentText>
         <DialogContentText style={{ marginTop: 16 }}>
           This will remove the repository registration from the portal. The

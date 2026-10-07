@@ -13,10 +13,13 @@ const mockUseIsSuperuser = jest.fn().mockReturnValue({
 // useIsSuperuser from its own internal relative path inside the workspace package.
 // Mocking '../../hooks' alone does not intercept it. Target the workspace package
 // hooks directly so mockUseIsSuperuser controls all usages.
-jest.mock('../../../../../../portal-core/plugins/portal-plugin-sdk/src/hooks', () => ({
-  useIsSuperuser: () => mockUseIsSuperuser(),
-  clearSuperuserCache: jest.fn(),
-}));
+jest.mock(
+  '../../../../../../portal-core/plugins/portal-plugin-sdk/src/hooks',
+  () => ({
+    useIsSuperuser: () => mockUseIsSuperuser(),
+    clearSuperuserCache: jest.fn(),
+  }),
+);
 
 const theme = createTheme();
 

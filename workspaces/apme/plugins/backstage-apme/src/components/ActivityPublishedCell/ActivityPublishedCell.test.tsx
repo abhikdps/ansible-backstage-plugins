@@ -32,7 +32,9 @@ describe('ActivityPublishedCell', () => {
         commit_sha="deadbeef12345678"
       />,
     );
-    expect(screen.getByText('apme/remediate-abc @ deadbeef')).toBeInTheDocument();
+    expect(
+      screen.getByText('apme/remediate-abc @ deadbeef'),
+    ).toBeInTheDocument();
   });
 
   it('renders em dash when nothing was published', () => {

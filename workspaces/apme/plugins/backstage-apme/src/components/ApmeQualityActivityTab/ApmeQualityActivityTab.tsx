@@ -91,7 +91,6 @@ function displayType(scanType: string): string {
   return scanType;
 }
 
-
 function timeAgo(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();
   if (Number.isNaN(ms) || ms < 0) return iso;

@@ -49,10 +49,9 @@ describe('useDeregisterRepository', () => {
   it('calls DELETE with only entityRef and resolves on success', async () => {
     mockFetch.mockResolvedValueOnce({ ok: true });
 
-    const { result } = renderHook(
-      () => useDeregisterRepository(manualEntity),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useDeregisterRepository(manualEntity), {
+      wrapper,
+    });
 
     await act(async () => {
       await result.current.deregister();
@@ -79,10 +78,9 @@ describe('useDeregisterRepository', () => {
       statusText: 'Bad Request',
     });
 
-    const { result } = renderHook(
-      () => useDeregisterRepository(manualEntity),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useDeregisterRepository(manualEntity), {
+      wrapper,
+    });
 
     await act(async () => {
       await expect(result.current.deregister()).rejects.toThrow(
@@ -101,10 +99,9 @@ describe('useDeregisterRepository', () => {
       statusText: 'Internal Server Error',
     });
 
-    const { result } = renderHook(
-      () => useDeregisterRepository(manualEntity),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useDeregisterRepository(manualEntity), {
+      wrapper,
+    });
 
     await act(async () => {
       await expect(result.current.deregister()).rejects.toThrow(

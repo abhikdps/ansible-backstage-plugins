@@ -27,7 +27,9 @@ const ApmeGitRepositoriesExtensionsApi = createApmeGitRepositoriesExtensionsApi(
     DependenciesTab: withSuspense(DependenciesTab),
     ApmeRepositoryOverviewCard: withSuspense(ApmeRepositoryOverviewCard),
     ApmeRepositoryHeaderActions: withSuspense(ApmeRepositoryHeaderActions),
-    ApmeDeregisterRepositoryOverlay: withSuspense(ApmeDeregisterRepositoryOverlay),
+    ApmeDeregisterRepositoryOverlay: withSuspense(
+      ApmeDeregisterRepositoryOverlay,
+    ),
     ApmeViolationsCell,
   },
 );

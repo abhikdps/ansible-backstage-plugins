@@ -185,8 +185,9 @@ describe('FleetQualityTab', () => {
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText('Fleet quality')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Start scan/i }))
-      .not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Start scan/i }),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByText('All repositories are clean'),
     ).not.toBeInTheDocument();
@@ -275,8 +276,9 @@ describe('FleetQualityTab', () => {
     expect(
       screen.getByText(/No git repositories were retrieved/),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Add repository/i }))
-      .toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Add repository/i }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByText('All repositories are clean'),
     ).not.toBeInTheDocument();

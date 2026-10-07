@@ -126,7 +126,9 @@ describe('PreviewFeedbackLink', () => {
       'ansible.apme.enabled': true,
       'ansible.apme.feedbackFormUrl': '',
     });
-    expect(screen.queryByTestId('preview-feedback-link')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('preview-feedback-link'),
+    ).not.toBeInTheDocument();
   });
 });
 

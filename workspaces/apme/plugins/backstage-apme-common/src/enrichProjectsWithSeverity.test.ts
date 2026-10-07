@@ -37,8 +37,7 @@ describe('enrichProjectsWithSeverityBreakdown', () => {
       async (
         projectId: string,
       ): Promise<Pick<Project, 'severity_breakdown'>> => ({
-        severity_breakdown:
-          projectId === 'p1' ? { critical: 3 } : { high: 2 },
+        severity_breakdown: projectId === 'p1' ? { critical: 3 } : { high: 2 },
       }),
     );
 

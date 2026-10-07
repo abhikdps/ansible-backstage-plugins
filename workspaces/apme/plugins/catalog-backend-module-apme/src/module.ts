@@ -18,6 +18,7 @@ import {
   coreServices,
   createBackendModule,
 } from '@backstage/backend-plugin-api';
+import { createPortalPlugin } from '@ansible/portal-plugin-node';
 import { CatalogClient } from '@backstage/catalog-client';
 import {
   apmeServiceRef,
@@ -80,8 +81,14 @@ export const catalogModuleApme = createBackendModule({
         permissionsRegistry,
         permissions,
       }) {
+        const apmePortalPlugin = createPortalPlugin('apme');
+
         if (!isApmeEnabled(rootConfig)) {
           logger.info('APME is disabled; skipping catalog module registration');
+          apmePortalPlugin.pushHealthStatus({
+            state: 'UNKNOWN',
+            message: 'APME is disabled in config (apme.enabled: false).',
+          });
           return;
         }
 
@@ -148,6 +155,11 @@ export const catalogModuleApme = createBackendModule({
         httpRouter.use(router);
         logger.info('APME routes registered at /api/catalog/apme/*');
 
+        apmePortalPlugin.pushHealthStatus({
+          state: 'READY',
+          message: 'APME initialized. Routes registered, schedulers starting.',
+        });
+
         const catalogClient = new CatalogClient({ discoveryApi: discovery });
         registerApmeCatalogSyncTasks({
           scheduler,
@@ -158,6 +170,18 @@ export const catalogModuleApme = createBackendModule({
           logger,
           resolveScanVersion,
           resolveEnableAi,
+          onSyncError: (env, err) => {
+            apmePortalPlugin.pushHealthStatus({
+              state: 'DEGRADED',
+              message: `Catalog sync failed for env=${env}: ${err.message}`,
+            });
+          },
+          onSyncRecovered: env => {
+            apmePortalPlugin.pushHealthStatus({
+              state: 'READY',
+              message: `Catalog sync recovered for env=${env}.`,
+            });
+          },
         });
 
         await registerPortalGalaxyServersSync({

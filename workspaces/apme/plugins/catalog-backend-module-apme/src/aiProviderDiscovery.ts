@@ -4,7 +4,10 @@
 
 import type { DiscoveredAiModel } from '@ansible/backstage-apme-common/types';
 
-function normalizeBaseUrl(baseUrl: string | undefined, fallback: string): string {
+function normalizeBaseUrl(
+  baseUrl: string | undefined,
+  fallback: string,
+): string {
   const raw = (baseUrl?.trim() || fallback).replace(/\/$/, '');
   return raw;
 }
@@ -23,7 +26,10 @@ async function fetchJson(url: string, init?: RequestInit): Promise<unknown> {
 async function discoverOllamaModels(
   baseUrl: string | undefined,
 ): Promise<DiscoveredAiModel[]> {
-  const root = normalizeBaseUrl(baseUrl, 'http://host.containers.internal:11434');
+  const root = normalizeBaseUrl(
+    baseUrl,
+    'http://host.containers.internal:11434',
+  );
   const data = (await fetchJson(`${root}/api/tags`)) as {
     models?: Array<{ name?: string; model?: string }>;
   };

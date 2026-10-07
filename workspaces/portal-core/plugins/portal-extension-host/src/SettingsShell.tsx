@@ -32,7 +32,8 @@ const useStyles = makeStyles(theme => ({
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 /** Callback invoked when SettingsShell mounts to load the current settings. */
-export type SettingsLoader<T extends Record<string, unknown>> = () => Promise<T>;
+export type SettingsLoader<T extends Record<string, unknown>> =
+  () => Promise<T>;
 
 /** Callback invoked on save with the validated form data. */
 export type SettingsSaver<T extends Record<string, unknown>> = (

@@ -74,8 +74,16 @@ describe('learnedCollectionEntity', () => {
 
   it('keeps distinct names when versions differ under a long repo name', () => {
     const repo = 'terrible-playbook-github-github-com';
-    const v154 = buildLearnedCollectionEntityName(repo, 'ansible.posix', '1.5.4');
-    const v155 = buildLearnedCollectionEntityName(repo, 'ansible.posix', '1.5.5');
+    const v154 = buildLearnedCollectionEntityName(
+      repo,
+      'ansible.posix',
+      '1.5.4',
+    );
+    const v155 = buildLearnedCollectionEntityName(
+      repo,
+      'ansible.posix',
+      '1.5.5',
+    );
     expect(v154).not.toBe(v155);
     expect(v154.length).toBeLessThanOrEqual(63);
     expect(v155.length).toBeLessThanOrEqual(63);

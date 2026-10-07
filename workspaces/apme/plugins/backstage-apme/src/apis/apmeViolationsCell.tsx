@@ -235,11 +235,7 @@ export function ApmeViolationsCell({ entity }: { entity: Entity }) {
   return (
     <Typography
       variant="body2"
-      style={violationCountStyle(
-        project,
-        mode,
-        theme.palette.text.secondary,
-      )}
+      style={violationCountStyle(project, mode, theme.palette.text.secondary)}
     >
       {project.total_violations}
     </Typography>

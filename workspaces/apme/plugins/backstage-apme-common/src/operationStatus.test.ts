@@ -178,9 +178,7 @@ describe('operationStatus', () => {
         operation_id: 'op',
         project_id: 'p',
         status: 'scanning',
-        progress: [
-          { phase: 'scan', message: 'Running…', timestamp: 't1' },
-        ],
+        progress: [{ phase: 'scan', message: 'Running…', timestamp: 't1' }],
       }),
     ).toBe(true);
     expect(shouldResumeScanUi(null)).toBe(false);

@@ -27,10 +27,7 @@ export interface QualityTabProps {
   initialRuleFilter?: string;
 }
 
-function buildQualityTabEntity(
-  repoUrl: string,
-  branch: string,
-): Entity {
+function buildQualityTabEntity(repoUrl: string, branch: string): Entity {
   const name =
     repoUrl
       .replace(/\/$/, '')

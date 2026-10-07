@@ -23,9 +23,7 @@ const specPath = resolve(repoRoot, 'api/openapi.yaml');
 function collectPluginDirs() {
   const dirs = [];
   const rootPlugins = resolve(repoRoot, 'plugins');
-  if (
-    statSync(rootPlugins, { throwIfNoEntry: false })?.isDirectory()
-  ) {
+  if (statSync(rootPlugins, { throwIfNoEntry: false })?.isDirectory()) {
     dirs.push(rootPlugins);
   }
   const workspacesRoot = resolve(repoRoot, 'workspaces');

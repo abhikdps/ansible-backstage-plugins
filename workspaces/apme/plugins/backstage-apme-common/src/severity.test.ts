@@ -94,7 +94,9 @@ describe('getCodePreviewTokens', () => {
 
 describe('getPreviewSurfaceTokens', () => {
   it('defines ADR-012 chip colors for light and dark', () => {
-    expect(getPreviewSurfaceTokens('light').prominentBackground).toBe('#fdeaea');
+    expect(getPreviewSurfaceTokens('light').prominentBackground).toBe(
+      '#fdeaea',
+    );
     expect(getPreviewSurfaceTokens('dark').prominentText).toBe('#fe5149');
   });
 });

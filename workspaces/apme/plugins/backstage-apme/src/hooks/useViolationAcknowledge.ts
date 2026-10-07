@@ -29,7 +29,12 @@ export function acknowledgeButtonLabel(
 }
 
 export function isDuplicateSuppressionError(err: unknown): boolean {
-  if (err !== null && err !== undefined && typeof err === 'object' && 'status' in err) {
+  if (
+    err !== null &&
+    err !== undefined &&
+    typeof err === 'object' &&
+    'status' in err
+  ) {
     const status = (err as { status: number }).status;
     if (status === 409) return true;
   }

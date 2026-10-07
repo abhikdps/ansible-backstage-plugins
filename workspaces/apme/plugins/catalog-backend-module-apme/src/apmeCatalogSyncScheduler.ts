@@ -42,6 +42,10 @@ export interface RegisterApmeCatalogSyncTasksOptions {
   logger: LoggerService;
   resolveScanVersion?: (projectId: string) => Promise<string>;
   resolveEnableAi?: () => Promise<boolean>;
+  /** Called when a sync task throws an unrecoverable error. */
+  onSyncError?: (env: string, err: Error) => void;
+  /** Called on the first successful sync run after a previous failure. */
+  onSyncRecovered?: (env: string) => void;
 }
 
 /** Registers scheduled bulk-sync tasks for each enabled ansibleGitContents.apme block. */
@@ -57,6 +61,8 @@ export function registerApmeCatalogSyncTasks(
     logger,
     resolveScanVersion,
     resolveEnableAi,
+    onSyncError,
+    onSyncRecovered,
   } = options;
 
   if (isApmeMockMode(rootConfig)) {
@@ -73,11 +79,15 @@ export function registerApmeCatalogSyncTasks(
   }
 
   const offsets = new Map<string, number>();
+  // Track which envs are currently in a failed state to avoid duplicate DEGRADED pushes
+  // and to detect recovery (first success after a failure).
+  const failedEnvs = new Set<string>();
 
   for (const syncConfig of syncConfigs) {
     const taskId = `apme-catalog-sync-${syncConfig.env}`;
     const schedule = syncConfig.schedule ?? DEFAULT_SYNC_SCHEDULE;
     const taskLogger = logger.child({ task: taskId });
+    const env = syncConfig.env;
 
     scheduler.scheduleTask({
       id: taskId,
@@ -85,17 +95,31 @@ export function registerApmeCatalogSyncTasks(
       timeout: schedule.timeout,
       fn: async () => {
         const offset = offsets.get(taskId) ?? 0;
-        const summary = await runApmeCatalogSyncBatch({
-          apmeService,
-          catalogClient,
-          auth,
-          logger: taskLogger,
-          syncConfig,
-          offset,
-          resolveScanVersion,
-          resolveEnableAi,
-        });
-        offsets.set(taskId, summary.nextOffset ?? 0);
+        try {
+          const summary = await runApmeCatalogSyncBatch({
+            apmeService,
+            catalogClient,
+            auth,
+            logger: taskLogger,
+            syncConfig,
+            offset,
+            resolveScanVersion,
+            resolveEnableAi,
+          });
+          offsets.set(taskId, summary.nextOffset ?? 0);
+          // Notify recovery if this env was previously failing
+          if (failedEnvs.has(env)) {
+            failedEnvs.delete(env);
+            onSyncRecovered?.(env);
+          }
+        } catch (err) {
+          const error = err instanceof Error ? err : new Error(String(err));
+          taskLogger.error(`APME catalog sync failed for env=${env}: ${error.message}`);
+          failedEnvs.add(env);
+          onSyncError?.(env, error);
+          // Re-throw so Backstage scheduler can log and track the failure
+          throw error;
+        }
       },
     });
 

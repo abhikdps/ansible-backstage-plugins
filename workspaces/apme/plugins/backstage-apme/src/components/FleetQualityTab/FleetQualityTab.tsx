@@ -283,7 +283,8 @@ export const FleetQualityTab = ({
   );
   const sevOrder = SEVERITY_ORDER;
   const worstFleetSeverity =
-    sevOrder.find(sev => severityCounts[sev] > 0) ?? ('medium' as SeverityLevel);
+    sevOrder.find(sev => severityCounts[sev] > 0) ??
+    ('medium' as SeverityLevel);
   const headlineColor =
     violationTotal > 0
       ? colorTokens.severity[worstFleetSeverity].inlineText
@@ -307,10 +308,7 @@ export const FleetQualityTab = ({
     if (totalRepos === 0) {
       return (
         <>
-          <Typography
-            variant="h6"
-            style={{ fontWeight: 600, marginBottom: 8 }}
-          >
+          <Typography variant="h6" style={{ fontWeight: 600, marginBottom: 8 }}>
             No Git Repositories Found
           </Typography>
           <Typography
@@ -341,7 +339,11 @@ export const FleetQualityTab = ({
     return (
       <>
         <CheckCircleIcon
-          style={{ fontSize: 40, color: colorTokens.dependencyViolation.okCheckColor, marginBottom: 8 }}
+          style={{
+            fontSize: 40,
+            color: colorTokens.dependencyViolation.okCheckColor,
+            marginBottom: 8,
+          }}
         />
         <Typography style={{ fontSize: 16, fontWeight: 500 }}>
           All repositories are clean
@@ -378,7 +380,12 @@ export const FleetQualityTab = ({
             {reposClean > 0 && !hasFilter && (
               <span style={{ marginLeft: 6 }}>
                 ·{' '}
-                <span style={{ color: colorTokens.dependencyViolation.okCheckColor, fontWeight: 500 }}>
+                <span
+                  style={{
+                    color: colorTokens.dependencyViolation.okCheckColor,
+                    fontWeight: 500,
+                  }}
+                >
                   {reposClean} clean
                 </span>
               </span>
@@ -388,336 +395,348 @@ export const FleetQualityTab = ({
       )}
 
       {showFleetContent && (
-      <>
-      <Box className={classes.sevBar}>
-        {sevOrder.map(sev => {
-          const count = severityCounts[sev];
-          if (count === 0) {
-            return null;
-          }
-          const isActive = severityFilters.has(sev);
-          const isDimmed = hasFilter && !isActive && severityFilters.size > 0;
-          const tokens = colorTokens.severity[sev];
-          const color = tokens.barFill;
-          const inlineColor = tokens.inlineText;
-          return (
-            <Box
-              key={sev}
-              className={`${classes.sevItem} ${isActive ? classes.sevItemActive : ''}`}
-              style={{
-                backgroundColor: isActive ? `${color}12` : undefined,
-                borderColor: isActive ? `${color}60` : undefined,
-                opacity: isDimmed ? 0.45 : 1,
-              }}
-              onClick={() => toggleSeverity(sev)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  toggleSeverity(sev);
-                }
-              }}
-            >
-              <Box
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: 2,
-                  backgroundColor: color,
-                }}
-              />
-              <Typography
-                style={{
-                  fontSize: 12,
-                  textTransform: 'capitalize',
-                  color: isActive ? inlineColor : theme.palette.text.secondary,
-                  fontWeight: isActive ? 600 : 400,
-                }}
-              >
-                {sev}
-              </Typography>
-              <Typography style={{ fontSize: 12, fontWeight: 700, color }}>
-                {count}
-              </Typography>
-            </Box>
-          );
-        })}
-      </Box>
-
-      {hasFilter && (
-        <Box
-          display="flex"
-          alignItems="center"
-          style={{ marginBottom: 12, gap: 8 }}
-        >
-          <Typography
-            style={{ fontSize: 12, color: theme.palette.text.secondary }}
-          >
-            Showing {filteredViolationCount} of {violationTotal} violations
-          </Typography>
-          {Array.from(categoryFilters).map(cat => (
-            <Chip
-              key={cat}
-              size="small"
-              label={categoryLabel(cat)}
-              onDelete={() => toggleCategory(cat)}
-              style={{ height: 20, fontSize: 11, fontWeight: 600 }}
-            />
-          ))}
-          <span
-            role="button"
-            tabIndex={0}
-            onClick={() => {
-              setSeverityFilters(new Set());
-              setCategoryFilters(new Set());
-            }}
-            onKeyDown={e => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                setSeverityFilters(new Set());
-                setCategoryFilters(new Set());
+        <>
+          <Box className={classes.sevBar}>
+            {sevOrder.map(sev => {
+              const count = severityCounts[sev];
+              if (count === 0) {
+                return null;
               }
-            }}
-            style={{
-              fontSize: 12,
-              color: theme.palette.primary.main,
-              cursor: 'pointer',
-            }}
-          >
-            Clear filters
-          </span>
-        </Box>
-      )}
-
-      <Card variant="outlined" style={{ borderRadius: 8, overflow: 'hidden' }}>
-        <Box style={{ overflow: 'auto' }}>
-          <table className={classes.table}>
-            <thead>
-              <tr>
-                <th style={{ width: 36, padding: '10px 4px' }} />
-                <th
-                  style={{ width: 100 }}
-                  onClick={() => handleSort('severity')}
-                >
-                  Severity{sortArrow('severity')}
-                </th>
-                <th onClick={() => handleSort('impact')}>
-                  Rule{sortArrow('impact')}
-                </th>
-                <th
-                  style={{ width: 110 }}
-                  onClick={() => handleSort('category')}
-                >
-                  Category{sortArrow('category')}
-                </th>
-                <th style={{ width: 72 }} onClick={() => handleSort('repos')}>
-                  Repos{sortArrow('repos')}
-                </th>
-                <th
-                  style={{ width: 100 }}
-                  onClick={() => handleSort('occurrences')}
-                >
-                  Occurrences{sortArrow('occurrences')}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedGroups.map(group => {
-                const sev = normalizeSeverity(group.level);
-                const sevTokens = colorTokens.severity[sev];
-                const isExpanded = expandedRule === group.ruleId;
-
-                return [
-                  <tr
-                    key={group.ruleId}
-                    onClick={() =>
-                      setExpandedRule(isExpanded ? null : group.ruleId)
+              const isActive = severityFilters.has(sev);
+              const isDimmed =
+                hasFilter && !isActive && severityFilters.size > 0;
+              const tokens = colorTokens.severity[sev];
+              const color = tokens.barFill;
+              const inlineColor = tokens.inlineText;
+              return (
+                <Box
+                  key={sev}
+                  className={`${classes.sevItem} ${isActive ? classes.sevItemActive : ''}`}
+                  style={{
+                    backgroundColor: isActive ? `${color}12` : undefined,
+                    borderColor: isActive ? `${color}60` : undefined,
+                    opacity: isDimmed ? 0.45 : 1,
+                  }}
+                  onClick={() => toggleSeverity(sev)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      toggleSeverity(sev);
                     }
+                  }}
+                >
+                  <Box
                     style={{
-                      cursor: 'pointer',
-                      ...(isExpanded
-                        ? {
-                            backgroundColor: isDark
-                              ? 'rgba(255,255,255,0.03)'
-                              : 'rgba(0,0,0,0.015)',
-                          }
-                        : {}),
+                      width: 10,
+                      height: 10,
+                      borderRadius: 2,
+                      backgroundColor: color,
+                    }}
+                  />
+                  <Typography
+                    style={{
+                      fontSize: 12,
+                      textTransform: 'capitalize',
+                      color: isActive
+                        ? inlineColor
+                        : theme.palette.text.secondary,
+                      fontWeight: isActive ? 600 : 400,
                     }}
                   >
-                    <td style={{ width: 36, padding: '8px 4px' }}>
-                      <IconButton size="small">
-                        {isExpanded ? (
-                          <KeyboardArrowDownIcon />
-                        ) : (
-                          <ChevronRightIcon />
-                        )}
-                      </IconButton>
-                    </td>
-                    <td>
-                      <span
+                    {sev}
+                  </Typography>
+                  <Typography style={{ fontSize: 12, fontWeight: 700, color }}>
+                    {count}
+                  </Typography>
+                </Box>
+              );
+            })}
+          </Box>
+
+          {hasFilter && (
+            <Box
+              display="flex"
+              alignItems="center"
+              style={{ marginBottom: 12, gap: 8 }}
+            >
+              <Typography
+                style={{ fontSize: 12, color: theme.palette.text.secondary }}
+              >
+                Showing {filteredViolationCount} of {violationTotal} violations
+              </Typography>
+              {Array.from(categoryFilters).map(cat => (
+                <Chip
+                  key={cat}
+                  size="small"
+                  label={categoryLabel(cat)}
+                  onDelete={() => toggleCategory(cat)}
+                  style={{ height: 20, fontSize: 11, fontWeight: 600 }}
+                />
+              ))}
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  setSeverityFilters(new Set());
+                  setCategoryFilters(new Set());
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    setSeverityFilters(new Set());
+                    setCategoryFilters(new Set());
+                  }
+                }}
+                style={{
+                  fontSize: 12,
+                  color: theme.palette.primary.main,
+                  cursor: 'pointer',
+                }}
+              >
+                Clear filters
+              </span>
+            </Box>
+          )}
+
+          <Card
+            variant="outlined"
+            style={{ borderRadius: 8, overflow: 'hidden' }}
+          >
+            <Box style={{ overflow: 'auto' }}>
+              <table className={classes.table}>
+                <thead>
+                  <tr>
+                    <th style={{ width: 36, padding: '10px 4px' }} />
+                    <th
+                      style={{ width: 100 }}
+                      onClick={() => handleSort('severity')}
+                    >
+                      Severity{sortArrow('severity')}
+                    </th>
+                    <th onClick={() => handleSort('impact')}>
+                      Rule{sortArrow('impact')}
+                    </th>
+                    <th
+                      style={{ width: 110 }}
+                      onClick={() => handleSort('category')}
+                    >
+                      Category{sortArrow('category')}
+                    </th>
+                    <th
+                      style={{ width: 72 }}
+                      onClick={() => handleSort('repos')}
+                    >
+                      Repos{sortArrow('repos')}
+                    </th>
+                    <th
+                      style={{ width: 100 }}
+                      onClick={() => handleSort('occurrences')}
+                    >
+                      Occurrences{sortArrow('occurrences')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedGroups.map(group => {
+                    const sev = normalizeSeverity(group.level);
+                    const sevTokens = colorTokens.severity[sev];
+                    const isExpanded = expandedRule === group.ruleId;
+
+                    return [
+                      <tr
+                        key={group.ruleId}
+                        onClick={() =>
+                          setExpandedRule(isExpanded ? null : group.ruleId)
+                        }
                         style={{
-                          display: 'inline-block',
-                          padding: '2px 8px',
-                          borderRadius: 3,
-                          fontSize: 11,
-                          fontWeight: 600,
-                          textTransform: 'uppercase',
-                          letterSpacing: 0.3,
-                          whiteSpace: 'nowrap',
-                          backgroundColor: sevTokens.pillBackground,
-                          color: sevTokens.pillText,
+                          cursor: 'pointer',
+                          ...(isExpanded
+                            ? {
+                                backgroundColor: isDark
+                                  ? 'rgba(255,255,255,0.03)'
+                                  : 'rgba(0,0,0,0.015)',
+                              }
+                            : {}),
                         }}
                       >
-                        {group.totalCount} {sev}
-                      </span>
-                    </td>
-                    <td>
-                      <Tooltip
-                        title={`Rule ID: ${group.ruleId}`}
-                        arrow
-                        enterDelay={400}
-                      >
-                        <Typography style={{ fontSize: 13 }}>
-                          {group.message}
-                        </Typography>
-                      </Tooltip>
-                    </td>
-                    <td>
-                      {group.category ? (
-                        <Typography
-                          onClick={(e: MouseEvent) => {
-                            e.stopPropagation();
-                            toggleCategory(group.category!);
-                          }}
-                          style={{
-                            fontSize: 11,
-                            color: categoryFilters.has(group.category)
-                              ? theme.palette.primary.main
-                              : theme.palette.text.secondary,
-                            cursor: 'pointer',
-                            fontWeight: categoryFilters.has(group.category)
-                              ? 600
-                              : 400,
-                          }}
-                        >
-                          {categoryLabel(group.category)}
-                        </Typography>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td>
-                      <Typography style={{ fontSize: 13, fontWeight: 500 }}>
-                        {group.repos.length}
-                      </Typography>
-                    </td>
-                    <td>
-                      <Typography style={{ fontSize: 13, fontWeight: 500 }}>
-                        {group.totalCount}
-                      </Typography>
-                    </td>
-                  </tr>,
-                  isExpanded ? (
-                    <tr key={`${group.ruleId}-repos`}>
-                      <td
-                        colSpan={6}
-                        style={{
-                          padding: 0,
-                          backgroundColor: isDark
-                            ? 'rgba(255,255,255,0.02)'
-                            : '#fafafa',
-                        }}
-                      >
-                        <Collapse in={isExpanded}>
-                          <Box style={{ padding: '4px 0 4px 52px' }}>
-                            {group.repos.map(r => (
-                              <Box
-                                key={r.project.id}
-                                display="flex"
-                                alignItems="center"
-                                style={{
-                                  padding: '6px 12px',
-                                  borderBottom: `1px solid ${theme.palette.divider}`,
-                                  gap: 12,
-                                }}
-                              >
-                                <Box
-                                  display="flex"
-                                  alignItems="center"
-                                  style={{ gap: 6, flex: 1, minWidth: 0 }}
-                                >
-                                  <Typography
-                                    style={{ fontSize: 12, fontWeight: 500 }}
+                        <td style={{ width: 36, padding: '8px 4px' }}>
+                          <IconButton size="small">
+                            {isExpanded ? (
+                              <KeyboardArrowDownIcon />
+                            ) : (
+                              <ChevronRightIcon />
+                            )}
+                          </IconButton>
+                        </td>
+                        <td>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '2px 8px',
+                              borderRadius: 3,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              textTransform: 'uppercase',
+                              letterSpacing: 0.3,
+                              whiteSpace: 'nowrap',
+                              backgroundColor: sevTokens.pillBackground,
+                              color: sevTokens.pillText,
+                            }}
+                          >
+                            {group.totalCount} {sev}
+                          </span>
+                        </td>
+                        <td>
+                          <Tooltip
+                            title={`Rule ID: ${group.ruleId}`}
+                            arrow
+                            enterDelay={400}
+                          >
+                            <Typography style={{ fontSize: 13 }}>
+                              {group.message}
+                            </Typography>
+                          </Tooltip>
+                        </td>
+                        <td>
+                          {group.category ? (
+                            <Typography
+                              onClick={(e: MouseEvent) => {
+                                e.stopPropagation();
+                                toggleCategory(group.category!);
+                              }}
+                              style={{
+                                fontSize: 11,
+                                color: categoryFilters.has(group.category)
+                                  ? theme.palette.primary.main
+                                  : theme.palette.text.secondary,
+                                cursor: 'pointer',
+                                fontWeight: categoryFilters.has(group.category)
+                                  ? 600
+                                  : 400,
+                              }}
+                            >
+                              {categoryLabel(group.category)}
+                            </Typography>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td>
+                          <Typography style={{ fontSize: 13, fontWeight: 500 }}>
+                            {group.repos.length}
+                          </Typography>
+                        </td>
+                        <td>
+                          <Typography style={{ fontSize: 13, fontWeight: 500 }}>
+                            {group.totalCount}
+                          </Typography>
+                        </td>
+                      </tr>,
+                      isExpanded ? (
+                        <tr key={`${group.ruleId}-repos`}>
+                          <td
+                            colSpan={6}
+                            style={{
+                              padding: 0,
+                              backgroundColor: isDark
+                                ? 'rgba(255,255,255,0.02)'
+                                : '#fafafa',
+                            }}
+                          >
+                            <Collapse in={isExpanded}>
+                              <Box style={{ padding: '4px 0 4px 52px' }}>
+                                {group.repos.map(r => (
+                                  <Box
+                                    key={r.project.id}
+                                    display="flex"
+                                    alignItems="center"
+                                    style={{
+                                      padding: '6px 12px',
+                                      borderBottom: `1px solid ${theme.palette.divider}`,
+                                      gap: 12,
+                                    }}
                                   >
-                                    {r.project.name}
-                                  </Typography>
-                                  {r.count > 1 && (
-                                    <Chip
-                                      size="small"
-                                      label={`×${r.count}`}
+                                    <Box
+                                      display="flex"
+                                      alignItems="center"
+                                      style={{ gap: 6, flex: 1, minWidth: 0 }}
+                                    >
+                                      <Typography
+                                        style={{
+                                          fontSize: 12,
+                                          fontWeight: 500,
+                                        }}
+                                      >
+                                        {r.project.name}
+                                      </Typography>
+                                      {r.count > 1 && (
+                                        <Chip
+                                          size="small"
+                                          label={`×${r.count}`}
+                                          style={{
+                                            fontSize: 10,
+                                            height: 16,
+                                            fontWeight: 600,
+                                          }}
+                                        />
+                                      )}
+                                    </Box>
+                                    <Typography
                                       style={{
-                                        fontSize: 10,
-                                        height: 16,
-                                        fontWeight: 600,
+                                        fontSize: 11,
+                                        fontWeight: 500,
+                                        color: fixTierColor(
+                                          r.remediationClass,
+                                          enableAi,
+                                          colorTokens.mode,
+                                        ),
+                                        flexShrink: 0,
                                       }}
-                                    />
-                                  )}
-                                </Box>
-                                <Typography
-                                  style={{
-                                    fontSize: 11,
-                                    fontWeight: 500,
-                                    color: fixTierColor(
-                                      r.remediationClass,
-                                      enableAi,
-                                      colorTokens.mode,
-                                    ),
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  {fixTierShortLabel(
-                                    r.remediationClass,
-                                    enableAi,
-                                  )}
-                                </Typography>
-                                <Typography
-                                  style={{
-                                    fontSize: 11,
-                                    color: theme.palette.text.secondary,
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  {r.lastScannedAt ?? '—'}
-                                </Typography>
-                                <Link
-                                  href={repositoryDetailPath(
-                                    r.entityName,
-                                    group.ruleId,
-                                  )}
-                                  style={{
-                                    fontSize: 11,
-                                    fontWeight: 500,
-                                    flexShrink: 0,
-                                  }}
-                                  onClick={(e: MouseEvent) =>
-                                    e.stopPropagation()
-                                  }
-                                >
-                                  View details →
-                                </Link>
+                                    >
+                                      {fixTierShortLabel(
+                                        r.remediationClass,
+                                        enableAi,
+                                      )}
+                                    </Typography>
+                                    <Typography
+                                      style={{
+                                        fontSize: 11,
+                                        color: theme.palette.text.secondary,
+                                        flexShrink: 0,
+                                      }}
+                                    >
+                                      {r.lastScannedAt ?? '—'}
+                                    </Typography>
+                                    <Link
+                                      href={repositoryDetailPath(
+                                        r.entityName,
+                                        group.ruleId,
+                                      )}
+                                      style={{
+                                        fontSize: 11,
+                                        fontWeight: 500,
+                                        flexShrink: 0,
+                                      }}
+                                      onClick={(e: MouseEvent) =>
+                                        e.stopPropagation()
+                                      }
+                                    >
+                                      View details →
+                                    </Link>
+                                  </Box>
+                                ))}
                               </Box>
-                            ))}
-                          </Box>
-                        </Collapse>
-                      </td>
-                    </tr>
-                  ) : null,
-                ];
-              })}
-            </tbody>
-          </table>
-        </Box>
-      </Card>
-      </>
+                            </Collapse>
+                          </td>
+                        </tr>
+                      ) : null,
+                    ];
+                  })}
+                </tbody>
+              </table>
+            </Box>
+          </Card>
+        </>
       )}
 
       {gatewayUnavailable && totalRepos > 0 && (
@@ -729,10 +748,10 @@ export const FleetQualityTab = ({
       {sortedGroups.length === 0 &&
         !showNoScansEmptyState &&
         !(gatewayUnavailable && totalRepos > 0) && (
-        <Box style={{ textAlign: 'center', padding: '48px 24px' }}>
-          {renderEmptyState()}
-        </Box>
-      )}
+          <Box style={{ textAlign: 'center', padding: '48px 24px' }}>
+            {renderEmptyState()}
+          </Box>
+        )}
 
       {/* Fleet Quality view */}
     </Box>

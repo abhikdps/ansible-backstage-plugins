@@ -70,7 +70,13 @@ export function useApmeProjectContext(entity: Entity): ApmeProjectContext {
         project.id,
         project.latest_scan?.total_violations ?? project.total_violations,
       );
-    }, [project?.id, apmeApi, refreshKey, project?.latest_scan?.total_violations, project?.total_violations]);
+    }, [
+      project?.id,
+      apmeApi,
+      refreshKey,
+      project?.latest_scan?.total_violations,
+      project?.total_violations,
+    ]);
 
   const { value: rules = [] } = useAsyncRetry(
     async () => apmeApi.getRules(),

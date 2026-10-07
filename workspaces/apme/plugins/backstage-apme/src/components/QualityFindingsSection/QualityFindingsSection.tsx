@@ -45,9 +45,7 @@ export function QualityFindingsSection({
       try {
         const rules = await apmeApi.getRules();
         if (!cancelled) {
-          setKnownRuleIds(
-            new Set(rules.map(rule => normalizeRuleId(rule.id))),
-          );
+          setKnownRuleIds(new Set(rules.map(rule => normalizeRuleId(rule.id))));
         }
       } catch {
         if (!cancelled) {

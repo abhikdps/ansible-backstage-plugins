@@ -241,7 +241,10 @@ describe('ApmeQualitySettingsTab', () => {
     const feedbackLink = screen.getByRole('link', {
       name: /Share your feedback/i,
     });
-    expect(feedbackLink).toHaveAttribute('href', DEFAULT_APME_FEEDBACK_FORM_URL);
+    expect(feedbackLink).toHaveAttribute(
+      'href',
+      DEFAULT_APME_FEEDBACK_FORM_URL,
+    );
     expect(feedbackLink).toHaveAttribute('target', '_blank');
     expect(
       previewChip.compareDocumentPosition(qualitySettings) &

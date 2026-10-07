@@ -129,9 +129,7 @@ export async function runApmeCatalogSyncBatch(
         const ansibleVersion = resolveScanVersion
           ? await resolveScanVersion(project.id)
           : undefined;
-        const enableAi = resolveEnableAi
-          ? await resolveEnableAi()
-          : undefined;
+        const enableAi = resolveEnableAi ? await resolveEnableAi() : undefined;
         await apmeService.triggerScan(project.id, {
           ansibleVersion,
           ...(enableAi !== undefined ? { enableAi } : {}),

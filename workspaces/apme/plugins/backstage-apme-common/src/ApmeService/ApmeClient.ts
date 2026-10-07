@@ -521,10 +521,7 @@ export class ApmeClient {
     options?: ScanTriggerOptions,
   ): Promise<ScanResult> {
     const scanOptions: Record<string, unknown> = {
-      ...this.scanOperationOptions(
-        options?.ansibleVersion,
-        options?.enableAi,
-      ),
+      ...this.scanOperationOptions(options?.ansibleVersion, options?.enableAi),
     };
     if (violationIds && violationIds.length > 0) {
       scanOptions.violation_ids = violationIds;

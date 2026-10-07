@@ -77,7 +77,11 @@ export function useResolveApmeProject(): ResolveApmeProjectState {
         await ensureRepoBranchForScan(apmeApi, repoUrl, branch);
         const name =
           entity.metadata.name ||
-          repoUrl.replace(/\/$/, '').split('/').pop()?.replace(/\.git$/, '') ||
+          repoUrl
+            .replace(/\/$/, '')
+            .split('/')
+            .pop()
+            ?.replace(/\.git$/, '') ||
           'repository';
         const project = await registerOrResolveApmeProject(apmeApi, {
           name,

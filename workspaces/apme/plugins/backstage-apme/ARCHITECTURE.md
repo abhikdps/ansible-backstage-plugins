@@ -31,18 +31,18 @@ review, Portal-side git). That diverged from the native SPA and fought
 
 ### Ownership
 
-| Concern | Owner |
-|---------|--------|
-| Scan → assess pause → proposal review → remediate → commit UI | `@apme/ui-workflow` (APME) |
-| Operation state, SSE live events, assess/interactive gates | APME Gateway (ADR-062 / 064 / 065) |
-| SCM commit / PR / push | APME Gateway (ADR-056) — never Portal |
-| Entity Quality tab chrome, idle Overview, Scan CTA | Portal FE host |
-| Resolve/register Gateway project from catalog SCM annotations | Portal FE + common helpers |
-| Backstage identity → Gateway, SCM token injection | Catalog proxy |
-| AI models list / enable flag (portal config + settings) | Portal config + proxy |
-| Fleet Quality (Git Repos page tab — aggregate + drill-down) | Portal thin host |
-| Activity SPA pages, native app shell | Native APME SPA only |
-| Feedback widgets on the workflow panel | Off in Portal (`feedbackEnabled={false}`) |
+| Concern                                                       | Owner                                     |
+| ------------------------------------------------------------- | ----------------------------------------- |
+| Scan → assess pause → proposal review → remediate → commit UI | `@apme/ui-workflow` (APME)                |
+| Operation state, SSE live events, assess/interactive gates    | APME Gateway (ADR-062 / 064 / 065)        |
+| SCM commit / PR / push                                        | APME Gateway (ADR-056) — never Portal     |
+| Entity Quality tab chrome, idle Overview, Scan CTA            | Portal FE host                            |
+| Resolve/register Gateway project from catalog SCM annotations | Portal FE + common helpers                |
+| Backstage identity → Gateway, SCM token injection             | Catalog proxy                             |
+| AI models list / enable flag (portal config + settings)       | Portal config + proxy                     |
+| Fleet Quality (Git Repos page tab — aggregate + drill-down)   | Portal thin host                          |
+| Activity SPA pages, native app shell                          | Native APME SPA only                      |
+| Feedback widgets on the workflow panel                        | Off in Portal (`feedbackEnabled={false}`) |
 
 ### Product shape
 
@@ -101,11 +101,11 @@ hits the SPA and returns HTML, which breaks JSON parsing and SSE.
 
 ### Entry points
 
-| Surface | File | Role |
-|---------|------|------|
-| Catalog entity Quality route | `EntityQualityTab` → `ApmeEntityTab` | Real `Entity` from catalog |
-| Self-service Quality page | `QualityTab` → synthetic entity → `ApmeEntityTab` | Built from `repoUrl` / `branch` |
-| Plugin extensions | `plugin.ts` | `ApmeEntityTab`, `QualityTabExtension`, layout route |
+| Surface                      | File                                              | Role                                                 |
+| ---------------------------- | ------------------------------------------------- | ---------------------------------------------------- |
+| Catalog entity Quality route | `EntityQualityTab` → `ApmeEntityTab`              | Real `Entity` from catalog                           |
+| Self-service Quality page    | `QualityTab` → synthetic entity → `ApmeEntityTab` | Built from `repoUrl` / `branch`                      |
+| Plugin extensions            | `plugin.ts`                                       | `ApmeEntityTab`, `QualityTabExtension`, layout route |
 
 ### Session mount rule
 
@@ -177,31 +177,31 @@ Check options and panel props gate AI fields via `portalAiEnabled && …` in
 ansible:
   apme:
     enabled: true
-    baseUrl: http://localhost:8080   # Gateway, used by backend module
+    baseUrl: http://localhost:8080 # Gateway, used by backend module
     checkSSL: false
-    publishViaGateway: true          # ADR-056 path
-    enableAi: true                   # local loop; production as needed
+    publishViaGateway: true # ADR-056 path
+    enableAi: true # local loop; production as needed
 ```
 
 ---
 
 ## 4. `@apme/ui-workflow` (APME UI package)
 
-Source: APME `frontend/packages/ui-workflow`.  
+Source: APME `frontend/packages/ui-workflow`.
 Publish: GitHub Release tarball on tag `ui-workflow-v*` (**ADR-066**), not npmjs.
 
 ### What the package is
 
 Shared PatternFly UI for the **same** remediation workflow the native SPA uses:
 
-| Stage (conceptual) | UI surface |
-|--------------------|------------|
-| Scan | Progress / live operation status via SSE |
-| Review findings | Assess / findings panels (`assess_pause`) |
-| Choose fixes | Proposal review; rule-based fix; optional AI escalation |
-| Apply | Begin remediate / apply proposals |
-| Commit | Submit → Gateway SCM (PR/push) |
-| Complete | Terminal status |
+| Stage (conceptual) | UI surface                                              |
+| ------------------ | ------------------------------------------------------- |
+| Scan               | Progress / live operation status via SSE                |
+| Review findings    | Assess / findings panels (`assess_pause`)               |
+| Choose fixes       | Proposal review; rule-based fix; optional AI escalation |
+| Apply              | Begin remediate / apply proposals                       |
+| Commit             | Submit → Gateway SCM (PR/push)                          |
+| Complete           | Terminal status                                         |
 
 Key exports consumed by this host:
 
@@ -258,13 +258,13 @@ credential (`httpAuth.credentials(req, { allow: ['user'] })`).
 
 ### Routes the workflow uses
 
-| Catalog path (under `/api/catalog`) | Purpose |
-|-------------------------------------|---------|
-| `GET /apme/settings` | Portal settings including `enableAi` |
-| `GET /apme/ai/models`, `GET /apme/ai/status` | AI model list / status (Quality tab fetch only when portal AI enabled) |
-| `GET/POST /apme/projects`, `GET /apme/lookup` | Resolve / register project |
-| `ALL /apme/projects/:projectId/operation` | Create/read operation |
-| `ALL /apme/projects/:projectId/operation/*` | Transparent proxy: `events`, `approve`, `begin-remediate`, `proposals`, `cancel`, `escalate-ai`, `submit`, … |
+| Catalog path (under `/api/catalog`)           | Purpose                                                                                                      |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `GET /apme/settings`                          | Portal settings including `enableAi`                                                                         |
+| `GET /apme/ai/models`, `GET /apme/ai/status`  | AI model list / status (Quality tab fetch only when portal AI enabled)                                       |
+| `GET/POST /apme/projects`, `GET /apme/lookup` | Resolve / register project                                                                                   |
+| `ALL /apme/projects/:projectId/operation`     | Create/read operation                                                                                        |
+| `ALL /apme/projects/:projectId/operation/*`   | Transparent proxy: `events`, `approve`, `begin-remediate`, `proposals`, `cancel`, `escalate-ai`, `submit`, … |
 
 Assess and remediate are **operation actions/statuses** on that proxy surface,
 not separate top-level Portal APIs. Gateway base path is `/api/v1/...`.
@@ -305,21 +305,21 @@ Plugin src:  ~/github/ansible-backstage-plugins @ feat/apme-eap-next-ui-workflow
 
 ## 8. Related APME ADRs
 
-| ADR | Relevance |
-|-----|-----------|
-| ADR-056 | Gateway owns SCM; no Portal `file_overrides` submit |
+| ADR                 | Relevance                                             |
+| ------------------- | ----------------------------------------------------- |
+| ADR-056             | Gateway owns SCM; no Portal `file_overrides` submit   |
 | ADR-062 / 064 / 065 | Assess pause, interactive gates, live operation state |
-| ADR-066 | `@apme/ui-workflow` GitHub Release tarball publish |
+| ADR-066             | `@apme/ui-workflow` GitHub Release tarball publish    |
 
 ---
 
 ## 9. Source map (this repo)
 
-| Path | Role |
-|------|------|
-| `plugins/backstage-apme/src/components/ApmeEntityTab/` | Thin host chrome + session mount |
-| `plugins/backstage-apme/src/api/createApmeUiWorkflowAdapter.ts` | Discovery + fetchApi adapter |
-| `plugins/backstage-apme/src/components/QualityTab/` | Self-service Quality entry |
-| `plugins/backstage-apme/package.json` | Tarball pin + `--embed-package` |
-| `plugins/catalog-backend-module-apme/src/router.ts` | `/apme/*` routes |
-| `plugins/catalog-backend-module-apme/src/gatewayOperationProxy.ts` | Operation proxy + ADR-056 strip |
+| Path                                                               | Role                             |
+| ------------------------------------------------------------------ | -------------------------------- |
+| `plugins/backstage-apme/src/components/ApmeEntityTab/`             | Thin host chrome + session mount |
+| `plugins/backstage-apme/src/api/createApmeUiWorkflowAdapter.ts`    | Discovery + fetchApi adapter     |
+| `plugins/backstage-apme/src/components/QualityTab/`                | Self-service Quality entry       |
+| `plugins/backstage-apme/package.json`                              | Tarball pin + `--embed-package`  |
+| `plugins/catalog-backend-module-apme/src/router.ts`                | `/apme/*` routes                 |
+| `plugins/catalog-backend-module-apme/src/gatewayOperationProxy.ts` | Operation proxy + ADR-056 strip  |

@@ -4,10 +4,7 @@
 
 import '@testing-library/jest-dom';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
-import {
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
 import { TestApiProvider, renderInTestApp } from '@backstage/test-utils';
 import { Entity } from '@backstage/catalog-model';
 import { gitRepositoriesCatalogApiRef } from '@ansible/backstage-rhaap-common/gitRepositoriesCatalog';
@@ -128,9 +125,7 @@ describe('DeregisterRepositoryDialog', () => {
 
   it('does not render when open is false', async () => {
     await renderDialog({ open: false });
-    expect(
-      screen.queryByText('Remove repository?'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Remove repository?')).not.toBeInTheDocument();
   });
 
   it('does not call onClose when loading', async () => {

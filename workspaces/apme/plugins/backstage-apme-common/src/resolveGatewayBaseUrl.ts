@@ -40,7 +40,9 @@ export function normalizeGatewayBaseUrl(
   }
 
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    throw new InvalidGatewayBaseUrlError('APME service URL must use http or https');
+    throw new InvalidGatewayBaseUrlError(
+      'APME service URL must use http or https',
+    );
   }
   if (parsed.username || parsed.password) {
     throw new InvalidGatewayBaseUrlError(

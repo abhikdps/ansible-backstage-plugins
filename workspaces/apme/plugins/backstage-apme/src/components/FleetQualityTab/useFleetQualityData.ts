@@ -54,8 +54,7 @@ function entityProjectLookupKey(entity: Entity): string | undefined {
   const match = loc.match(/url:(https?:\/\/[^\s]+)/);
   const repoUrl = match ? match[1] : loc.replace(/^url:/, '');
   const spec = entity.spec as
-    | { repository_default_branch?: string }
-    | undefined;
+    { repository_default_branch?: string } | undefined;
   const branch = spec?.repository_default_branch ?? 'main';
   return projectLookupKey(repoUrl, branch);
 }
@@ -118,7 +117,10 @@ export function useFleetQualityData(enabled: boolean) {
       }
     }
 
-    const catalogProjects = projectsLinkedToCatalog(projects, entityByProjectKey);
+    const catalogProjects = projectsLinkedToCatalog(
+      projects,
+      entityByProjectKey,
+    );
     const totalRepos = entities.length;
     const hasAnyScan = catalogProjects.some(
       p => (p.scan_count ?? 0) > 0 || Boolean(p.last_scanned_at),

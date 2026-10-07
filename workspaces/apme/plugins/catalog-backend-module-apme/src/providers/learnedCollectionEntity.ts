@@ -50,7 +50,9 @@ function truncateNameSegment(value: string, maxLength: number): string {
   if (maxLength <= 0) {
     return '';
   }
-  return sanitizeLearnedEntityName(value).substring(0, maxLength).replace(/-$/, '');
+  return sanitizeLearnedEntityName(value)
+    .substring(0, maxLength)
+    .replace(/-$/, '');
 }
 
 export function parseCollectionFqcn(fqcn: string): {
@@ -95,9 +97,7 @@ export function buildLearnedCollectionEntityName(
   const fqcnBudget = Math.max(1, budget - repoBudget);
 
   const parsed = parseCollectionFqcn(fqcn);
-  const fqcnLabel = parsed
-    ? `${parsed.namespace}.${parsed.name}`
-    : fqcn;
+  const fqcnLabel = parsed ? `${parsed.namespace}.${parsed.name}` : fqcn;
 
   const shortRepo = truncateNameSegment(repoEntityName, repoBudget);
   const shortFqcn = truncateNameSegment(fqcnLabel, fqcnBudget);

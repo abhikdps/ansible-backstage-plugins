@@ -21,10 +21,7 @@ describe('useViolationAcknowledge', () => {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <TestApiProvider
       apis={[
-        [
-          apmeApiRef,
-          { createSuppression, deleteSuppression, getSuppressions },
-        ],
+        [apmeApiRef, { createSuppression, deleteSuppression, getSuppressions }],
       ]}
     >
       {children}
@@ -182,9 +179,9 @@ describe('useViolationAcknowledge', () => {
 describe('isDuplicateSuppressionError', () => {
   it('matches status 409 and APME API conflict messages', () => {
     expect(isDuplicateSuppressionError({ status: 409 })).toBe(true);
-    expect(
-      isDuplicateSuppressionError(new Error('APME API conflict: x')),
-    ).toBe(true);
+    expect(isDuplicateSuppressionError(new Error('APME API conflict: x'))).toBe(
+      true,
+    );
     expect(isDuplicateSuppressionError(new Error('gateway down'))).toBe(false);
   });
 });

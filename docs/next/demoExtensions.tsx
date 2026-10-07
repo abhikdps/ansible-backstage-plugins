@@ -25,8 +25,8 @@ registerGitRepoListTab({
     <div style={{ padding: '24px' }}>
       <h3 style={{ marginTop: 0 }}>Security Scan Results</h3>
       <p style={{ color: '#666' }}>
-        This tab was registered by an external plugin at module load time.
-        No changes were made to GitRepositoriesPage.tsx.
+        This tab was registered by an external plugin at module load time. No
+        changes were made to GitRepositoriesPage.tsx.
       </p>
       <ul>
         <li>✅ 12 repositories scanned</li>

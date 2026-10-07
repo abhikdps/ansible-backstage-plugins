@@ -98,15 +98,15 @@ workspaces/
 The foundation everything else builds on. No business logic — only contracts,
 rendering infrastructure, and shared utilities.
 
-| Package | Role | Purpose |
-|---|---|---|
-| `portal-extension-common` | `common-library` | Serializable plugin contract types. `PluginManifest`, `CapabilityContribution`, `OperationDescriptor`, `CONTENT_TYPES`, `EXTENSION_POINTS`. No React, no Node — safe in both frontend and backend. |
-| `portal-extension-api` | `web-library` | Frontend registration SDK. `ContributionRegistry` singleton, `useExtensionTabs/Cards/Actions` hooks, `registerManifest()`, convenience helpers (`registerGitRepoDetailTab` etc.). Re-exports all of `portal-extension-common`. |
-| `portal-extension-host` | `web-library` | Rendering runtime. `ExperienceSlot`, `ExtensionRenderer`, `ErrorBoundary`, `DynamicExtensionDiscovery`, manifest validation, `ContributionWrapper` (CSS token injection), `PortalHealthStatus` (health dashboard), `SettingsShell` (RJSF settings form). Used by host pages, not by content plugins directly. |
-| `portal-core` | `frontend-plugin` | RHDH module federation singleton provider. No UI — its sole job is to bundle `portal-extension-api` and `portal-extension-host` into one MF remote so all portal plugins share a single `ContributionRegistry` instance. Must load first in `dynamic-plugins.yaml`. |
-| `portal-plugin-sdk` | `web-library` | Shared UI component library for plugin authors. `usePortalContext()` (resolves `organizationId` from Backstage identity), notification utilities, cache helpers, theme tokens, common UI widgets. |
-| `portal-plugin-node` | `node-library` | Backend SDK. `createPortalPlugin()` factory providing Express identity middleware (`req.portalContext`), push-based health reporting, structured audit event emission, and org-keyed DB helpers. |
-| `portal-health-backend` | `backend-plugin` | Health aggregation endpoint. Exposes `GET /api/portal-health/status` — a JSON snapshot of all registered portal plugin health states from the process-level `HealthRegistry` (populated by `portal-plugin-node`'s `pushHealthStatus()`). Consumed by `PortalHealthStatus` in `portal-extension-host`. |
+| Package                   | Role              | Purpose                                                                                                                                                                                                                                                                                                       |
+| ------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `portal-extension-common` | `common-library`  | Serializable plugin contract types. `PluginManifest`, `CapabilityContribution`, `OperationDescriptor`, `CONTENT_TYPES`, `EXTENSION_POINTS`. No React, no Node — safe in both frontend and backend.                                                                                                            |
+| `portal-extension-api`    | `web-library`     | Frontend registration SDK. `ContributionRegistry` singleton, `useExtensionTabs/Cards/Actions` hooks, `registerManifest()`, convenience helpers (`registerGitRepoDetailTab` etc.). Re-exports all of `portal-extension-common`.                                                                                |
+| `portal-extension-host`   | `web-library`     | Rendering runtime. `ExperienceSlot`, `ExtensionRenderer`, `ErrorBoundary`, `DynamicExtensionDiscovery`, manifest validation, `ContributionWrapper` (CSS token injection), `PortalHealthStatus` (health dashboard), `SettingsShell` (RJSF settings form). Used by host pages, not by content plugins directly. |
+| `portal-core`             | `frontend-plugin` | RHDH module federation singleton provider. No UI — its sole job is to bundle `portal-extension-api` and `portal-extension-host` into one MF remote so all portal plugins share a single `ContributionRegistry` instance. Must load first in `dynamic-plugins.yaml`.                                           |
+| `portal-plugin-sdk`       | `web-library`     | Shared UI component library for plugin authors. `usePortalContext()` (resolves `organizationId` from Backstage identity), notification utilities, cache helpers, theme tokens, common UI widgets.                                                                                                             |
+| `portal-plugin-node`      | `node-library`    | Backend SDK. `createPortalPlugin()` factory providing Express identity middleware (`req.portalContext`), push-based health reporting, structured audit event emission, and org-keyed DB helpers.                                                                                                              |
+| `portal-health-backend`   | `backend-plugin`  | Health aggregation endpoint. Exposes `GET /api/portal-health/status` — a JSON snapshot of all registered portal plugin health states from the process-level `HealthRegistry` (populated by `portal-plugin-node`'s `pushHealthStatus()`). Consumed by `PortalHealthStatus` in `portal-extension-host`.         |
 
 **Key rule:** `portal-extension-common` has no React or Node dependency. Any type
 that needs to be shared between a frontend plugin and its backend sibling belongs
@@ -114,6 +114,7 @@ here. Types that need React (e.g. `ComponentType`, hooks) stay in
 `portal-extension-api`.
 
 **Phase 3 components (now implemented):**
+
 - `ContributionWrapper` / `usePortalCssTokens` — injects 10 `--portal-color-*` CSS custom properties derived from `useTheme()` on a `display: contents` wrapper, enabling contributed components to use theme-adaptive colours without importing MUI.
 - `PortalHealthStatus` / `usePortalHealthStatus` — polls `portal-health-backend` every 30 s and renders a table of per-plugin health states with coloured status chips.
 - `SettingsShell<T>` — generic RJSF v5 form shell for plugin settings pages. Accepts `schema`, `uiSchema`, `onLoad`, and `onSave` callbacks; handles load/save lifecycle, reset, and Backstage alert feedback.
@@ -126,8 +127,8 @@ The plugin users interact with for creating automation content — templates,
 execution environments, collections, git repositories. This is a consumer of the
 portal-core SDK, not a provider of it.
 
-| Package | Role | Purpose |
-|---|---|---|
+| Package             | Role              | Purpose                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `portal-scaffolder` | `frontend-plugin` | Main self-service UI. `LandingPage`, `SelfServicePage`, `EEPage`, `CollectionsPage`, `GitRepositoriesPage`. Detail pages (`RepositoryDetailsPage`, `EEDetailsPage`, `CollectionDetailsPage`) render extension tabs/cards from the registry. Also contributes its own tabs and cards back into the registry via `selfServiceManifest.ts`. Scaffolder field extensions (7 custom pickers). |
 
 **Connection to portal-core:** `portal-scaffolder` has `portal-extension-api` and
@@ -148,11 +149,11 @@ analysis. It is the first third-party contributor to the portal extension system
 APME tabs, cards, and actions appear inside `portal-scaffolder`'s detail pages
 without `portal-scaffolder` knowing about APME at compile time.
 
-| Package | Role | Purpose |
-|---|---|---|
-| `backstage-apme-common` | `common-library` | APME-specific shared types. APME API client and service ref, catalog entity types, scan configs, gateway rules, severity models, operation status. Used by both the frontend plugin and the backend module. |
-| `plugin-backstage-apme` | `frontend-plugin` | APME UI. Registers tabs (Quality, Activity, Dependencies), overview card, deregister/run-scan actions on the repository detail page, and an "Add repository" list action via `registerApmeExtensions()`. These contributions land in the `ContributionRegistry` at startup and are rendered by `portal-scaffolder`'s `GitRepositoriesPage` without any direct import. |
-| `catalog-backend-module-apme` | `backend-plugin-module` | APME catalog integration. Syncs APME project data into the Backstage catalog and provides the API routes that `plugin-backstage-apme` calls. |
+| Package                       | Role                    | Purpose                                                                                                                                                                                                                                                                                                                                                               |
+| ----------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `backstage-apme-common`       | `common-library`        | APME-specific shared types. APME API client and service ref, catalog entity types, scan configs, gateway rules, severity models, operation status. Used by both the frontend plugin and the backend module.                                                                                                                                                           |
+| `plugin-backstage-apme`       | `frontend-plugin`       | APME UI. Registers tabs (Quality, Activity, Dependencies), overview card, deregister/run-scan actions on the repository detail page, and an "Add repository" list action via `registerApmeExtensions()`. These contributions land in the `ContributionRegistry` at startup and are rendered by `portal-scaffolder`'s `GitRepositoriesPage` without any direct import. |
+| `catalog-backend-module-apme` | `backend-plugin-module` | APME catalog integration. Syncs APME project data into the Backstage catalog and provides the API routes that `plugin-backstage-apme` calls.                                                                                                                                                                                                                          |
 
 **Connection to portal-core:** `plugin-backstage-apme` has `portal-extension-api`
 as a `peerDependency` (so it gets the shared singleton in RHDH) and imports
@@ -171,14 +172,14 @@ The foundational AAP connectivity layer. Every other workspace that talks to
 Ansible Automation Platform goes through the types, client, and permissions
 defined here.
 
-| Package | Role | Purpose |
-|---|---|---|
-| `backstage-rhaap-common` | `common-library` | The cross-workspace shared library. `AAPClient` (HTTP client for AAP API), `IAAPService` Backstage service ref, AAP entity types (job templates, EEs, inventories, organizations), SCM client, permission definitions, user provisioner interface. Imported by `portal-scaffolder`, `plugin-backstage-apme`, and all aap plugins. |
-| `plugin-backstage-rhaap` | `frontend-plugin` | Ansible sidebar and `AnsiblePage`. The top-level navigation entry point for Ansible content in the portal. |
-| `catalog-backend-module-rhaap` | `backend-plugin-module` | Entity providers that sync AAP resources (organizations, job templates, execution environments, collections, git repos) into the Backstage catalog on a schedule. |
-| `auth-backend-module-rhaap-provider` | `backend-plugin-module` | AAP OAuth authentication provider. Signs users in with their AAP credentials via Backstage's auth framework. |
-| `scaffolder-backend-module-backstage-rhaap` | `backend-plugin-module` | Backstage scaffolder actions for AAP: create project, create job template, launch job template, create EE environment, clean up resources, prepare for publish. |
-| `backstage-plugin-catalog-backend-module-rhaap-user-provisioner` | `backend-plugin-module` | Just-in-time user provisioning: creates Backstage user/group entities for AAP users on first sign-in. |
+| Package                                                          | Role                    | Purpose                                                                                                                                                                                                                                                                                                                           |
+| ---------------------------------------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `backstage-rhaap-common`                                         | `common-library`        | The cross-workspace shared library. `AAPClient` (HTTP client for AAP API), `IAAPService` Backstage service ref, AAP entity types (job templates, EEs, inventories, organizations), SCM client, permission definitions, user provisioner interface. Imported by `portal-scaffolder`, `plugin-backstage-apme`, and all aap plugins. |
+| `plugin-backstage-rhaap`                                         | `frontend-plugin`       | Ansible sidebar and `AnsiblePage`. The top-level navigation entry point for Ansible content in the portal.                                                                                                                                                                                                                        |
+| `catalog-backend-module-rhaap`                                   | `backend-plugin-module` | Entity providers that sync AAP resources (organizations, job templates, execution environments, collections, git repos) into the Backstage catalog on a schedule.                                                                                                                                                                 |
+| `auth-backend-module-rhaap-provider`                             | `backend-plugin-module` | AAP OAuth authentication provider. Signs users in with their AAP credentials via Backstage's auth framework.                                                                                                                                                                                                                      |
+| `scaffolder-backend-module-backstage-rhaap`                      | `backend-plugin-module` | Backstage scaffolder actions for AAP: create project, create job template, launch job template, create EE environment, clean up resources, prepare for publish.                                                                                                                                                                   |
+| `backstage-plugin-catalog-backend-module-rhaap-user-provisioner` | `backend-plugin-module` | Just-in-time user provisioning: creates Backstage user/group entities for AAP users on first sign-in.                                                                                                                                                                                                                             |
 
 ---
 
@@ -216,6 +217,7 @@ opens a repository detail page in `portal-scaffolder`:
 import relationship. The registry is the only coupling.
 
 **Health data flow** (separate from the contribution rendering path):
+
 ```
 portal-plugin-node.pushHealthStatus({ state: 'READY', message: '...' })
    └─▶ process-level HealthRegistry (keyed by pluginId)
@@ -233,6 +235,7 @@ The reference overlay is at
 `workspaces/portal-core/dynamic-plugins.portal-extension.dev.yaml`.
 
 Key rules:
+
 1. `portal-core` must appear **first** in `dynamic-plugins.yaml` — it provides
    `portal-extension-api` to the MF shared scope before any content plugin loads.
 2. `portal-extension-api` and `portal-extension-host` are `peerDependencies` in

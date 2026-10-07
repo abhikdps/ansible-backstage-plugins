@@ -19,7 +19,10 @@ describe('resolveDefaultBranchDevSpacesUrl', () => {
 
   it('returns null when devSpaces base URL is missing', () => {
     expect(
-      resolveDefaultBranchDevSpacesUrl({ ...base, devSpacesBaseUrl: undefined }),
+      resolveDefaultBranchDevSpacesUrl({
+        ...base,
+        devSpacesBaseUrl: undefined,
+      }),
     ).toBeNull();
   });
 
@@ -30,9 +33,7 @@ describe('resolveDefaultBranchDevSpacesUrl', () => {
   });
 
   it('falls back to main when branch is empty', () => {
-    expect(
-      resolveDefaultBranchDevSpacesUrl({ ...base, branch: '  ' }),
-    ).toBe(
+    expect(resolveDefaultBranchDevSpacesUrl({ ...base, branch: '  ' })).toBe(
       'https://devspaces.example.com/#https://github.com/acme/ansible-apme/tree/main',
     );
   });

@@ -379,11 +379,7 @@ export const DiffView = ({
     return (
       <Box>
         {title && <Typography className={classes.title}>{title}</Typography>}
-        <SideBySideDiff
-          before={before}
-          after={after}
-          afterLabel={afterLabel}
-        />
+        <SideBySideDiff before={before} after={after} afterLabel={afterLabel} />
       </Box>
     );
   }

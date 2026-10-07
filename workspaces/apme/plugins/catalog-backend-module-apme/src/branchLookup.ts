@@ -82,12 +82,14 @@ export function parseGitRepoUrl(repoUrl: string): ParsedGitRepo {
 }
 
 function githubApiBase(rootConfig: Config, host: string): string {
-  const integration = ScmIntegrations.fromConfig(rootConfig).github.byHost(host);
+  const integration =
+    ScmIntegrations.fromConfig(rootConfig).github.byHost(host);
   return integration?.config.apiBaseUrl ?? `https://api.${host}`;
 }
 
 function gitlabApiBase(rootConfig: Config, host: string): string {
-  const integration = ScmIntegrations.fromConfig(rootConfig).gitlab.byHost(host);
+  const integration =
+    ScmIntegrations.fromConfig(rootConfig).gitlab.byHost(host);
   return integration?.config.apiBaseUrl ?? `https://${host}/api/v4`;
 }
 

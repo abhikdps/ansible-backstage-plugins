@@ -15,12 +15,7 @@
  */
 
 export type Severity =
-  | 'blocker'
-  | 'critical'
-  | 'high'
-  | 'medium'
-  | 'low'
-  | 'info';
+  'blocker' | 'critical' | 'high' | 'medium' | 'low' | 'info';
 
 export type RemediationClass = 1 | 2 | 3 | 9; // 1=auto, 2=assisted, 3=manual, 9=none
 
@@ -409,7 +404,7 @@ export function mergeApmeAiProviderLists(
     const cfg = configById.get(p.id);
     return {
       ...p,
-      models: p.models.length > 0 ? p.models : cfg?.models ?? p.models ?? [],
+      models: p.models.length > 0 ? p.models : (cfg?.models ?? p.models ?? []),
       source: 'managed' as const,
     };
   });

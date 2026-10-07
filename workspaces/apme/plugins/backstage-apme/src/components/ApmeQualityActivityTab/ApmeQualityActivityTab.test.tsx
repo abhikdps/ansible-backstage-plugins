@@ -61,7 +61,11 @@ const entity: Entity = {
         'url:https://github.com/example/demo-repo',
     },
   },
-  spec: { type: 'git-repository', owner: 'user', repository_default_branch: 'main' },
+  spec: {
+    type: 'git-repository',
+    owner: 'user',
+    repository_default_branch: 'main',
+  },
 };
 
 describe('ApmeQualityActivityTab', () => {
@@ -243,7 +247,9 @@ describe('ApmeQualityActivityTab', () => {
     expect(
       await screen.findByText(/apme\/remediate-only @ feedface/i),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /view pr/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /view pr/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows PR link in activity detail for remediate rows', async () => {
@@ -276,7 +282,9 @@ describe('ApmeQualityActivityTab', () => {
       'href',
       'https://github.com/example/demo-repo/pull/7/files',
     );
-    expect(screen.getByText(/apme\/remediate-scan-2 @ abc12345/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/apme\/remediate-scan-2 @ abc12345/),
+    ).toBeInTheDocument();
   });
 
   it('fleet ?rule= opens the latest activity automatically', async () => {

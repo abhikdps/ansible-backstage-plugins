@@ -171,7 +171,9 @@ describe('ApmeLearnedDepsEntityProvider', () => {
 
     expect(applyMutation).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('Learned deps sync aborted: project lookup failed'),
+      expect.stringContaining(
+        'Learned deps sync aborted: project lookup failed',
+      ),
     );
   });
 

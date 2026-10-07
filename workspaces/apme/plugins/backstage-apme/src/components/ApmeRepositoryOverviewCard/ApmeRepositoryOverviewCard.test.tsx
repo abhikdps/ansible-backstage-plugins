@@ -10,9 +10,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { ThemeProvider, createTheme } from '@material-ui/core';
 import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom';
 import type { Entity } from '@backstage/catalog-model';
-import type {
-  ApmeProjectContext,
-} from '../../hooks/useApmeProjectContext';
+import type { ApmeProjectContext } from '../../hooks/useApmeProjectContext';
 import type { Project, Violation } from '@ansible/backstage-apme-common/types';
 import { ApmeRepositoryOverviewCard } from './ApmeRepositoryOverviewCard';
 
@@ -33,7 +31,8 @@ const entity: Entity = {
   metadata: {
     name: 'terrible-playbook',
     annotations: {
-      'backstage.io/source-location': 'url:https://github.com/acme/terrible-playbook',
+      'backstage.io/source-location':
+        'url:https://github.com/acme/terrible-playbook',
     },
   },
   spec: {
@@ -127,7 +126,9 @@ function renderCard(
   mockUseApmeProjectContext.mockReturnValue(baseContext(contextOverrides));
 
   return render(
-    <MemoryRouter initialEntries={[`/repositories/terrible-playbook${initialSearch}`]}>
+    <MemoryRouter
+      initialEntries={[`/repositories/terrible-playbook${initialSearch}`]}
+    >
       <ThemeProvider theme={createTheme()}>
         <Routes>
           <Route
@@ -136,9 +137,11 @@ function renderCard(
               <>
                 <SearchParamsProbe />
                 <ApmeRepositoryOverviewCard
-                  context={{ entity } as ComponentProps<
-                    typeof ApmeRepositoryOverviewCard
-                  >['context']}
+                  context={
+                    { entity } as ComponentProps<
+                      typeof ApmeRepositoryOverviewCard
+                    >['context']
+                  }
                 />
               </>
             }
@@ -198,7 +201,9 @@ describe('ApmeRepositoryOverviewCard', () => {
       }),
     );
 
-    expect(screen.getByTestId('search-params')).toHaveTextContent('tab=overview');
+    expect(screen.getByTestId('search-params')).toHaveTextContent(
+      'tab=overview',
+    );
   });
 
   it('does not navigate when a category help icon is activated via keyboard', () => {
@@ -211,7 +216,9 @@ describe('ApmeRepositoryOverviewCard', () => {
     fireEvent.keyDown(helpButton, { key: 'Enter', code: 'Enter' });
     fireEvent.keyDown(helpButton, { key: ' ', code: 'Space' });
 
-    expect(screen.getByTestId('search-params')).toHaveTextContent('tab=overview');
+    expect(screen.getByTestId('search-params')).toHaveTextContent(
+      'tab=overview',
+    );
   });
 
   it('opens the Quality tab from the unscanned Scan action', () => {
@@ -222,7 +229,9 @@ describe('ApmeRepositoryOverviewCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^scan$/i }));
 
-    expect(screen.getByTestId('search-params')).toHaveTextContent('tab=quality');
+    expect(screen.getByTestId('search-params')).toHaveTextContent(
+      'tab=quality',
+    );
   });
 
   it('navigates to the latest scan from the clean-scan card', () => {

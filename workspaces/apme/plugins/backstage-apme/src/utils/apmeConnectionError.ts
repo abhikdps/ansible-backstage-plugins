@@ -30,7 +30,8 @@ export function isApmeConnectionError(message: string): boolean {
 export const APME_GATEWAY_UNAVAILABLE_MESSAGE =
   'Ansible content modernization is temporarily unavailable. Check that the modernization service is running, then try again.';
 
-export const APME_REMEDIATE_CONNECTION_TITLE = 'Cannot reach modernization service';
+export const APME_REMEDIATE_CONNECTION_TITLE =
+  'Cannot reach modernization service';
 
 /**
  * Turns backend/proxy error strings into short user-facing copy.
@@ -83,9 +84,7 @@ export function formatApmeUserFacingError(raw: string): string {
   }
 
   // Prefer nested InputError.message from Backstage error JSON bodies.
-  const nestedMessage = raw.match(
-    /"message"\s*:\s*"((?:\\.|[^"\\])*)"/,
-  );
+  const nestedMessage = raw.match(/"message"\s*:\s*"((?:\\.|[^"\\])*)"/);
   if (nestedMessage?.[1]) {
     const decoded = nestedMessage[1]
       .replace(/\\n/g, ' ')
@@ -100,8 +99,10 @@ export function formatApmeUserFacingError(raw: string): string {
     // Drop stack / path noise after the first sentence-ish chunk.
     const withoutStack = decoded.split(/\s+at\s+/)[0]?.trim() ?? decoded;
     if (withoutStack && withoutStack.length < 280) {
-      return withoutStack.replace(/^Failed to connect to APME:\s*/i, '').trim() ||
-        APME_GATEWAY_UNAVAILABLE_MESSAGE;
+      return (
+        withoutStack.replace(/^Failed to connect to APME:\s*/i, '').trim() ||
+        APME_GATEWAY_UNAVAILABLE_MESSAGE
+      );
     }
   }
 

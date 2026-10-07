@@ -87,7 +87,9 @@ export function isScmTokenRequiredError(err: unknown): boolean {
   }
   if (
     status === 502 &&
-    (lower.includes('scm') || lower.includes('github') || lower.includes('token'))
+    (lower.includes('scm') ||
+      lower.includes('github') ||
+      lower.includes('token'))
   ) {
     return true;
   }

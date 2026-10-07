@@ -46,7 +46,7 @@ describe('resolveIntegrationScmToken', () => {
         ({
           integrations: {},
           githubCredentialsProvider: {},
-        } as never),
+        }) as never,
     );
   });
 

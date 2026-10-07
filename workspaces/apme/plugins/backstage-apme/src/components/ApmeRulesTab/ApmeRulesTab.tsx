@@ -162,10 +162,7 @@ function SeverityBadge({ severity }: { severity: Severity | string }) {
   const classes = useStyles();
   const level = normalizeSeverity(severity);
   return (
-    <span
-      className={classes.severityChip}
-      style={chipStyleForSeverity(level)}
-    >
+    <span className={classes.severityChip} style={chipStyleForSeverity(level)}>
       {severityLabel(level)}
     </span>
   );
@@ -235,9 +232,7 @@ export const ApmeRulesTab = () => {
       return;
     }
     const normalized = normalizeRuleId(deepLinkRuleId);
-    const match = rules.find(
-      rule => normalizeRuleId(rule.id) === normalized,
-    );
+    const match = rules.find(rule => normalizeRuleId(rule.id) === normalized);
     if (!match) {
       return;
     }
