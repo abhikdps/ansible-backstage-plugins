@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@ansible/backstage-plugin-auth-backend-module-rhaap-provider": "workspace:^",
+    "@ansible/portal-health-backend": "workspace:^",
     "@ansible/backstage-plugin-catalog-backend-module-apme": "workspace:^",
     "@ansible/backstage-plugin-catalog-backend-module-rhaap": "workspace:^",
     "@ansible/backstage-plugin-catalog-backend-module-rhaap-user-provisioner": "workspace:^",

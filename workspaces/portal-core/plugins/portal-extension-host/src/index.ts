@@ -15,6 +15,7 @@
 
 export { ErrorBoundary } from './ErrorBoundary';
 export { ContributionWrapper, usePortalCssTokens } from './ContributionWrapper';
+export { PortalHealthStatus, usePortalHealthStatus } from './PortalHealthStatus';
 
 export {
   ExtensionTabContent,

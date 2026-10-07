@@ -69,4 +69,8 @@ backend.add(
 backend.add(
   import('@ansible/plugin-scaffolder-backend-module-backstage-rhaap'),
 );
+
+// Portal health aggregation — exposes GET /api/portal-health/status
+backend.add(import('@ansible/portal-health-backend'));
+
 backend.start();
