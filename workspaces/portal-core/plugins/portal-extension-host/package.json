@@ -32,6 +32,9 @@
     "@backstage/core-plugin-api": "^1.12.4",
     "@backstage/plugin-permission-react": "^0.4.41",
     "@material-ui/core": "^4.9.13",
+    "@rjsf/core": "^5.24.8",
+    "@rjsf/utils": "^5.24.8",
+    "@rjsf/validator-ajv8": "^5.24.8",
     "react": "^18.3.1"
   },
   "devDependencies": {
@@ -41,6 +44,9 @@
     "@backstage/plugin-permission-react": "^0.4.41",
     "@backstage/test-utils": "^1.7.16",
     "@material-ui/core": "^4.9.13",
+    "@rjsf/core": "^5.24.8",
+    "@rjsf/utils": "^5.24.8",
+    "@rjsf/validator-ajv8": "^5.24.8",
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^16.0.0",
     "react": "^18.3.1",

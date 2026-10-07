@@ -16,6 +16,8 @@
 export { ErrorBoundary } from './ErrorBoundary';
 export { ContributionWrapper, usePortalCssTokens } from './ContributionWrapper';
 export { PortalHealthStatus, usePortalHealthStatus } from './PortalHealthStatus';
+export { SettingsShell } from './SettingsShell';
+export type { SettingsShellProps, SettingsLoader, SettingsSaver } from './SettingsShell';
 
 export {
   ExtensionTabContent,
