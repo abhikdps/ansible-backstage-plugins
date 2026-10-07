@@ -81,7 +81,7 @@ export const catalogModuleApme = createBackendModule({
         permissionsRegistry,
         permissions,
       }) {
-        const apmePortalPlugin = createPortalPlugin('apme');
+        const apmePortalPlugin = createPortalPlugin({ pluginId: 'apme' });
 
         if (!isApmeEnabled(rootConfig)) {
           logger.info('APME is disabled; skipping catalog module registration');
