@@ -14,6 +14,7 @@
  */
 
 export { ErrorBoundary } from './ErrorBoundary';
+export { ContributionWrapper, usePortalCssTokens } from './ContributionWrapper';
 
 export {
   ExtensionTabContent,

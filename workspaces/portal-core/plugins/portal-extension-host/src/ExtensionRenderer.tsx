@@ -14,6 +14,7 @@ import type {
   ActionContribution,
 } from '@ansible/portal-extension-api';
 import { ErrorBoundary } from './ErrorBoundary';
+import { ContributionWrapper } from './ContributionWrapper';
 
 const Fallback = () => (
   <CircularProgress
@@ -23,7 +24,10 @@ const Fallback = () => (
 );
 
 /** Renders a tab contribution's component inside `<Suspense>`.
- *  Returns null while loading or if the user lacks the required permission. */
+ *  Returns null while loading or if the user lacks the required permission.
+ *  Injects portal CSS custom properties (`--portal-color-*`) on a
+ *  `display: contents` wrapper so contributed components can use them
+ *  without importing MUI or Backstage theme utilities. */
 export const ExtensionTabContent = ({
   contribution,
   entity,
@@ -41,16 +45,21 @@ export const ExtensionTabContent = ({
     entity?: Entity;
   }>;
   return (
-    <ErrorBoundary contributionId={contribution.id}>
-      <Suspense fallback={<Fallback />}>
-        <Component entity={entity} />
-      </Suspense>
-    </ErrorBoundary>
+    <ContributionWrapper>
+      <ErrorBoundary contributionId={contribution.id}>
+        <Suspense fallback={<Fallback />}>
+          <Component entity={entity} />
+        </Suspense>
+      </ErrorBoundary>
+    </ContributionWrapper>
   );
 };
 
 /** Renders a card contribution's component inside `<ErrorBoundary>` + `<Suspense>`.
- *  Returns null while loading or if the user lacks the required permission. */
+ *  Returns null while loading or if the user lacks the required permission.
+ *  Injects portal CSS custom properties (`--portal-color-*`) on a
+ *  `display: contents` wrapper so contributed components can use them
+ *  without importing MUI or Backstage theme utilities. */
 export const ExtensionCardContent = ({
   contribution,
   entity,
@@ -68,11 +77,13 @@ export const ExtensionCardContent = ({
     entity?: Entity;
   }>;
   return (
-    <ErrorBoundary contributionId={contribution.id}>
-      <Suspense fallback={<Fallback />}>
-        <Component entity={entity} />
-      </Suspense>
-    </ErrorBoundary>
+    <ContributionWrapper>
+      <ErrorBoundary contributionId={contribution.id}>
+        <Suspense fallback={<Fallback />}>
+          <Component entity={entity} />
+        </Suspense>
+      </ErrorBoundary>
+    </ContributionWrapper>
   );
 };
 
