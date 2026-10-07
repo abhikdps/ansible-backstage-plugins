@@ -472,6 +472,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@ansible/portal-extension-api@workspace:workspaces/portal-core/plugins/portal-extension-api"
   dependencies:
+    "@ansible/portal-extension-common": "workspace:^"
     "@backstage/catalog-model": "npm:^1.7.7"
     "@backstage/cli": "npm:^0.36.0"
     "@backstage/core-plugin-api": "npm:^1.12.4"
@@ -486,6 +487,19 @@ __metadata:
     "@backstage/core-plugin-api": ^1.12.4
     "@backstage/plugin-permission-common": ^0.8.4
     react: ^18.3.1
+  languageName: unknown
+  linkType: soft
+
+"@ansible/portal-extension-common@workspace:^, @ansible/portal-extension-common@workspace:workspaces/portal-core/plugins/portal-extension-common":
+  version: 0.0.0-use.local
+  resolution: "@ansible/portal-extension-common@workspace:workspaces/portal-core/plugins/portal-extension-common"
+  dependencies:
+    "@backstage/catalog-model": "npm:^1.7.7"
+    "@backstage/cli": "npm:^0.36.0"
+    "@backstage/plugin-permission-common": "npm:^0.8.4"
+  peerDependencies:
+    "@backstage/catalog-model": ^1.7.7
+    "@backstage/plugin-permission-common": ^0.8.4
   languageName: unknown
   linkType: soft
 
@@ -517,6 +531,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@ansible/portal-plugin-node@workspace:workspaces/portal-core/plugins/portal-plugin-node"
   dependencies:
+    "@ansible/portal-extension-common": "workspace:^"
     "@backstage/backend-plugin-api": "npm:^1.8.0"
     "@backstage/backend-test-utils": "npm:^1.11.1"
     "@backstage/cli": "npm:^0.36.0"
@@ -524,6 +539,7 @@ __metadata:
     "@types/jest": "npm:^29.5.14"
     express: "npm:^5.1.0"
   peerDependencies:
+    "@ansible/portal-extension-common": "workspace:^"
     "@backstage/backend-plugin-api": ^1.8.0
     express: ^5.1.0
   languageName: unknown

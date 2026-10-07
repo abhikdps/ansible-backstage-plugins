@@ -15,6 +15,9 @@
     "role": "web-library"
   },
   "sideEffects": false,
+  "dependencies": {
+    "@ansible/portal-extension-common": "workspace:^"
+  },
   "scripts": {
     "start": "backstage-cli package start",
     "build": "backstage-cli package build",
