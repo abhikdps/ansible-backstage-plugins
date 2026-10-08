@@ -4,6 +4,13 @@
 // they will be wrapped by CapabilityContribution + CapabilityEntryPoint.
 import { contributionRegistry as _registry } from './registry';
 
+export {
+  portalOperationsApiRef,
+  portalOperationsApiFactory,
+  PortalOperationsClient,
+} from './operations';
+export type { PortalOperationsApi } from './operations';
+
 export type {
   ContributionComponent,
   ActionContext,

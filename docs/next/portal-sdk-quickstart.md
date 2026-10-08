@@ -26,11 +26,11 @@ The frontend plugin **registers contributions** with the host at load time. The 
 
 The key packages:
 
-| Package | Your plugin depends on it for |
-|---|---|
-| `@ansible/portal-extension-api` | Registering tabs, cards, manifests |
-| `@ansible/portal-plugin-sdk` | Shared UI components, `usePortalContext`, `useIsSuperuser` |
-| `@ansible/portal-plugin-node` | Identity middleware, health, audit events |
+| Package                          | Your plugin depends on it for                                  |
+| -------------------------------- | -------------------------------------------------------------- |
+| `@ansible/portal-extension-api`  | Registering tabs, cards, manifests                             |
+| `@ansible/portal-plugin-sdk`     | Shared UI components, `usePortalContext`, `useIsSuperuser`     |
+| `@ansible/portal-plugin-node`    | Identity middleware, health, audit events                      |
 | `@ansible/portal-extension-host` | (Host only) Rendering contributions — you don't depend on this |
 
 ## 2. Create the frontend plugin
@@ -108,7 +108,10 @@ export const myPluginManifest: PluginManifest = {
         {
           surface: 'tab',
           experienceId: 'git-repo-detail',
-          launch: { type: 'slot', slotId: 'git-repo-detail.tab.my-plugin.trust-signals' },
+          launch: {
+            type: 'slot',
+            slotId: 'git-repo-detail.tab.my-plugin.trust-signals',
+          },
           label: 'Trust Signals',
         },
       ],
@@ -121,7 +124,10 @@ export const myPluginManifest: PluginManifest = {
 
 ```ts
 // src/dynamic/index.ts
-import { registerManifest, registerGitRepoDetailTab } from '@ansible/portal-extension-api';
+import {
+  registerManifest,
+  registerGitRepoDetailTab,
+} from '@ansible/portal-extension-api';
 import { myPluginManifest } from '../manifest';
 import { TrustSignalsTab } from '../components/TrustSignalsTab';
 
@@ -169,7 +175,11 @@ export const portalPlugin = createPortalPlugin({ pluginId: 'my-plugin' });
 ```ts
 // src/router.ts
 import Router from 'express-promise-router';
-import type { HttpAuthService, UserInfoService, LoggerService } from '@backstage/backend-plugin-api';
+import type {
+  HttpAuthService,
+  UserInfoService,
+  LoggerService,
+} from '@backstage/backend-plugin-api';
 import { portalPlugin } from './portalPlugin';
 
 export function createRouter(options: {
@@ -184,7 +194,9 @@ export function createRouter(options: {
 
   router.get('/trust-signals/:repoId', async (req, res) => {
     const { repoId } = req.params;
-    const { organizationId } = req.portalContext ?? { organizationId: 'default' };
+    const { organizationId } = req.portalContext ?? {
+      organizationId: 'default',
+    };
 
     // ... fetch trust signals for this org + repo ...
     const signals = await fetchTrustSignals({ organizationId, repoId });
@@ -208,7 +220,10 @@ export function createRouter(options: {
 
 ```ts
 // src/plugin.ts
-import { createBackendPlugin, coreServices } from '@backstage/backend-plugin-api';
+import {
+  createBackendPlugin,
+  coreServices,
+} from '@backstage/backend-plugin-api';
 import { createRouter } from './router';
 import { portalPlugin } from './portalPlugin';
 
@@ -224,13 +239,19 @@ export const myBackendPlugin = createBackendPlugin({
       },
       async init({ logger, httpAuth, userInfo, httpRouter }) {
         // Report unknown while initializing
-        portalPlugin.pushHealthStatus({ state: 'UNKNOWN', message: 'Initializing...' });
+        portalPlugin.pushHealthStatus({
+          state: 'UNKNOWN',
+          message: 'Initializing...',
+        });
 
         const router = createRouter({ httpAuth, userInfo, logger });
         httpRouter.use(router);
 
         // Signal ready after initialization is complete
-        portalPlugin.pushHealthStatus({ state: 'READY', message: 'Plugin healthy.' });
+        portalPlugin.pushHealthStatus({
+          state: 'READY',
+          message: 'Plugin healthy.',
+        });
       },
     });
   },
@@ -253,21 +274,21 @@ backend.add(import('@ansible/my-plugin-backend'));
 
 ## Available extension points
 
-| Experience | Surface | Registration helper |
-|---|---|---|
-| Git repository detail | Tab | `registerGitRepoDetailTab` |
-| Git repository detail | Card | `registerGitRepoDetailCard` |
-| Git repository detail | Action | `registerGitRepoDetailAction` |
-| Git repository list | Tab | `registerGitRepoListTab` |
-| Git repository list | Action | `registerGitRepoListAction` |
-| Execution environment detail | Tab | `registerEEDetailTab` |
-| Execution environment detail | Card | `registerEEDetailCard` |
-| Execution environment detail | Action | `registerEEDetailAction` |
-| Execution environment list | Tab | `registerEEListTab` |
-| Collection detail | Tab | `registerCollectionDetailTab` |
-| Collection detail | Card | `registerCollectionDetailCard` |
-| Collection detail | Action | `registerCollectionDetailAction` |
-| Job template detail | Card | `registerTemplateDetailCard` |
+| Experience                   | Surface | Registration helper              |
+| ---------------------------- | ------- | -------------------------------- |
+| Git repository detail        | Tab     | `registerGitRepoDetailTab`       |
+| Git repository detail        | Card    | `registerGitRepoDetailCard`      |
+| Git repository detail        | Action  | `registerGitRepoDetailAction`    |
+| Git repository list          | Tab     | `registerGitRepoListTab`         |
+| Git repository list          | Action  | `registerGitRepoListAction`      |
+| Execution environment detail | Tab     | `registerEEDetailTab`            |
+| Execution environment detail | Card    | `registerEEDetailCard`           |
+| Execution environment detail | Action  | `registerEEDetailAction`         |
+| Execution environment list   | Tab     | `registerEEListTab`              |
+| Collection detail            | Tab     | `registerCollectionDetailTab`    |
+| Collection detail            | Card    | `registerCollectionDetailCard`   |
+| Collection detail            | Action  | `registerCollectionDetailAction` |
+| Job template detail          | Card    | `registerTemplateDetailCard`     |
 
 ## Next steps
 

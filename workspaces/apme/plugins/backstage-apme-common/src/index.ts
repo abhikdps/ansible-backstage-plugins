@@ -23,6 +23,10 @@ export * from './enrichProjectsWithSeverity';
 export * from './proposalTier';
 export * from './normalizeRepoUrl';
 export * from './catalogEntity';
+export {
+  apmeQualityScanPermission,
+  apmeQualityScanOperation,
+} from './operations';
 export * from './ApmeService';
 export * from './config';
 export * from './apmeSyncConfig';

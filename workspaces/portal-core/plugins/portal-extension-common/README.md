@@ -10,31 +10,31 @@ Both frontend packages (`portal-extension-api`, `portal-extension-host`) and bac
 
 ## What lives here
 
-| Export | Purpose |
-|---|---|
-| `PluginManifest` | Top-level declaration of all a plugin's contributions |
-| `CapabilityContribution` | A single capability with its entry points and settings |
-| `CapabilityEntryPoint` | How a capability is surfaced (tab, card, action, inline) |
-| `CapabilityLaunch` | Discriminated union of how an entry point is activated |
-| `SlotLaunch` | Renders a React component inside an experience slot |
-| `WorkflowLaunch` | Opens a Backstage scaffolder workflow |
-| `OperationLaunch` | Triggers a server-side operation |
-| `ExperienceDefinition` | Declares a new experience (tab bar + page) the plugin owns |
-| `OperationDescriptor` | API contract for a server-side operation |
-| `SettingsContribution` | Per-capability settings form declaration |
-| `EntitlementDefinition` | Feature-flag / entitlement check for a capability |
-| `EXTENSION_POINTS` | Constant IDs for host extension slots |
-| `EXPERIENCE_IDS` | Constant IDs for built-in experience pages |
-| `CONTENT_TYPES` | Constant IDs for entity content types |
+| Export                   | Purpose                                                    |
+| ------------------------ | ---------------------------------------------------------- |
+| `PluginManifest`         | Top-level declaration of all a plugin's contributions      |
+| `CapabilityContribution` | A single capability with its entry points and settings     |
+| `CapabilityEntryPoint`   | How a capability is surfaced (tab, card, action, inline)   |
+| `CapabilityLaunch`       | Discriminated union of how an entry point is activated     |
+| `SlotLaunch`             | Renders a React component inside an experience slot        |
+| `WorkflowLaunch`         | Opens a Backstage scaffolder workflow                      |
+| `OperationLaunch`        | Triggers a server-side operation                           |
+| `ExperienceDefinition`   | Declares a new experience (tab bar + page) the plugin owns |
+| `OperationDescriptor`    | API contract for a server-side operation                   |
+| `SettingsContribution`   | Per-capability settings form declaration                   |
+| `EntitlementDefinition`  | Feature-flag / entitlement check for a capability          |
+| `EXTENSION_POINTS`       | Constant IDs for host extension slots                      |
+| `EXPERIENCE_IDS`         | Constant IDs for built-in experience pages                 |
+| `CONTENT_TYPES`          | Constant IDs for entity content types                      |
 
 ## What does NOT live here
 
-| Concern | Package |
-|---|---|
-| `ContributionRegistry` and `useExtensionTabs` hooks | `@ansible/portal-extension-api` |
-| `TabContribution`, `CardContribution`, `ActionContribution` (PoC types) | `@ansible/portal-extension-api` |
-| `createPortalPlugin()`, identity middleware, audit emitter | `@ansible/portal-plugin-node` |
-| Host components (`ExperienceSlot`, `PortalHealthStatus`) | `@ansible/portal-extension-host` |
+| Concern                                                                 | Package                          |
+| ----------------------------------------------------------------------- | -------------------------------- |
+| `ContributionRegistry` and `useExtensionTabs` hooks                     | `@ansible/portal-extension-api`  |
+| `TabContribution`, `CardContribution`, `ActionContribution` (PoC types) | `@ansible/portal-extension-api`  |
+| `createPortalPlugin()`, identity middleware, audit emitter              | `@ansible/portal-plugin-node`    |
+| Host components (`ExperienceSlot`, `PortalHealthStatus`)                | `@ansible/portal-extension-host` |
 
 ## Usage
 
@@ -80,9 +80,13 @@ See `docs/next/portal-sdk-quickstart.md` for the full step-by-step guide.
 ## Extension point and experience IDs
 
 ```ts
-import { EXTENSION_POINTS, EXPERIENCE_IDS, CONTENT_TYPES } from '@ansible/portal-extension-common';
+import {
+  EXTENSION_POINTS,
+  EXPERIENCE_IDS,
+  CONTENT_TYPES,
+} from '@ansible/portal-extension-common';
 
-EXTENSION_POINTS.GIT_REPO_DETAIL_TAB   // 'git-repo-detail.tab'
-EXPERIENCE_IDS.GIT_REPO_DETAIL         // 'git-repo-detail'
-CONTENT_TYPES.GIT_REPOSITORY           // 'git-repository'
+EXTENSION_POINTS.GIT_REPO_DETAIL_TAB; // 'git-repo-detail.tab'
+EXPERIENCE_IDS.GIT_REPO_DETAIL; // 'git-repo-detail'
+CONTENT_TYPES.GIT_REPOSITORY; // 'git-repository'
 ```

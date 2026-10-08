@@ -14,10 +14,12 @@ import { OAuth2 } from '@backstage/core-app-api';
 import { rhAapAuthApiRef } from '@ansible/portal-scaffolder';
 import { apmeApiFactory } from '@ansible/plugin-backstage-apme';
 import { signalsPlugin } from '@backstage/plugin-signals';
+import { portalOperationsApiFactory } from '@ansible/portal-extension-api';
 
 export const apis: AnyApiFactory[] = [
   ...signalsPlugin.getApis(),
   apmeApiFactory,
+  portalOperationsApiFactory,
   createApiFactory({
     api: scmIntegrationsApiRef,
     deps: { configApi: configApiRef },

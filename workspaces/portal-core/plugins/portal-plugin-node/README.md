@@ -33,11 +33,18 @@ export const myBackendModule = createBackendModule({
       deps: { logger, httpAuth, userInfo, scheduler },
       async init({ logger, httpAuth, userInfo }) {
         // Configure logger and attach identity middleware to your router
-        const middleware = portalPlugin.createMiddleware({ httpAuth, userInfo, logger });
+        const middleware = portalPlugin.createMiddleware({
+          httpAuth,
+          userInfo,
+          logger,
+        });
         router.use(middleware);
 
         // Signal readiness after workers are initialized
-        portalPlugin.pushHealthStatus({ state: 'READY', message: 'Workers healthy.' });
+        portalPlugin.pushHealthStatus({
+          state: 'READY',
+          message: 'Workers healthy.',
+        });
       },
     });
   },
@@ -56,8 +63,8 @@ const portalPlugin = createPortalPlugin({ pluginId: 'my-plugin' });
 
 **Options:**
 
-| Field | Type | Description |
-|---|---|---|
+| Field      | Type     | Description                                                                                                                                                 |
+| ---------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pluginId` | `string` | Unique stable ID. Convention: `'<team>-<domain>'` (e.g. `'apme'`, `'content-quality'`). Used as the health registry key and `plugin` field in audit events. |
 
 ### `PortalPlugin`
@@ -69,7 +76,11 @@ The object returned by `createPortalPlugin`. All methods are documented below.
 Creates an Express `RequestHandler` that attaches `req.portalContext` to every authenticated request.
 
 ```ts
-const middleware = portalPlugin.createMiddleware({ httpAuth, userInfo, logger });
+const middleware = portalPlugin.createMiddleware({
+  httpAuth,
+  userInfo,
+  logger,
+});
 router.use(middleware);
 ```
 
@@ -77,12 +88,12 @@ Also configures the plugin's audit emitter with the provided logger.
 
 **Options:**
 
-| Field | Type | Description |
-|---|---|---|
-| `httpAuth` | `HttpAuthService` | Backstage HTTP auth service |
-| `userInfo` | `UserInfoService` | Backstage user info service |
-| `logger` | `LoggerService` | Logger for auth failures |
-| `defaultOrgId?` | `string` | Org ID to use when user namespace is `'default'`. Defaults to `'default'`. |
+| Field           | Type              | Description                                                                |
+| --------------- | ----------------- | -------------------------------------------------------------------------- |
+| `httpAuth`      | `HttpAuthService` | Backstage HTTP auth service                                                |
+| `userInfo`      | `UserInfoService` | Backstage user info service                                                |
+| `logger`        | `LoggerService`   | Logger for auth failures                                                   |
+| `defaultOrgId?` | `string`          | Org ID to use when user namespace is `'default'`. Defaults to `'default'`. |
 
 The middleware never blocks unauthenticated requests — route handlers must check for `req.portalContext` when they require it.
 
@@ -105,23 +116,32 @@ Pushes a health status update to the process-level `HealthRegistry`.
 
 ```ts
 // Signal healthy:
-portalPlugin.pushHealthStatus({ state: 'READY', message: 'Sync workers healthy.' });
+portalPlugin.pushHealthStatus({
+  state: 'READY',
+  message: 'Sync workers healthy.',
+});
 
 // Signal degraded (e.g. partial sync failure):
-portalPlugin.pushHealthStatus({ state: 'DEGRADED', message: 'Sync failed for org: acme.' });
+portalPlugin.pushHealthStatus({
+  state: 'DEGRADED',
+  message: 'Sync failed for org: acme.',
+});
 
 // Signal unavailable:
-portalPlugin.pushHealthStatus({ state: 'UNAVAILABLE', message: 'DB connection lost.' });
+portalPlugin.pushHealthStatus({
+  state: 'UNAVAILABLE',
+  message: 'DB connection lost.',
+});
 ```
 
 Health states:
 
-| State | When to use |
-|---|---|
-| `READY` | Plugin initialized and all workers are running |
-| `DEGRADED` | Plugin is running but some functionality is reduced |
+| State         | When to use                                                  |
+| ------------- | ------------------------------------------------------------ |
+| `READY`       | Plugin initialized and all workers are running               |
+| `DEGRADED`    | Plugin is running but some functionality is reduced          |
 | `UNAVAILABLE` | Plugin failed to initialize or a critical dependency is down |
-| `UNKNOWN` | Initial state before the plugin has reported |
+| `UNKNOWN`     | Initial state before the plugin has reported                 |
 
 The status is readable via `GET /api/portal-health/status` (provided by `@ansible/portal-health-backend`).
 
@@ -132,7 +152,10 @@ let wasDegraded = false;
 
 // In your sync error handler:
 if (!wasDegraded) {
-  portalPlugin.pushHealthStatus({ state: 'DEGRADED', message: `Sync failed: ${err.message}` });
+  portalPlugin.pushHealthStatus({
+    state: 'DEGRADED',
+    message: `Sync failed: ${err.message}`,
+  });
   wasDegraded = true;
 }
 
@@ -160,23 +183,24 @@ portalPlugin.emitAuditEvent({
 
 **`AuditEvent` fields:**
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `operationId` | `string` | ✓ | Dot-namespaced operation ID, e.g. `'my-plugin.jobs.launch'` |
-| `userId` | `string` | ✓ | User entity ref from `req.portalContext` |
-| `organizationId` | `string` | ✓ | Org ID from `req.portalContext` |
-| `outcome` | `'SUCCESS' \| 'FAILURE' \| 'DENIED'` | ✓ | Result of the operation |
-| `input` | `Record<string, unknown>` | — | Sanitized input parameters |
-| `resourceRef` | `string` | — | Stable reference to the affected resource |
-| `error` | `string` | — | Error message on `FAILURE` outcome |
+| Field            | Type                                 | Required | Description                                                 |
+| ---------------- | ------------------------------------ | -------- | ----------------------------------------------------------- |
+| `operationId`    | `string`                             | ✓        | Dot-namespaced operation ID, e.g. `'my-plugin.jobs.launch'` |
+| `userId`         | `string`                             | ✓        | User entity ref from `req.portalContext`                    |
+| `organizationId` | `string`                             | ✓        | Org ID from `req.portalContext`                             |
+| `outcome`        | `'SUCCESS' \| 'FAILURE' \| 'DENIED'` | ✓        | Result of the operation                                     |
+| `input`          | `Record<string, unknown>`            | —        | Sanitized input parameters                                  |
+| `resourceRef`    | `string`                             | —        | Stable reference to the affected resource                   |
+| `error`          | `string`                             | —        | Error message on `FAILURE` outcome                          |
 
 #### `.withLogger(logger)`
 
 Configures the audit emitter with a logger. Call this if you need to emit audit events before calling `createMiddleware`.
 
 ```ts
-const portalPlugin = createPortalPlugin({ pluginId: 'my-plugin' })
-  .withLogger(logger);
+const portalPlugin = createPortalPlugin({ pluginId: 'my-plugin' }).withLogger(
+  logger,
+);
 ```
 
 Returns the same `PortalPlugin` instance for chaining.
@@ -217,9 +241,15 @@ Org-keyed database helper that wraps a Knex transaction and enforces every query
 ```ts
 import { withOrganization } from '@ansible/portal-plugin-node';
 
-const results = await withOrganization(db, req.portalContext!.organizationId, async knex => {
-  return knex('my_table').where({ org_id: knex.raw('?', [orgId]) }).select('*');
-});
+const results = await withOrganization(
+  db,
+  req.portalContext!.organizationId,
+  async knex => {
+    return knex('my_table')
+      .where({ org_id: knex.raw('?', [orgId]) })
+      .select('*');
+  },
+);
 ```
 
 ### `AuditEmitter`

@@ -18,7 +18,11 @@ import {
   coreServices,
   createBackendModule,
 } from '@backstage/backend-plugin-api';
-import { createPortalPlugin } from '@ansible/portal-plugin-node';
+import {
+  createPortalPlugin,
+  portalOperationsServiceRef,
+} from '@ansible/portal-plugin-node';
+import { registerApmeOperations } from './operations';
 import { CatalogClient } from '@backstage/catalog-client';
 import {
   apmeServiceRef,
@@ -26,6 +30,7 @@ import {
   getApmeConfig,
   resolveScanTargetVersion,
   ApmeClient,
+  apmeQualityScanPermission,
 } from '@ansible/backstage-apme-common';
 import { catalogProcessingExtensionPoint } from '@backstage/plugin-catalog-node/alpha';
 import {
@@ -67,6 +72,7 @@ export const catalogModuleApme = createBackendModule({
         catalogProcessing: catalogProcessingExtensionPoint,
         permissionsRegistry: coreServices.permissionsRegistry,
         permissions: coreServices.permissions,
+        operations: portalOperationsServiceRef,
       },
       async init({
         logger,
@@ -80,6 +86,7 @@ export const catalogModuleApme = createBackendModule({
         catalogProcessing,
         permissionsRegistry,
         permissions,
+        operations,
       }) {
         const apmePortalPlugin = createPortalPlugin({ pluginId: 'apme' });
 
@@ -108,6 +115,7 @@ export const catalogModuleApme = createBackendModule({
         });
 
         logger.info('Initializing APME catalog module');
+        permissionsRegistry.addPermissions([apmeQualityScanPermission]);
 
         const configSnapshot = getApmeConfig(rootConfig);
         const portalSettingsStore = new ApmePortalSettingsStore(
@@ -161,6 +169,15 @@ export const catalogModuleApme = createBackendModule({
         });
 
         const catalogClient = new CatalogClient({ discoveryApi: discovery });
+        registerApmeOperations({
+          operations,
+          catalogClient,
+          auth,
+          permissions,
+          apmeService,
+          resolveScanVersion,
+          resolveEnableAi,
+        });
         registerApmeCatalogSyncTasks({
           scheduler,
           catalogClient,

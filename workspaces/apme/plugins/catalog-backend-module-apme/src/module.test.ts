@@ -1,4 +1,5 @@
 import { catalogModuleApme } from './module';
+import { registerApmeOperations } from './operations';
 import { createRouter } from './router';
 import { registerApmeCatalogSyncTasks } from './apmeCatalogSyncScheduler';
 import { registerPortalGalaxyServersSync } from './portalGalaxyServersSync';
@@ -9,6 +10,7 @@ import os from 'os';
 import path from 'path';
 
 jest.mock('@backstage/backend-plugin-api', () => ({
+  ...jest.requireActual('@backstage/backend-plugin-api'),
   coreServices: {
     logger: 'logger',
     rootConfig: 'rootConfig',
@@ -24,6 +26,7 @@ jest.mock('@backstage/backend-plugin-api', () => ({
 }));
 
 jest.mock('@ansible/backstage-apme-common', () => ({
+  ...jest.requireActual('@ansible/backstage-apme-common'),
   apmeServiceRef: 'apmeServiceRef',
   isApmeEnabled: jest.fn(),
   getApmeConfig: jest.fn(),
@@ -38,6 +41,8 @@ jest.mock('@backstage/plugin-catalog-node/alpha', () => ({
 jest.mock('./router', () => ({
   createRouter: jest.fn(),
 }));
+
+jest.mock('./operations', () => ({ registerApmeOperations: jest.fn() }));
 
 jest.mock('./apmeCatalogSyncScheduler', () => ({
   registerApmeCatalogSyncTasks: jest.fn(),
@@ -97,7 +102,10 @@ describe('catalogModuleApme', () => {
     const init = getInit();
 
     const logger = { info: jest.fn() };
-    const permissionsRegistry = { addResourceType: jest.fn() };
+    const permissionsRegistry = {
+      addResourceType: jest.fn(),
+      addPermissions: jest.fn(),
+    };
 
     await init({
       logger,
@@ -125,7 +133,10 @@ describe('catalogModuleApme', () => {
 
     const logger = { info: jest.fn() };
     const httpRouter = { use: jest.fn() };
-    const permissionsRegistry = { addResourceType: jest.fn() };
+    const permissionsRegistry = {
+      addResourceType: jest.fn(),
+      addPermissions: jest.fn(),
+    };
     const catalogProcessing = { addEntityProvider: jest.fn() };
     const scheduler = {};
     const apmeService = {};
@@ -165,6 +176,10 @@ describe('catalogModuleApme', () => {
       }),
     );
     expect(httpRouter.use).toHaveBeenCalledTimes(1);
+    expect(permissionsRegistry.addPermissions).toHaveBeenCalledTimes(1);
+    expect(registerApmeOperations).toHaveBeenCalledWith(
+      expect.objectContaining({ apmeService, permissions, auth }),
+    );
     expect(mockRegisterCatalogSync).toHaveBeenCalledTimes(1);
     expect(mockRegisterGalaxySync).toHaveBeenCalledTimes(1);
     expect(catalogProcessing.addEntityProvider).toHaveBeenCalledTimes(1);
@@ -192,7 +207,10 @@ describe('catalogModuleApme', () => {
       discovery: {},
       auth: {},
       catalogProcessing: { addEntityProvider: jest.fn() },
-      permissionsRegistry: { addResourceType: jest.fn() },
+      permissionsRegistry: {
+        addResourceType: jest.fn(),
+        addPermissions: jest.fn(),
+      },
       permissions: {},
     });
 

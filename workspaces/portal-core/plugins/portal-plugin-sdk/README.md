@@ -29,7 +29,7 @@ import { PageHeaderSection } from '@ansible/portal-plugin-sdk';
   subtitle="Description of what this page does."
   icon={<MyIcon />}
   action={<Button variant="contained">Create</Button>}
-/>
+/>;
 ```
 
 ### `EmptyState`
@@ -43,7 +43,7 @@ import { EmptyState } from '@ansible/portal-plugin-sdk';
   title="No items found"
   description="Create your first item to get started."
   action={<Button>Create</Button>}
-/>
+/>;
 ```
 
 ### `SkeletonLoader`
@@ -71,7 +71,7 @@ Renders a Backstage entity reference as a clickable link button:
 ```tsx
 import { EntityLinkButton } from '@ansible/portal-plugin-sdk';
 
-<EntityLinkButton entityRef="component:default/my-service" />
+<EntityLinkButton entityRef="component:default/my-service" />;
 ```
 
 ### `ScmIntegrationAuthError`
@@ -102,11 +102,11 @@ function MyPluginPage() {
 
 **Returns:**
 
-| Field | Type | Description |
-|---|---|---|
-| `organizationId` | `string` | Derived from the user entity ref namespace. Falls back to `'default'`. |
-| `loading` | `boolean` | True while the identity API call is in-flight. |
-| `error` | `Error \| null` | Set if identity resolution fails. |
+| Field            | Type            | Description                                                            |
+| ---------------- | --------------- | ---------------------------------------------------------------------- |
+| `organizationId` | `string`        | Derived from the user entity ref namespace. Falls back to `'default'`. |
+| `loading`        | `boolean`       | True while the identity API call is in-flight.                         |
+| `error`          | `Error \| null` | Set if identity resolution fails.                                      |
 
 `organizationId` is the multi-tenancy key for all backend queries. Pass it to your API client instead of deriving it yourself.
 
@@ -126,11 +126,11 @@ function AdminOnlyButton() {
 
 **Returns:**
 
-| Field | Type | Description |
-|---|---|---|
-| `isSuperuser` | `boolean` | Whether the current user is an AAP superuser. |
-| `loading` | `boolean` | True while catalog lookup is in-flight. |
-| `error` | `Error \| null` | Set if the catalog lookup fails. Defaults to `false` on error. |
+| Field         | Type            | Description                                                    |
+| ------------- | --------------- | -------------------------------------------------------------- |
+| `isSuperuser` | `boolean`       | Whether the current user is an AAP superuser.                  |
+| `loading`     | `boolean`       | True while catalog lookup is in-flight.                        |
+| `error`       | `Error \| null` | Set if the catalog lookup fails. Defaults to `false` on error. |
 
 The hook retries once after a 3-second delay before setting the error state. If the catalog entity is not yet synced, check `error` and inform the user rather than treating them as a non-superuser.
 
@@ -173,12 +173,12 @@ Static sizing constants exported from `tokens.ts`. Use these for fixed values th
 import { PORTAL_TOKENS } from '@ansible/portal-plugin-sdk';
 
 // Spacing multipliers (MUI 8px base)
-PORTAL_TOKENS.spacing.page       // '24px' — page-level padding
-PORTAL_TOKENS.spacing.section    // '16px' — between sections
-PORTAL_TOKENS.spacing.card       // '12px' — card internal padding
+PORTAL_TOKENS.spacing.page; // '24px' — page-level padding
+PORTAL_TOKENS.spacing.section; // '16px' — between sections
+PORTAL_TOKENS.spacing.card; // '12px' — card internal padding
 
 // Border radii
-PORTAL_TOKENS.borderRadius.card  // '4px'
+PORTAL_TOKENS.borderRadius.card; // '4px'
 ```
 
 For **colour and theme-adaptive values**, use CSS custom properties injected by `ContributionWrapper` (from `@ansible/portal-extension-host`). See `docs/next/portal-sdk-design-tokens.md` for the full reference.
@@ -195,7 +195,7 @@ import {
 // Wrap your plugin in the notification provider:
 <NotificationContext>
   <MyPlugin />
-</NotificationContext>
+</NotificationContext>;
 
 // Push a notification from anywhere:
 const { push } = useNotifications();
@@ -220,7 +220,11 @@ function MyPage() {
 Common icons re-exported to avoid per-plugin icon imports:
 
 ```tsx
-import { AnsibleIcon, JobTemplateIcon, CollectionIcon } from '@ansible/portal-plugin-sdk';
+import {
+  AnsibleIcon,
+  JobTemplateIcon,
+  CollectionIcon,
+} from '@ansible/portal-plugin-sdk';
 ```
 
 ## Utils
@@ -228,7 +232,11 @@ import { AnsibleIcon, JobTemplateIcon, CollectionIcon } from '@ansible/portal-pl
 Shared utility functions:
 
 ```ts
-import { formatDuration, truncateText, parseEntityRef } from '@ansible/portal-plugin-sdk';
+import {
+  formatDuration,
+  truncateText,
+  parseEntityRef,
+} from '@ansible/portal-plugin-sdk';
 ```
 
 ## Peer dependencies

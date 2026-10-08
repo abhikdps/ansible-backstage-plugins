@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import {
   ExtensionTabContent,
   ExtensionCardContent,
@@ -21,6 +21,7 @@ jest.mock('@backstage/plugin-permission-react', () => ({
 
 const mockGetApi = jest.fn();
 jest.mock('@backstage/core-plugin-api', () => ({
+  ...jest.requireActual('@backstage/core-plugin-api'),
   useApiHolder: () => ({ get: mockGetApi }),
 }));
 
@@ -172,6 +173,7 @@ describe('ExtensionActionMenuItem', () => {
   beforeEach(() => {
     mockUsePermission.mockReturnValue({ loading: false, allowed: true });
     onMenuClose.mockClear();
+    mockGetApi.mockReturnValue(undefined);
   });
 
   it('renders the menu item label', () => {
@@ -197,7 +199,7 @@ describe('ExtensionActionMenuItem', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('calls onActivate and onMenuClose when clicked', () => {
+  it('calls onActivate and onMenuClose when clicked', async () => {
     const onActivate = jest.fn();
     render(
       <ExtensionActionMenuItem
@@ -207,6 +209,63 @@ describe('ExtensionActionMenuItem', () => {
       />,
     );
     fireEvent.click(screen.getByText('Run Action'));
-    expect(onMenuClose).toHaveBeenCalled();
+    await waitFor(() => expect(onMenuClose).toHaveBeenCalled());
+  });
+
+  it('reports a rejected operation without closing the menu', async () => {
+    const execute = jest.fn().mockRejectedValue(new Error('Scan denied'));
+    const post = jest.fn();
+    mockGetApi.mockImplementation(ref =>
+      ref.id === 'portal.operations' ? { execute } : { post },
+    );
+    render(
+      <ExtensionActionMenuItem
+        contribution={makeAction({
+          launches: { type: 'operation', operationId: 'apme.quality.scan' },
+        })}
+        entity={entity}
+        onMenuClose={onMenuClose}
+      />,
+    );
+    fireEvent.click(screen.getByText('Run Action'));
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith({
+        message: 'Scan denied',
+        severity: 'error',
+      }),
+    );
+    expect(onMenuClose).not.toHaveBeenCalled();
+  });
+
+  it('requires confirmation and prevents duplicate activation', async () => {
+    let resolve: () => void = () => {};
+    const onActivate = jest.fn(
+      () =>
+        new Promise<void>(done => {
+          resolve = done;
+        }),
+    );
+    render(
+      <ExtensionActionMenuItem
+        contribution={makeAction({
+          onActivate,
+          confirmation: {
+            title: 'Remove repository?',
+            message: 'Remove registration',
+            confirmLabel: 'Remove',
+          },
+        })}
+        entity={entity}
+        onMenuClose={onMenuClose}
+      />,
+    );
+    fireEvent.click(screen.getByText('Run Action'));
+    expect(onActivate).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('Remove'));
+    fireEvent.click(screen.getByText('Remove'));
+    expect(onActivate).toHaveBeenCalledTimes(1);
+    expect(onMenuClose).not.toHaveBeenCalled();
+    resolve();
+    await waitFor(() => expect(onMenuClose).toHaveBeenCalledTimes(1));
   });
 });

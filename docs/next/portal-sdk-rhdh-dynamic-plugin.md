@@ -52,7 +52,10 @@ This is the entry point RHDH calls when the plugin loads:
 
 ```ts
 // src/dynamic/index.ts
-import { registerManifest, registerGitRepoDetailTab } from '@ansible/portal-extension-api';
+import {
+  registerManifest,
+  registerGitRepoDetailTab,
+} from '@ansible/portal-extension-api';
 import { myPluginManifest } from '../manifest';
 import { TrustSignalsTab } from '../components/TrustSignalsTab';
 
@@ -214,6 +217,7 @@ The package is listed as a peer dependency but is not in `sharedPackages`. Add i
 ### "Manifest validation failed"
 
 Check the browser console for `[DynamicExtensionDiscovery]` error messages. The most common causes:
+
 - `capabilityId` contains spaces or uppercase
 - `experienceId` references an ID not in `EXPERIENCE_IDS`
 - `launch.type` is misspelled
@@ -233,14 +237,15 @@ test('my manifest is valid', () => {
 ### Health status shows "UNKNOWN"
 
 The backend plugin has not called `pushHealthStatus`. Check that:
+
 1. `createPortalPlugin({ pluginId: '...' })` is called with the correct `pluginId`
 2. `pushHealthStatus({ state: 'READY', ... })` is called in the `registerInit` callback after initialization
 3. `@ansible/portal-health-backend` is registered in `packages/backend/src/index.ts`
 
 ## Version compatibility
 
-| Portal SDK version | Backstage version | RHDH version |
-|---|---|---|
-| `0.x` (current PoC) | ^1.39.1 | 2.0+ |
+| Portal SDK version  | Backstage version | RHDH version |
+| ------------------- | ----------------- | ------------ |
+| `0.x` (current PoC) | ^1.39.1           | 2.0+         |
 
 The SDK packages follow semantic versioning. Shared package declarations in `dynamic-plugins.yaml` should pin to a minor version to prevent breaking changes from automatically deployed updates.

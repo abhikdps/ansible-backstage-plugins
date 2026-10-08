@@ -97,11 +97,19 @@ import { ExtensionActionMenuItem } from '@ansible/portal-extension-host';
 import { useExtensionActions } from '@ansible/portal-extension-api';
 
 function ActionsMenu({ entity }) {
-  const { isOpen, anchorEl, actions, handleClose } = useActionActivation('git-repo-detail', entity);
+  const { isOpen, anchorEl, actions, handleClose } = useActionActivation(
+    'git-repo-detail',
+    entity,
+  );
   return (
     <Menu open={isOpen} anchorEl={anchorEl}>
       {actions.map(action => (
-        <ExtensionActionMenuItem key={action.id} contribution={action} entity={entity} onClose={handleClose} />
+        <ExtensionActionMenuItem
+          key={action.id}
+          contribution={action}
+          entity={entity}
+          onClose={handleClose}
+        />
       ))}
     </Menu>
   );
@@ -160,12 +168,12 @@ import { PortalHealthStatus } from '@ansible/portal-extension-host';
 
 Renders a sortable MUI table with coloured status chips:
 
-| State | Colour | Meaning |
-|---|---|---|
-| `READY` | Green | Plugin initialized and healthy |
-| `DEGRADED` | Amber | Plugin running but with reduced functionality |
-| `UNAVAILABLE` | Red | Plugin failed to initialize |
-| `UNKNOWN` | Grey | Plugin has not reported yet |
+| State         | Colour | Meaning                                       |
+| ------------- | ------ | --------------------------------------------- |
+| `READY`       | Green  | Plugin initialized and healthy                |
+| `DEGRADED`    | Amber  | Plugin running but with reduced functionality |
+| `UNAVAILABLE` | Red    | Plugin failed to initialize                   |
+| `UNKNOWN`     | Grey   | Plugin has not reported yet                   |
 
 To use `usePortalHealthStatus` in a custom component:
 
@@ -209,15 +217,15 @@ const schema: JSONSchema7 = {
       body: JSON.stringify(data),
     });
   }}
-/>
+/>;
 ```
 
 Optional props:
 
-| Prop | Type | Default | Description |
-|---|---|---|---|
-| `uiSchema` | `Record<string, unknown>` | — | RJSF uiSchema for widget customisation |
-| `children` | `ReactNode` | — | Extra content rendered below the form |
+| Prop       | Type                      | Default | Description                            |
+| ---------- | ------------------------- | ------- | -------------------------------------- |
+| `uiSchema` | `Record<string, unknown>` | —       | RJSF uiSchema for widget customisation |
+| `children` | `ReactNode`               | —       | Extra content rendered below the form  |
 
 ### `ErrorBoundary`
 
@@ -228,7 +236,7 @@ import { ErrorBoundary } from '@ansible/portal-extension-host';
 
 <ErrorBoundary pluginId="my-plugin">
   <MyContributedComponent />
-</ErrorBoundary>
+</ErrorBoundary>;
 ```
 
 ### `validateManifest`

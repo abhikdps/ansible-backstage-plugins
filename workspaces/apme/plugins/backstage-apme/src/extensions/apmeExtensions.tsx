@@ -46,6 +46,7 @@
  */
 
 import { lazy } from 'react';
+import { apmeQualityScanPermission } from '@ansible/backstage-apme-common/operations';
 import type { Entity } from '@backstage/catalog-model';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
 import {
@@ -175,8 +176,8 @@ export function registerApmeExtensions(): void {
   });
 
   // ── Entity detail actions ────────────────────────────────────────────────
-  // The deregister overlay is rendered as a persistent overlay that survives
-  // menu close. The run-scan action triggers an operation via `launches`.
+  // The host owns confirmation and dispatch. Deregistration remains unavailable
+  // until the catalog registration lifecycle has a backend operation handler.
 
   registerGitRepoDetailAction({
     id: 'apme.deregister-action',
@@ -188,16 +189,20 @@ export function registerApmeExtensions(): void {
       type: 'operation',
       operationId: 'apme.repository.deregister',
     },
-    // onActivate: handled by the host via the operation launch above.
-    // The ApmeDeregisterRepositoryOverlay is registered as an overlay
-    // contribution in the manifest; the host mounts it from the catalog overlay slot.
-    onActivate: () => {
-      /* no-op: launch handled via `launches.operationId` */
+    confirmation: {
+      title: 'Remove repository?',
+      message:
+        'Remove this manually registered repository from the Portal catalog? This does not delete its Git repository.',
+      confirmLabel: 'Remove',
     },
+    filter: entity =>
+      entity.metadata.annotations?.['ansible.io/registration-method'] ===
+      'manual',
   });
 
   registerGitRepoDetailAction({
     id: 'apme.run-quality-scan-action',
+    permission: apmeQualityScanPermission,
     label: 'Run quality scan',
     variant: 'menu-item',
     priority: 20,
@@ -205,9 +210,6 @@ export function registerApmeExtensions(): void {
     launches: {
       type: 'operation',
       operationId: 'apme.quality.scan',
-    },
-    onActivate: () => {
-      /* no-op: launch handled via `launches.operationId` */
     },
   });
 

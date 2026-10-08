@@ -1,4 +1,5 @@
 import type { PluginManifest } from '@ansible/portal-extension-api';
+import { apmeQualityScanOperation } from '@ansible/backstage-apme-common/operations';
 import { EXPERIENCE_IDS, CONTENT_TYPES } from '@ansible/portal-extension-api';
 import {
   ansibleSettingsViewPermission,
@@ -267,6 +268,7 @@ export const apmeManifest: PluginManifest = {
   ],
 
   operations: [
+    apmeQualityScanOperation,
     {
       id: 'apme.repository.deregister',
       version: '1.0.0',

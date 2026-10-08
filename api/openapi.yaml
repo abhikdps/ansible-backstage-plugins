@@ -27,6 +27,8 @@ tags:
     description: Fetch file content and CI activity from GitHub/GitLab
   - name: Portal Health
     description: Portal plugin health aggregation (portal-health-backend)
+  - name: Portal Operations
+    description: Authenticated dispatch of registered Portal operations
   - name: APME
     description: Automation Platform Management Experience — quality scanning, settings, AI config, projects, suppressions
 
@@ -265,6 +267,70 @@ components:
 
 
 paths:
+  /{operationId}:
+    servers:
+      - url: /api/portal-operations
+    post:
+      operationId: executePortalOperation
+      summary: Execute a registered Portal operation
+      description: |
+        Dispatches an operation exposed for REST after checking its declared permission
+        and input schema. The handler resolves the catalog subject and applies its
+        resource and organization checks. Plugin URLs and project IDs are not subjects.
+        An accepted long-running operation can return a scan or job reference; HTTP 200
+        does not mean the job has completed. Unregistered operations return HTTP 404.
+      tags:
+        - Portal Operations
+      security:
+        - JWT: []
+      parameters:
+        - name: operationId
+          in: path
+          required: true
+          description: Registered operation ID, for example apme.quality.scan
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [subject]
+              properties:
+                subject:
+                  type: object
+                  additionalProperties: false
+                  required: [entityRef]
+                  properties:
+                    entityRef:
+                      type: string
+                      description: Catalog entity reference resolved by the operation handler
+                input:
+                  type: object
+                  description: Additional input validated against the registered operation schema
+      responses:
+        '200':
+          description: Operation handler result, potentially a pending job reference
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result: {}
+        '400':
+          description: Invalid subject or operation input
+        '401':
+          description: User authentication required
+        '403':
+          description: Operation or repository access denied
+        '404':
+          description: Operation or subject unavailable
+        '413':
+          description: Request exceeds the 64 KiB payload limit
+        '500':
+          description: Handler or output validation failure
   /health:
     get:
       operationId: getHealth

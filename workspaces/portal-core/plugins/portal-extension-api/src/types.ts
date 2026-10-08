@@ -91,6 +91,8 @@ export interface CardContribution {
 }
 
 export interface ActionContribution {
+  /** Host-owned confirmation; server effects still run through launches. */
+  confirmation?: { title: string; message: string; confirmLabel?: string };
   id: string;
   label: string;
   icon?: ComponentType;

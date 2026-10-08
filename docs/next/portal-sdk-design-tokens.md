@@ -27,18 +27,18 @@ When the host renders a contributed tab or card, it wraps the component in a `Co
 
 These 10 tokens are available in every contributed component:
 
-| CSS custom property | MUI source | Description |
-|---|---|---|
-| `--portal-color-primary` | `palette.primary.main` | Brand primary (Red Hat red) |
-| `--portal-color-primary-light` | `palette.primary.light` | Lightened primary for hover states |
-| `--portal-color-primary-dark` | `palette.primary.dark` | Darkened primary for active states |
-| `--portal-color-error` | `palette.error.main` | Error red |
-| `--portal-color-warning` | `palette.warning.main` | Warning amber |
-| `--portal-color-success` | `palette.success.main` | Success green |
-| `--portal-color-text-primary` | `palette.text.primary` | Primary text — high contrast |
-| `--portal-color-text-secondary` | `palette.text.secondary` | Secondary text — muted |
-| `--portal-color-background` | `palette.background.default` | Page background |
-| `--portal-color-surface` | `palette.background.paper` | Card / surface background |
+| CSS custom property             | MUI source                   | Description                        |
+| ------------------------------- | ---------------------------- | ---------------------------------- |
+| `--portal-color-primary`        | `palette.primary.main`       | Brand primary (Red Hat red)        |
+| `--portal-color-primary-light`  | `palette.primary.light`      | Lightened primary for hover states |
+| `--portal-color-primary-dark`   | `palette.primary.dark`       | Darkened primary for active states |
+| `--portal-color-error`          | `palette.error.main`         | Error red                          |
+| `--portal-color-warning`        | `palette.warning.main`       | Warning amber                      |
+| `--portal-color-success`        | `palette.success.main`       | Success green                      |
+| `--portal-color-text-primary`   | `palette.text.primary`       | Primary text — high contrast       |
+| `--portal-color-text-secondary` | `palette.text.secondary`     | Secondary text — muted             |
+| `--portal-color-background`     | `palette.background.default` | Page background                    |
+| `--portal-color-surface`        | `palette.background.paper`   | Card / surface background          |
 
 ## Using tokens in components
 
@@ -60,9 +60,7 @@ export function TrustSignalsCard() {
       <p style={{ color: 'var(--portal-color-text-secondary)' }}>
         Supply chain verification status
       </p>
-      <span style={{ color: 'var(--portal-color-success)' }}>
-        ✓ Verified
-      </span>
+      <span style={{ color: 'var(--portal-color-success)' }}>✓ Verified</span>
     </div>
   );
 }
@@ -114,13 +112,13 @@ function MyChartComponent() {
 
 ## Theme light / dark comparison
 
-| Token | Light theme (example) | Dark theme (example) |
-|---|---|---|
-| `--portal-color-primary` | `#ee0000` | `#ff4d4d` |
-| `--portal-color-background` | `#ffffff` | `#1b1b1b` |
-| `--portal-color-surface` | `#f5f5f5` | `#2c2c2c` |
-| `--portal-color-text-primary` | `rgba(0,0,0,0.87)` | `rgba(255,255,255,0.87)` |
-| `--portal-color-text-secondary` | `rgba(0,0,0,0.54)` | `rgba(255,255,255,0.60)` |
+| Token                           | Light theme (example) | Dark theme (example)     |
+| ------------------------------- | --------------------- | ------------------------ |
+| `--portal-color-primary`        | `#ee0000`             | `#ff4d4d`                |
+| `--portal-color-background`     | `#ffffff`             | `#1b1b1b`                |
+| `--portal-color-surface`        | `#f5f5f5`             | `#2c2c2c`                |
+| `--portal-color-text-primary`   | `rgba(0,0,0,0.87)`    | `rgba(255,255,255,0.87)` |
+| `--portal-color-text-secondary` | `rgba(0,0,0,0.54)`    | `rgba(255,255,255,0.60)` |
 
 Exact values depend on the Backstage theme configured in the host. The tokens always reflect the active theme — you do not need to implement your own dark mode toggle.
 
@@ -132,9 +130,9 @@ For fixed sizing values (spacing, border radii) that do not need to adapt to the
 import { PORTAL_TOKENS } from '@ansible/portal-plugin-sdk';
 
 // Use in inline styles or makeStyles:
-padding: PORTAL_TOKENS.spacing.card   // '12px'
-padding: PORTAL_TOKENS.spacing.page   // '24px'
-borderRadius: PORTAL_TOKENS.borderRadius.card  // '4px'
+padding: PORTAL_TOKENS.spacing.card; // '12px'
+padding: PORTAL_TOKENS.spacing.page; // '24px'
+borderRadius: PORTAL_TOKENS.borderRadius.card; // '4px'
 ```
 
 These are compile-time constants, not CSS custom properties, and do not change at runtime.
@@ -142,12 +140,14 @@ These are compile-time constants, not CSS custom properties, and do not change a
 ## Anti-patterns to avoid
 
 ❌ **Don't hardcode colours:**
+
 ```tsx
 // Wrong — breaks dark mode
 <div style={{ color: '#333333' }}>
 ```
 
 ❌ **Don't import MUI useTheme in contributed components:**
+
 ```tsx
 // Wrong — creates a MUI singleton dependency in the plugin bundle
 import { useTheme } from '@material-ui/core/styles';
@@ -158,12 +158,14 @@ const { palette } = useTheme();
 Backstage's unified theme is configured by the host app. Plugins should consume the host's theme via tokens, not re-configure it.
 
 ✅ **Do use CSS custom properties:**
+
 ```tsx
 // Correct — theme-adaptive, no import needed
 <div style={{ color: 'var(--portal-color-text-primary)' }}>
 ```
 
 ✅ **Do use static tokens for sizing:**
+
 ```tsx
 import { PORTAL_TOKENS } from '@ansible/portal-plugin-sdk';
 <div style={{ padding: PORTAL_TOKENS.spacing.card }}>

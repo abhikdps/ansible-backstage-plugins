@@ -42,11 +42,11 @@ registerGitRepoDetailTab({
 
 Available registration helpers:
 
-| Helper | Registers |
-|---|---|
-| `registerManifest(manifest)` | Full `PluginManifest` with the registry |
-| `registerGitRepoDetailTab(contribution)` | Tab on the Git Repository detail page |
-| `registerGitRepoDetailCard(contribution)` | Card on the Git Repository detail page |
+| Helper                                    | Registers                               |
+| ----------------------------------------- | --------------------------------------- |
+| `registerManifest(manifest)`              | Full `PluginManifest` with the registry |
+| `registerGitRepoDetailTab(contribution)`  | Tab on the Git Repository detail page   |
+| `registerGitRepoDetailCard(contribution)` | Card on the Git Repository detail page  |
 
 ### React Hooks
 
@@ -62,10 +62,10 @@ function MyHostComponent() {
 }
 ```
 
-| Hook | Returns |
-|---|---|
-| `useExtensionTabs(experienceId)` | `TabContribution[]` for the given experience |
-| `useExtensionCards(experienceId)` | `CardContribution[]` for the given experience |
+| Hook                                | Returns                                         |
+| ----------------------------------- | ----------------------------------------------- |
+| `useExtensionTabs(experienceId)`    | `TabContribution[]` for the given experience    |
+| `useExtensionCards(experienceId)`   | `CardContribution[]` for the given experience   |
 | `useExtensionActions(experienceId)` | `ActionContribution[]` for the given experience |
 
 ### `ContributionRegistry`
@@ -109,11 +109,15 @@ All types from `@ansible/portal-extension-common` are re-exported here — no ne
 ## Extension point constants
 
 ```ts
-import { EXTENSION_POINTS, EXPERIENCE_IDS, CONTENT_TYPES } from '@ansible/portal-extension-api';
+import {
+  EXTENSION_POINTS,
+  EXPERIENCE_IDS,
+  CONTENT_TYPES,
+} from '@ansible/portal-extension-api';
 
-EXTENSION_POINTS.GIT_REPO_DETAIL_TAB   // 'git-repo-detail.tab'
-EXPERIENCE_IDS.GIT_REPO_DETAIL         // 'git-repo-detail'
-CONTENT_TYPES.GIT_REPOSITORY           // 'git-repository'
+EXTENSION_POINTS.GIT_REPO_DETAIL_TAB; // 'git-repo-detail.tab'
+EXPERIENCE_IDS.GIT_REPO_DETAIL; // 'git-repo-detail'
+CONTENT_TYPES.GIT_REPOSITORY; // 'git-repository'
 ```
 
 ## Contribution types
@@ -122,8 +126,8 @@ CONTENT_TYPES.GIT_REPOSITORY           // 'git-repository'
 
 ```ts
 interface TabContribution {
-  id: string;          // Unique stable ID, e.g. 'my-plugin.trust-signals'
-  label: string;       // Tab label shown in the UI
+  id: string; // Unique stable ID, e.g. 'my-plugin.trust-signals'
+  label: string; // Tab label shown in the UI
   component: ComponentType<ActionContext>;
   icon?: ComponentType;
 }
@@ -145,9 +149,9 @@ Context object passed to every contributed component as props:
 
 ```ts
 interface ActionContext {
-  entity: Entity;           // The Backstage catalog entity for this page
-  entityRef: string;        // Compact entity reference string
-  organizationId?: string;  // Org ID derived from the entity namespace
+  entity: Entity; // The Backstage catalog entity for this page
+  entityRef: string; // Compact entity reference string
+  organizationId?: string; // Org ID derived from the entity namespace
 }
 ```
 

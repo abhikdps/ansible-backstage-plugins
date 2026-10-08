@@ -26,6 +26,8 @@ export type {
   CapabilityLaunch,
 } from './launch';
 
+export type { OperationRequest, OperationResponse } from './operations';
+
 export type {
   PermissionRequirement,
   ContentPredicate,

@@ -45,3 +45,4 @@ export {
   validateManifest,
   type ManifestValidationResult,
 } from './validateManifest';
+export { ExtensionActionMenu } from './ExtensionActionMenu';

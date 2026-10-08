@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Box, Button, Typography, Tab, Tabs, Menu } from '@material-ui/core';
+import { Box, Button, Typography, Tab, Tabs } from '@material-ui/core';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import { Entity } from '@backstage/catalog-model';
@@ -29,7 +29,7 @@ import {
 import {
   ExtensionTabContent,
   ExtensionCardContent,
-  ExtensionActionMenuItem,
+  ExtensionActionMenu,
 } from '../../extensions/ExtensionRenderer';
 import { RepositoryBreadcrumbs } from './RepositoryBreadcrumbs';
 import { RepositoryAboutCard } from './RepositoryAboutCard';
@@ -389,20 +389,12 @@ const RepositoryDetailsPageInner = () => {
             >
               Actions
             </Button>
-            <Menu
+            <ExtensionActionMenu
               anchorEl={actionsAnchorEl}
-              open={Boolean(actionsAnchorEl)}
+              contributions={extensionActions}
+              entity={entity as Entity}
               onClose={() => setActionsAnchorEl(null)}
-            >
-              {extensionActions.map(ea => (
-                <ExtensionActionMenuItem
-                  key={ea.id}
-                  contribution={ea}
-                  entity={entity as Entity}
-                  onMenuClose={() => setActionsAnchorEl(null)}
-                />
-              ))}
-            </Menu>
+            />
           </>
         )}
       </Box>

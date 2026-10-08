@@ -37,6 +37,8 @@ export { AuditEmitter } from './auditEmitter';
 
 // ── Org-keyed DB helper ────────────────────────────────────────────────────────
 export { withOrganization } from './withOrganization';
+export { PortalOperations, portalOperationsServiceRef } from './operations';
+export type { OperationContext, OperationRegistration } from './operations';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type {
