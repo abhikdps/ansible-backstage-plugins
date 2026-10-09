@@ -1,5 +1,9 @@
 import type { Entity } from '@backstage/catalog-model';
-import { stringifyEntityRef } from '@backstage/catalog-model';
+import {
+  ANNOTATION_LOCATION,
+  ANNOTATION_ORIGIN_LOCATION,
+  stringifyEntityRef,
+} from '@backstage/catalog-model';
 import type {
   EntityProvider,
   EntityProviderConnection,
@@ -38,9 +42,27 @@ export class ManualGitRepositoryProvider implements EntityProvider {
   }
 
   async registerRepository(entity: Entity): Promise<void> {
-    await this.validate(entity).applyMutation({
+    const connection = this.validate(entity);
+    // Provider ownership and catalog processing provenance are separate contracts.
+    // Never inherit provenance from template input or pretend the Git URL is a
+    // catalog descriptor: this provider, not catalog-info.yaml, supplies the entity.
+    const location = `apme-manual:${this.getProviderName()}`;
+    const registeredEntity: Entity = {
+      ...entity,
+      metadata: {
+        ...entity.metadata,
+        annotations: {
+          ...entity.metadata.annotations,
+          [ANNOTATION_LOCATION]: location,
+          [ANNOTATION_ORIGIN_LOCATION]: location,
+        },
+      },
+    };
+    await connection.applyMutation({
       type: 'delta',
-      added: [{ entity, locationKey: this.getProviderName() }],
+      added: [
+        { entity: registeredEntity, locationKey: this.getProviderName() },
+      ],
       removed: [],
     });
     this.stopped.delete(stringifyEntityRef(entity));

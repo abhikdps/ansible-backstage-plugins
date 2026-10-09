@@ -102,7 +102,7 @@ describe('manual registration router', () => {
       createClient: async () => ({ repositoryExists }),
     }));
   });
-  it('derives scope and owner from identity and strips processing annotations', async () => {
+  it('derives scope and owner from identity and replaces untrusted provenance', async () => {
     const response = await request(await app())
       .post('/apme/repositories')
       .send({ entity });
@@ -115,7 +115,12 @@ describe('manual registration router', () => {
     expect(registered.spec.owner).toBe('user:acme/alice');
     expect(
       registered.metadata.annotations['backstage.io/managed-by-location'],
-    ).toBeUndefined();
+    ).toBe('apme-manual:ManualGitRepositoryProvider');
+    expect(
+      registered.metadata.annotations[
+        'backstage.io/managed-by-origin-location'
+      ],
+    ).toBe('apme-manual:ManualGitRepositoryProvider');
     expect(httpAuth.credentials).toHaveBeenCalledWith(expect.anything(), {
       allow: ['user'],
     });

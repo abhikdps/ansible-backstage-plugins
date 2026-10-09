@@ -20,8 +20,7 @@ export type ParsedGitHubComRepo = {
 };
 
 export type ParseGitHubComRepoResult =
-  | { ok: true; value: ParsedGitHubComRepo }
-  | { ok: false; error: string };
+  { ok: true; value: ParsedGitHubComRepo } | { ok: false; error: string };
 
 const GITHUB_HOST = 'github.com';
 

@@ -1,4 +1,5 @@
 import type { Entity } from '@backstage/catalog-model';
+import { parseLocationRef } from '@backstage/catalog-model';
 import type { EntityProviderConnection } from '@backstage/plugin-catalog-node';
 import { ManualGitRepositoryProvider } from './ManualGitRepositoryProvider';
 
@@ -21,6 +22,46 @@ describe('manual repository lifecycle', () => {
     await provider.connect({
       applyMutation,
     } as unknown as EntityProviderConnection);
+  });
+  it('adds trusted, parseable processing provenance without mutating the input', async () => {
+    const submitted: Entity = {
+      ...entity,
+      metadata: {
+        ...entity.metadata,
+        annotations: {
+          ...entity.metadata.annotations,
+          'backstage.io/managed-by-location':
+            'url:https://evil.example/catalog-info.yaml',
+          'backstage.io/managed-by-origin-location':
+            'url:https://evil.example/origin.yaml',
+          'backstage.io/source-location': 'url:https://github.com/acme/repo',
+          'backstage.io/view-url': 'https://github.com/acme/repo',
+        },
+      },
+    };
+    await provider.registerRepository(submitted);
+    const added = applyMutation.mock.calls[0][0].added[0];
+    expect(added.locationKey).toBe('ManualGitRepositoryProvider');
+    const annotations = added.entity.metadata.annotations;
+    for (const key of [
+      'backstage.io/managed-by-location',
+      'backstage.io/managed-by-origin-location',
+    ]) {
+      expect(annotations[key]).toBe('apme-manual:ManualGitRepositoryProvider');
+      expect(parseLocationRef(annotations[key])).toEqual({
+        type: 'apme-manual',
+        target: 'ManualGitRepositoryProvider',
+      });
+    }
+    expect(annotations['backstage.io/source-location']).toBe(
+      'url:https://github.com/acme/repo',
+    );
+    expect(annotations['backstage.io/view-url']).toBe(
+      'https://github.com/acme/repo',
+    );
+    expect(
+      submitted.metadata.annotations?.['backstage.io/managed-by-location'],
+    ).toBe('url:https://evil.example/catalog-info.yaml');
   });
   it('removes only its provider entry and supports re-registration', async () => {
     await provider.registerRepository(entity);

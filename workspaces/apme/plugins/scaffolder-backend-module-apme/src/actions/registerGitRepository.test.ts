@@ -32,7 +32,7 @@ describe('registerGitRepository action adapter', () => {
       logger: mockServices.logger.mock(),
       output: jest.fn(),
       getInitiatorCredentials: jest.fn().mockResolvedValue(credentials),
-    } as any);
+    }) as any;
   beforeEach(() => {
     jest.resetAllMocks();
     auth.isPrincipal.mockReturnValue(true);

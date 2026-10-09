@@ -96,7 +96,10 @@ describe('repository registration operation', () => {
       expect(entity.metadata.namespace).toBe(context.organizationId);
       expect(
         entity.metadata.annotations['backstage.io/managed-by-location'],
-      ).toBeUndefined();
+      ).toBe('apme-manual:ManualGitRepositoryProvider');
+      expect(
+        entity.metadata.annotations['backstage.io/managed-by-origin-location'],
+      ).toBe('apme-manual:ManualGitRepositoryProvider');
       expect(JSON.stringify(logger.info.mock.calls)).not.toContain(input.token);
     },
   );
