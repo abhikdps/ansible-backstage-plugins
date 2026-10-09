@@ -85,3 +85,9 @@ export {
 
 // ── Convenience registration helpers ─────────────────────────────────────────
 export * from './helpers';
+export {
+  registerScaffolderField,
+  mergeScaffolderFields,
+  useScaffolderFields,
+} from './scaffolderFields';
+export type { ScaffolderFieldContribution } from './scaffolderFields';

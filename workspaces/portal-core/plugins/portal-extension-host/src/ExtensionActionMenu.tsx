@@ -18,11 +18,13 @@ export function ExtensionActionMenu({
   entity,
   anchorEl,
   onClose,
+  onSuccess,
 }: {
   contributions: ActionContribution[];
   entity: Entity;
   anchorEl: HTMLElement | null;
   onClose(): void;
+  onSuccess?: (result: unknown) => void;
 }) {
   const [confirmation, setConfirmation] = useState<{
     contribution: ActionContribution;
@@ -51,6 +53,7 @@ export function ExtensionActionMenu({
             contribution={contribution}
             entity={entity}
             onMenuClose={onClose}
+            onSuccess={onSuccess}
             onRequestConfirmation={execute => {
               setConfirmation({ contribution, execute });
               onClose();

@@ -29,7 +29,7 @@ describe('useDeregisterRepository', () => {
   const mockFetch = jest.fn();
   const mockGetBaseUrl = jest
     .fn()
-    .mockResolvedValue('http://localhost:7007/api/catalog');
+    .mockResolvedValue('http://localhost:7007/api/portal-operations');
 
   const wrapper = ({ children }: { children: ReactNode }) => (
     <TestApiProvider
@@ -46,7 +46,7 @@ describe('useDeregisterRepository', () => {
     jest.clearAllMocks();
   });
 
-  it('calls DELETE with only entityRef and resolves on success', async () => {
+  it('calls the deregistration operation with a subject and resolves on success', async () => {
     mockFetch.mockResolvedValueOnce({ ok: true });
 
     const { result } = renderHook(() => useDeregisterRepository(manualEntity), {
@@ -58,12 +58,14 @@ describe('useDeregisterRepository', () => {
     });
 
     expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:7007/api/catalog/ansible/git-repository',
+      'http://localhost:7007/api/portal-operations/apme.repository.deregister',
       expect.objectContaining({
-        method: 'DELETE',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          entityRef: 'component:default/test-org-test-repo-github-manual',
+          subject: {
+            entityRef: 'component:default/test-org-test-repo-github-manual',
+          },
         }),
       }),
     );
@@ -110,6 +112,27 @@ describe('useDeregisterRepository', () => {
     });
 
     expect(result.current.error?.message).toBe('plain text error');
+  });
+  it('reads Backstage serialized operation errors', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      text: async () =>
+        JSON.stringify({
+          error: {
+            name: 'NotAllowedError',
+            message: 'Repository access denied',
+          },
+        }),
+      statusText: 'Forbidden',
+    });
+    const { result } = renderHook(() => useDeregisterRepository(manualEntity), {
+      wrapper,
+    });
+    await act(async () => {
+      await expect(result.current.deregister()).rejects.toThrow(
+        'Repository access denied',
+      );
+    });
   });
 });
 

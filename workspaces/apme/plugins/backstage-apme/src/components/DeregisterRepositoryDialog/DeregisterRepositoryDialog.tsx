@@ -93,8 +93,10 @@ export const DeregisterRepositoryDialog = ({
         </DialogContentText>
         <DialogContentText style={{ marginTop: 16 }}>
           This will remove the repository registration from the portal. The
-          underlying Git repository will not be affected. You can re-register it
-          later if needed.
+          underlying Git repository, APME project, and scan history will not be
+          affected. Portal-driven tracking stops; independently configured APME
+          schedules are unchanged. Work already started may finish. You can
+          re-register it later if needed.
         </DialogContentText>
         {error && (
           <Alert severity="error" style={{ marginTop: 16 }}>

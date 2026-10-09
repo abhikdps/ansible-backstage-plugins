@@ -16,7 +16,7 @@ import {
   defaultBranchFromEntity,
   normalizeRepoUrlFromEntity,
 } from '@ansible/backstage-rhaap-common/catalogEntity';
-import { gitRepositoriesViewPermission } from '@ansible/backstage-rhaap-common/permissions';
+import { apmeRepositoryDeregisterPermission } from '@ansible/backstage-apme-common/operations';
 import { useApmeEnabled } from '../../hooks/useApmeEnabled';
 import { useNavigateToRepositoryQualityTab } from '../../hooks/useNavigateToRepositoryQualityTab';
 import { isManuallyRegisteredRepository } from '../../hooks/useDeregisterRepository';
@@ -48,7 +48,7 @@ export const ApmeRepositoryHeaderActions = ({
     config.getOptionalBoolean('permission.enabled');
   const { loading: deletePermissionLoading, allowed: canDeleteGitRepo } =
     usePermission({
-      permission: gitRepositoriesViewPermission,
+      permission: apmeRepositoryDeregisterPermission,
     });
 
   const repoUrl = context.repoUrl ?? normalizeRepoUrlFromEntity(context.entity);

@@ -4,15 +4,21 @@ import { AuthorizeResult } from '@backstage/plugin-permission-common';
 import type { IApmeService } from '@ansible/backstage-apme-common';
 import { PortalOperations } from '@ansible/portal-plugin-node';
 import { registerApmeOperations } from './operations';
+import { ManualGitRepositoryProvider } from './providers/ManualGitRepositoryProvider';
+import type { EntityProviderConnection } from '@backstage/plugin-catalog-node';
 
 describe('APME scan operation', () => {
   const getEntityByRef = jest.fn();
   const getProjectByRepoUrl = jest.fn();
   const triggerScan = jest.fn();
+  const applyMutation = jest.fn();
+  const deleteProject = jest.fn();
+  let manualProvider: ManualGitRepositoryProvider;
   const permissions = mockServices.permissions.mock();
   const registry = () => {
     const operations = new PortalOperations(mockServices.logger.mock());
     registerApmeOperations({
+      manualProvider,
       operations,
       permissions,
       auth: mockServices.auth(),
@@ -20,6 +26,7 @@ describe('APME scan operation', () => {
       apmeService: {
         getProjectByRepoUrl,
         triggerScan,
+        deleteProject,
       } as unknown as IApmeService,
       resolveScanVersion: async () => '2.16',
       resolveEnableAi: async () => false,
@@ -48,14 +55,103 @@ describe('APME scan operation', () => {
     },
     spec: { type: 'git-repository', repository_default_branch: 'main' },
   };
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
+    manualProvider = new ManualGitRepositoryProvider();
+    await manualProvider.connect({
+      applyMutation,
+    } as unknown as EntityProviderConnection);
     permissions.authorize.mockResolvedValue([
       { result: AuthorizeResult.ALLOW },
     ]);
     getEntityByRef.mockResolvedValue(entity);
     getProjectByRepoUrl.mockResolvedValue({ id: 'trusted-project' });
     triggerScan.mockResolvedValue({ scanId: 'scan-1', status: 'pending' });
+  });
+  const manualEntity = {
+    ...entity,
+    metadata: {
+      ...entity.metadata,
+      annotations: {
+        ...entity.metadata.annotations,
+        'ansible.io/registration-method': 'manual',
+      },
+    },
+  };
+  it('deregisters only the Portal provider entry and preserves gateway data', async () => {
+    getEntityByRef.mockResolvedValue(manualEntity);
+    await expect(
+      registry().execute(
+        'apme.repository.deregister',
+        { subject },
+        context,
+        permissions,
+      ),
+    ).resolves.toEqual({ entityRef: subject.entityRef, subjectRemoved: true });
+    expect(applyMutation).toHaveBeenCalledWith({
+      type: 'delta',
+      added: [],
+      removed: [
+        { entity: manualEntity, locationKey: 'ManualGitRepositoryProvider' },
+      ],
+    });
+    expect(deleteProject).not.toHaveBeenCalled();
+    expect(triggerScan).not.toHaveBeenCalled();
+  });
+  it('requires deregistration permission before catalog lookup', async () => {
+    permissions.authorize.mockResolvedValue([{ result: AuthorizeResult.DENY }]);
+    await expect(
+      registry().execute(
+        'apme.repository.deregister',
+        { subject },
+        context,
+        permissions,
+      ),
+    ).rejects.toThrow();
+    expect(getEntityByRef).not.toHaveBeenCalled();
+    expect(applyMutation).not.toHaveBeenCalled();
+  });
+  it('rejects crawler-owned and cross-organization deregistration', async () => {
+    await expect(
+      registry().execute(
+        'apme.repository.deregister',
+        { subject },
+        context,
+        permissions,
+      ),
+    ).rejects.toThrow('manually');
+    getEntityByRef.mockResolvedValue({
+      ...manualEntity,
+      metadata: { ...manualEntity.metadata, namespace: 'other' },
+    });
+    await expect(
+      registry().execute(
+        'apme.repository.deregister',
+        { subject },
+        context,
+        permissions,
+      ),
+    ).rejects.toThrow('organization');
+    expect(applyMutation).not.toHaveBeenCalled();
+  });
+  it('rejects scan requests against stale catalog data after removal', async () => {
+    getEntityByRef.mockResolvedValue(manualEntity);
+    const operations = registry();
+    await operations.execute(
+      'apme.repository.deregister',
+      { subject },
+      context,
+      permissions,
+    );
+    await expect(
+      operations.execute(
+        'apme.quality.scan',
+        { subject },
+        context,
+        permissions,
+      ),
+    ).rejects.toThrow('no longer tracked');
+    expect(triggerScan).not.toHaveBeenCalled();
   });
   it('resolves the project from authoritative catalog data and forwards identity', async () => {
     await expect(

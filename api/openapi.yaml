@@ -1174,6 +1174,45 @@ paths:
                       type: string
                   additionalProperties: false
 
+  /apme/repositories:
+    post:
+      operationId: registerApmeRepository
+      summary: Register an existing repository in the Portal catalog
+      description: Requires a user identity and repository registration permission. The authenticated namespace determines organization scope; APME projects and Git repositories are not created.
+      tags:
+        - APME
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entity]
+              properties:
+                entity:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '201':
+          description: Repository registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  entityRef:
+                    type: string
+        '400':
+          description: Invalid manual repository or SCM URL
+        '401':
+          description: User authentication required
+        '403':
+          description: Repository registration denied
+        '409':
+          description: Repository already registered
+
   /apme/health:
     get:
       operationId: getApmeHealth

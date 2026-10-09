@@ -40,6 +40,7 @@ export interface ApmeCatalogSyncTaskOptions {
   resolveScanVersion?: (projectId: string) => Promise<string>;
   /** Portal settings enableAi (defaults false when unset). */
   resolveEnableAi?: () => Promise<boolean>;
+  shouldTrackEntity?: (entity: Entity) => boolean;
 }
 
 async function getCatalogEntities(
@@ -87,7 +88,9 @@ export async function runApmeCatalogSyncBatch(
   try {
     entities = await getCatalogEntities(catalogClient, auth);
   } catch (error) {
-    const message = `Failed to read catalog entities: ${(error as Error).message}`;
+    const message = `Failed to read catalog entities: ${
+      (error as Error).message
+    }`;
     logger.error(message);
     summary.errors.push(message);
     return summary;
@@ -104,6 +107,10 @@ export async function runApmeCatalogSyncBatch(
   summary.nextOffset = nextOffset;
 
   for (const entity of batch) {
+    if (options.shouldTrackEntity?.(entity) === false) {
+      summary.skipped += 1;
+      continue;
+    }
     const request = createProjectRequestFromEntity(entity);
     if (!request) {
       summary.skipped += 1;
@@ -118,6 +125,10 @@ export async function runApmeCatalogSyncBatch(
         request.repo_url,
         request.branch,
       );
+      if (options.shouldTrackEntity?.(entity) === false) {
+        summary.skipped += 1;
+        continue;
+      }
       const project = existing
         ? existing
         : await registerOrResolveApmeProject(apmeService, request);
@@ -130,6 +141,10 @@ export async function runApmeCatalogSyncBatch(
           ? await resolveScanVersion(project.id)
           : undefined;
         const enableAi = resolveEnableAi ? await resolveEnableAi() : undefined;
+        if (options.shouldTrackEntity?.(entity) === false) {
+          summary.skipped += 1;
+          continue;
+        }
         await apmeService.triggerScan(project.id, {
           ansibleVersion,
           ...(enableAi !== undefined ? { enableAi } : {}),
@@ -137,14 +152,20 @@ export async function runApmeCatalogSyncBatch(
         summary.scanned += 1;
       }
     } catch (error) {
-      const message = `Failed to sync ${request.repo_url}: ${(error as Error).message}`;
+      const message = `Failed to sync ${request.repo_url}: ${
+        (error as Error).message
+      }`;
       logger.warn(message);
       summary.errors.push(message);
     }
   }
 
   logger.info(
-    `APME catalog sync (${syncConfig.env}): registered=${summary.registered}, scanned=${summary.scanned}, skipped=${summary.skipped}, remaining=${summary.remaining ?? 0}`,
+    `APME catalog sync (${syncConfig.env}): registered=${
+      summary.registered
+    }, scanned=${summary.scanned}, skipped=${summary.skipped}, remaining=${
+      summary.remaining ?? 0
+    }`,
   );
 
   return summary;

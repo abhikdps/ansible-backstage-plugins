@@ -46,7 +46,11 @@
  */
 
 import { lazy } from 'react';
-import { apmeQualityScanPermission } from '@ansible/backstage-apme-common/operations';
+import {
+  apmeQualityScanPermission,
+  apmeRepositoryDeregisterPermission,
+  apmeRepositoryRegisterPermission,
+} from '@ansible/backstage-apme-common/operations';
 import type { Entity } from '@backstage/catalog-model';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
 import {
@@ -54,9 +58,13 @@ import {
   registerGitRepoDetailCard,
   registerGitRepoDetailAction,
   registerGitRepoListAction,
+  registerScaffolderField,
   CONTENT_TYPES,
 } from '@ansible/portal-extension-api';
 import { normalizeRepoUrlFromEntity } from '@ansible/backstage-rhaap-common/catalogEntity';
+import { GitHubRepoUrlFieldExtension } from '../components/Scaffolder/GitHubRepoUrlField/GitHubRepoUrlFieldExtension';
+import { GitHubRepoUrlFieldFieldSchema } from '../components/Scaffolder/GitHubRepoUrlField/schema';
+import { githubRepoUrlValidation } from '../components/Scaffolder/GitHubRepoUrlField/validation';
 
 // ── Lazy component imports ────────────────────────────────────────────────────
 // Each import is lazy so APME's bundle only loads when the user navigates to a
@@ -113,6 +121,17 @@ function buildTabContext(entity: Entity) {
  * call, so calling this function more than once is safe.
  */
 export function registerApmeExtensions(): void {
+  registerScaffolderField({
+    id: 'apme.github-repo-url-field',
+    pluginId: 'apme',
+    enabledByConfig: 'ansible.apme.enabled',
+    field: {
+      name: 'GitHubRepoUrlField',
+      component: GitHubRepoUrlFieldExtension,
+      schema: GitHubRepoUrlFieldFieldSchema,
+      validation: githubRepoUrlValidation,
+    },
+  });
   // ── Entity detail tabs ──────────────────────────────────────────────────
 
   registerGitRepoDetailTab({
@@ -176,11 +195,11 @@ export function registerApmeExtensions(): void {
   });
 
   // ── Entity detail actions ────────────────────────────────────────────────
-  // The host owns confirmation and dispatch. Deregistration remains unavailable
-  // until the catalog registration lifecycle has a backend operation handler.
+  // The host owns confirmation and dispatch; APME owns the lifecycle handler.
 
   registerGitRepoDetailAction({
     id: 'apme.deregister-action',
+    permission: apmeRepositoryDeregisterPermission,
     label: 'Deregister repository',
     variant: 'menu-item',
     priority: 10,
@@ -192,7 +211,7 @@ export function registerApmeExtensions(): void {
     confirmation: {
       title: 'Remove repository?',
       message:
-        'Remove this manually registered repository from the Portal catalog? This does not delete its Git repository.',
+        'Remove this manually registered repository from the Portal catalog and stop Portal-driven tracking? Git and APME projects and scan history are preserved. Independently configured APME schedules are unchanged. Work already started may finish. You can re-register later.',
       confirmLabel: 'Remove',
     },
     filter: entity =>
@@ -218,6 +237,7 @@ export function registerApmeExtensions(): void {
   // navigating users to the scaffolder template that registers a repo with APME.
   registerGitRepoListAction({
     id: 'apme.register-repository',
+    permission: apmeRepositoryRegisterPermission,
     label: 'Add repository',
     to: '/self-service/create/templates/default/apme-register-git-repository',
     priority: 10,

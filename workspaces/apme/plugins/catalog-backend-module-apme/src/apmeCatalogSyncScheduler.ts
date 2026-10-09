@@ -21,6 +21,7 @@ import {
 } from '@backstage/backend-plugin-api';
 import { CatalogClient } from '@backstage/catalog-client';
 import { Config } from '@backstage/config';
+import type { Entity } from '@backstage/catalog-model';
 import {
   IApmeService,
   isApmeMockMode,
@@ -46,6 +47,7 @@ export interface RegisterApmeCatalogSyncTasksOptions {
   onSyncError?: (env: string, err: Error) => void;
   /** Called on the first successful sync run after a previous failure. */
   onSyncRecovered?: (env: string) => void;
+  shouldTrackEntity?: (entity: Entity) => boolean;
 }
 
 /** Registers scheduled bulk-sync tasks for each enabled ansibleGitContents.apme block. */
@@ -103,6 +105,7 @@ export function registerApmeCatalogSyncTasks(
             logger: taskLogger,
             syncConfig,
             offset,
+            shouldTrackEntity: options.shouldTrackEntity,
             resolveScanVersion,
             resolveEnableAi,
           });
@@ -126,7 +129,9 @@ export function registerApmeCatalogSyncTasks(
     });
 
     taskLogger.info(
-      `Registered APME catalog bulk sync for env=${syncConfig.env} (maxPerRun=${syncConfig.maxPerRun}, orgs=${syncConfig.orgs.map(o => o.organization).join(', ')})`,
+      `Registered APME catalog bulk sync for env=${syncConfig.env} (maxPerRun=${
+        syncConfig.maxPerRun
+      }, orgs=${syncConfig.orgs.map(o => o.organization).join(', ')})`,
     );
   }
 }

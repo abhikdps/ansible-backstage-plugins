@@ -2,11 +2,14 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 // ✅ 1. Mock dependencies BEFORE importing StepForm
 const mockGetAccessToken = jest.fn().mockResolvedValue('mock-token');
+let mockDiscoveredFields: any[] = [];
+let mockOutletFields: any[] = [];
 
 jest.mock('@backstage/core-plugin-api', () => ({
   useApi: jest.fn(() => ({
     getAccessToken: mockGetAccessToken,
   })),
+  useApiHolder: jest.fn(() => ({})),
   createApiRef: jest.fn(),
   createRouteRef: jest.fn(),
   attachComponentData: jest.fn(),
@@ -18,6 +21,7 @@ jest.mock('@backstage/plugin-scaffolder', () => ({
 
 // Mock plugin-scaffolder-react
 jest.mock('@backstage/plugin-scaffolder-react', () => ({
+  useCustomFieldExtensions: () => mockOutletFields,
   SecretsContextProvider: ({ children }: { children?: React.ReactNode }) => (
     <div>{children}</div>
   ),
@@ -28,6 +32,13 @@ jest.mock('@backstage/plugin-scaffolder-react', () => ({
     secrets: { USER_OAUTH_TOKEN: 'mock-oauth-token' },
     setSecrets: jest.fn(),
   }),
+}));
+jest.mock('@ansible/portal-extension-api', () => ({
+  useScaffolderFields: () => mockDiscoveredFields,
+  mergeScaffolderFields: (host: unknown[], discovered: unknown[]) => [
+    ...discovered,
+    ...host,
+  ],
 }));
 
 jest.mock('../../apis', () => ({
@@ -83,10 +94,90 @@ const createScaffolderFormMock = (formData: any) => {
 describe('StepForm', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockDiscoveredFields = [];
+    mockOutletFields = [];
     mockGetAccessToken.mockResolvedValue('mock-token');
   });
 
   const submitFunction = jest.fn().mockResolvedValue(undefined);
+
+  describe('third-party fields', () => {
+    it('merges Portal and stock-registry fields without overriding host names', () => {
+      const pluginField = () => <div>Plugin field</div>;
+      const stockField = () => <div>Stock field</div>;
+      mockDiscoveredFields = [
+        { name: 'PluginField', component: pluginField },
+        { name: 'MockField', component: pluginField },
+      ];
+      mockOutletFields = [{ name: 'StockField', component: stockField }];
+      let captured: any;
+      const spy = jest
+        .spyOn(require('./ScaffolderFormWrapper'), 'ScaffolderForm')
+        .mockImplementation((props: any) => {
+          captured = props;
+          return <div />;
+        });
+      render(
+        <StepForm
+          steps={[
+            {
+              title: 'Fields',
+              schema: {
+                properties: {
+                  name: { type: 'string', 'ui:field': 'PluginField' },
+                },
+              },
+            },
+          ]}
+          submitFunction={submitFunction}
+        />,
+      );
+      expect(captured.fields.PluginField).toBe(pluginField);
+      expect(captured.fields.StockField).toBe(stockField);
+      expect(captured.fields.MockField).not.toBe(pluginField);
+      spy.mockRestore();
+    });
+
+    it('awaits contributed validation and keeps invalid input on the current step', async () => {
+      const validation = jest.fn(async (_value, errors) => {
+        errors.addError('Invalid contributed value');
+      });
+      mockDiscoveredFields = [
+        { name: 'PluginField', component: () => null, validation },
+      ];
+      const spy = jest
+        .spyOn(require('./ScaffolderFormWrapper'), 'ScaffolderForm')
+        .mockImplementation(({ onSubmit, extraErrors }: any) => (
+          <div>
+            <button onClick={() => onSubmit({ formData: { name: 'bad' } })}>
+              Validate field
+            </button>
+            {extraErrors?.name?.__errors?.join(', ')}
+          </div>
+        ));
+      render(
+        <StepForm
+          steps={[
+            {
+              title: 'Fields',
+              schema: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string', 'ui:field': 'PluginField' },
+                },
+              },
+            },
+          ]}
+          submitFunction={submitFunction}
+        />,
+      );
+      fireEvent.click(screen.getByText('Validate field'));
+      await screen.findByText('Invalid contributed value');
+      expect(validation).toHaveBeenCalled();
+      expect(screen.queryByText('Create')).not.toBeInTheDocument();
+      spy.mockRestore();
+    });
+  });
 
   describe('Basic functionality', () => {
     const steps = [
@@ -1301,7 +1392,7 @@ describe('StepForm', () => {
       });
     });
 
-    it('persists active step to sessionStorage when storageKey is provided', () => {
+    it('persists active step to sessionStorage when storageKey is provided', async () => {
       const setItemSpy = jest.spyOn(Storage.prototype, 'setItem');
 
       const steps = [
@@ -1327,7 +1418,9 @@ describe('StepForm', () => {
       fireEvent.click(screen.getByText('Submit'));
 
       // Verify setItem was called for active step
-      expect(setItemSpy).toHaveBeenCalledWith(activeStepKey, '1');
+      await waitFor(() =>
+        expect(setItemSpy).toHaveBeenCalledWith(activeStepKey, '1'),
+      );
 
       setItemSpy.mockRestore();
     });

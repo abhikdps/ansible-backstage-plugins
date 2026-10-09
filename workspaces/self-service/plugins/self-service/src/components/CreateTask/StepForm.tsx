@@ -7,8 +7,18 @@ import {
   ScaffolderFieldExtensions,
   SecretsContextProvider,
   useTemplateSecrets,
+  useCustomFieldExtensions,
 } from '@backstage/plugin-scaffolder-react';
-import { useApi } from '@backstage/core-plugin-api';
+import { useOutlet } from 'react-router-dom';
+import {
+  mergeScaffolderFields,
+  useScaffolderFields,
+} from '@ansible/portal-extension-api';
+import { useApi, useApiHolder } from '@backstage/core-plugin-api';
+import {
+  createAsyncValidators,
+  extractSchemaFromStep,
+} from '@backstage/plugin-scaffolder-react/alpha';
 
 import {
   Button,
@@ -36,11 +46,12 @@ import {
   useFieldValidation,
 } from './FieldValidationContext';
 
-const SubmitButton = () => {
+const SubmitButton = ({ disabled = false }: { disabled?: boolean }) => {
   const { hasErrors, notifySubmitAttempted } = useFieldValidation();
   return (
     <Button
       type={hasErrors ? 'button' : 'submit'}
+      disabled={disabled}
       variant="contained"
       color="primary"
       onClick={hasErrors ? notifySubmitAttempted : undefined}
@@ -811,19 +822,40 @@ export const StepForm = ({
   }, [steps, formData]);
 
   const aapAuth = useApi(rhAapAuthApiRef);
+  const apiHolder = useApiHolder();
+  const [fieldErrors, setFieldErrors] = useState<any>();
+  const [isValidatingFields, setIsValidatingFields] = useState(false);
 
+  const contributedFields = useScaffolderFields();
+  const outletFields = useCustomFieldExtensions(useOutlet());
+  const mergedFields = useMemo(
+    () =>
+      mergeScaffolderFields(formExtraFields, [
+        ...outletFields,
+        ...contributedFields,
+      ]),
+    [outletFields, contributedFields],
+  );
   const extensions = useMemo(() => {
     return Object.fromEntries(
-      formExtraFields.map(({ name, component }) => [name, component]),
+      mergedFields.map(({ name, component }) => [name, component]),
     );
-  }, []);
+  }, [mergedFields]);
   const fields = useMemo(() => ({ ...extensions }), [extensions]);
+  const fieldValidators = useMemo(
+    () =>
+      Object.fromEntries(
+        mergedFields.map(field => [field.name, field.validation]),
+      ),
+    [mergedFields],
+  );
 
   const handleNext = useCallback(() => {
     setActiveStep(prevActiveStep => prevActiveStep + 1);
   }, []);
 
   const handleBack = () => {
+    setFieldErrors(undefined);
     setActiveStep(prevActiveStep => prevActiveStep - 1);
   };
 
@@ -926,6 +958,7 @@ export const StepForm = ({
   // RJSF may omit from change events and must be retained (see mergeStepFormDataHybrid).
   const handleFormChange = useCallback(
     (stepIndex: number, data: IChangeEvent<any>) => {
+      setFieldErrors(undefined);
       if (!data.formData) {
         return;
       }
@@ -946,7 +979,31 @@ export const StepForm = ({
   );
 
   const handleFormSubmit = useCallback(
-    (stepIndex: number, data: IChangeEvent<any>) => {
+    async (stepIndex: number, data: IChangeEvent<any>) => {
+      setFieldErrors(undefined);
+      setIsValidatingFields(true);
+      try {
+        const errors = await createAsyncValidators(
+          filteredSteps[stepIndex].schema,
+          fieldValidators,
+          { apiHolder },
+        )(data.formData ?? {});
+        const hasErrors = (value: any): boolean =>
+          value &&
+          typeof value === 'object' &&
+          (value.__errors?.length > 0 || Object.values(value).some(hasErrors));
+        if (hasErrors(errors)) {
+          setFieldErrors(errors);
+          return;
+        }
+      } catch {
+        setFieldErrors({
+          __errors: ['Unable to validate template fields. Please try again.'],
+        });
+        return;
+      } finally {
+        setIsValidatingFields(false);
+      }
       if (data.formData) {
         const step = filteredSteps[stepIndex];
         if (step) {
@@ -964,7 +1021,13 @@ export const StepForm = ({
       }
       handleNext();
     },
-    [filteredSteps, handleNext, cleanupNestedFields],
+    [
+      filteredSteps,
+      handleNext,
+      cleanupNestedFields,
+      fieldValidators,
+      apiHolder,
+    ],
   );
 
   // clear persisted form data from sessionStorage
@@ -1052,7 +1115,27 @@ export const StepForm = ({
       }
     }
 
-    return uiSchema;
+    // Standard extractor preserves fields nested in arrays and conditional branches.
+    // Omit empty nodes to preserve the Portal form's existing uiSchema contract.
+    const pruneEmptyNodes = (value: Record<string, any>): Record<string, any> =>
+      Object.fromEntries(
+        Object.entries(value).flatMap(([key, child]) => {
+          const cleaned =
+            child && typeof child === 'object' && !Array.isArray(child)
+              ? pruneEmptyNodes(child)
+              : child;
+          return cleaned &&
+            typeof cleaned === 'object' &&
+            !Array.isArray(cleaned) &&
+            Object.keys(cleaned).length === 0
+            ? []
+            : [[key, cleaned]];
+        }),
+      );
+    return deepMergePlainObjects(
+      uiSchema,
+      pruneEmptyNodes(extractSchemaFromStep(schema).uiSchema),
+    );
   };
 
   const decodeBase64FileContent = (dataUrl: string): string | null => {
@@ -1215,6 +1298,8 @@ export const StepForm = ({
                         uiSchema={extractProperties(step)}
                         formData={formData}
                         fields={fields}
+                        extraErrors={fieldErrors}
+                        disabled={isValidatingFields}
                         onChange={(data: IChangeEvent<any>) =>
                           handleFormChange(index, data)
                         }
@@ -1233,13 +1318,14 @@ export const StepForm = ({
                           {index > 0 && (
                             <Button
                               onClick={handleBack}
+                              disabled={isValidatingFields}
                               style={{ marginRight: '10px' }}
                               variant="outlined"
                             >
                               Back
                             </Button>
                           )}
-                          <SubmitButton />
+                          <SubmitButton disabled={isValidatingFields} />
                         </div>
                       </ScaffolderForm>
                     </FieldValidationProvider>

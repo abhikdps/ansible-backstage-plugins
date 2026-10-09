@@ -23,6 +23,13 @@ import {
   portalOperationsServiceRef,
 } from '@ansible/portal-plugin-node';
 import { registerApmeOperations } from './operations';
+import { ManualGitRepositoryProvider } from './providers/ManualGitRepositoryProvider';
+import { createManualRepositoriesRouter } from './manualRepositories/router';
+import { registerRepositoryOperation } from './manualRepositories/registerOperation';
+import {
+  apmeRepositoryRegisterPermission,
+  apmeRepositoryDeregisterPermission,
+} from '@ansible/backstage-apme-common/operations';
 import { CatalogClient } from '@backstage/catalog-client';
 import {
   apmeServiceRef,
@@ -66,6 +73,7 @@ export const catalogModuleApme = createBackendModule({
         apmeService: apmeServiceRef,
         httpRouter: coreServices.httpRouter,
         httpAuth: coreServices.httpAuth,
+        userInfo: coreServices.userInfo,
         scheduler: coreServices.scheduler,
         discovery: coreServices.discovery,
         auth: coreServices.auth,
@@ -80,6 +88,7 @@ export const catalogModuleApme = createBackendModule({
         apmeService,
         httpRouter,
         httpAuth,
+        userInfo,
         scheduler,
         discovery,
         auth,
@@ -116,6 +125,10 @@ export const catalogModuleApme = createBackendModule({
 
         logger.info('Initializing APME catalog module');
         permissionsRegistry.addPermissions([apmeQualityScanPermission]);
+        permissionsRegistry.addPermissions([
+          apmeRepositoryRegisterPermission,
+          apmeRepositoryDeregisterPermission,
+        ]);
 
         const configSnapshot = getApmeConfig(rootConfig);
         const portalSettingsStore = new ApmePortalSettingsStore(
@@ -169,7 +182,26 @@ export const catalogModuleApme = createBackendModule({
         });
 
         const catalogClient = new CatalogClient({ discoveryApi: discovery });
+        const manualProvider = new ManualGitRepositoryProvider();
+        catalogProcessing.addEntityProvider(manualProvider);
+        registerRepositoryOperation({
+          operations,
+          rootConfig,
+          logger,
+          auth,
+          catalogClient,
+          provider: manualProvider,
+        });
+        httpRouter.use(
+          createManualRepositoriesRouter({
+            httpAuth,
+            userInfo,
+            permissions,
+            operations,
+          }),
+        );
         registerApmeOperations({
+          manualProvider,
           operations,
           catalogClient,
           auth,
@@ -179,6 +211,8 @@ export const catalogModuleApme = createBackendModule({
           resolveEnableAi,
         });
         registerApmeCatalogSyncTasks({
+          shouldTrackEntity: entity =>
+            !manualProvider.isTrackingStopped(entity),
           scheduler,
           catalogClient,
           auth,
@@ -209,6 +243,8 @@ export const catalogModuleApme = createBackendModule({
         });
 
         const learnedDepsProvider = new ApmeLearnedDepsEntityProvider({
+          shouldTrackEntity: entity =>
+            !manualProvider.isTrackingStopped(entity),
           apmeService,
           catalogClient,
           auth,

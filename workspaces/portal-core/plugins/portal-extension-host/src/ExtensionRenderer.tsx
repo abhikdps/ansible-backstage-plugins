@@ -129,15 +129,16 @@ export const useActionActivation = (
       const operations = apiHolder.get(portalOperationsApiRef);
       if (!operations)
         throw new Error('Portal operations API is not installed');
-      await operations.execute(launch.operationId, {
+      const response = await operations.execute(launch.operationId, {
         subject: { entityRef: stringifyEntityRef(entity) },
       });
-      return;
+      return response.result;
     }
     await contribution.onActivate?.({
       entity,
       getApi: apiRef => apiHolder.get(apiRef)!,
     });
+    return undefined;
   };
 };
 
@@ -149,11 +150,13 @@ export const ExtensionActionMenuItem = ({
   entity,
   onMenuClose,
   onRequestConfirmation,
+  onSuccess,
 }: {
   contribution: ActionContribution;
   entity: Entity;
   onMenuClose: () => void;
   onRequestConfirmation?: (execute: () => Promise<boolean>) => void;
+  onSuccess?: (result: unknown) => void;
 }) => {
   const activate = useActionActivation(contribution, entity);
   const apiHolder = useApiHolder();
@@ -167,7 +170,7 @@ export const ExtensionActionMenuItem = ({
     inFlight.current = true;
     setPending(true);
     try {
-      await activate();
+      const result = await activate();
       if (contribution.launches?.type === 'operation') {
         apiHolder.get(alertApiRef)?.post({
           message: `${contribution.label}: request accepted`,
@@ -175,6 +178,7 @@ export const ExtensionActionMenuItem = ({
         });
       }
       setConfirmOpen(false);
+      onSuccess?.(result);
       onMenuClose();
       return true;
     } catch (error) {

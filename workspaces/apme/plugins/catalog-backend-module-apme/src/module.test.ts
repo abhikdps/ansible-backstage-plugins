@@ -43,6 +43,9 @@ jest.mock('./router', () => ({
 }));
 
 jest.mock('./operations', () => ({ registerApmeOperations: jest.fn() }));
+jest.mock('./manualRepositories/registerOperation', () => ({
+  registerRepositoryOperation: jest.fn(),
+}));
 
 jest.mock('./apmeCatalogSyncScheduler', () => ({
   registerApmeCatalogSyncTasks: jest.fn(),
@@ -175,14 +178,14 @@ describe('catalogModuleApme', () => {
         permissions,
       }),
     );
-    expect(httpRouter.use).toHaveBeenCalledTimes(1);
-    expect(permissionsRegistry.addPermissions).toHaveBeenCalledTimes(1);
+    expect(httpRouter.use).toHaveBeenCalledTimes(2);
+    expect(permissionsRegistry.addPermissions).toHaveBeenCalledTimes(2);
     expect(registerApmeOperations).toHaveBeenCalledWith(
       expect.objectContaining({ apmeService, permissions, auth }),
     );
     expect(mockRegisterCatalogSync).toHaveBeenCalledTimes(1);
     expect(mockRegisterGalaxySync).toHaveBeenCalledTimes(1);
-    expect(catalogProcessing.addEntityProvider).toHaveBeenCalledTimes(1);
+    expect(catalogProcessing.addEntityProvider).toHaveBeenCalledTimes(2);
     expect(mockLearnedDepsProvider).toHaveBeenCalledTimes(1);
   });
 

@@ -82,6 +82,7 @@ export interface ApmeLearnedDepsEntityProviderOptions {
   auth: AuthService;
   logger: LoggerService;
   rootConfig: Config;
+  shouldTrackEntity?: (entity: Entity) => boolean;
 }
 
 /**
@@ -95,6 +96,7 @@ export class ApmeLearnedDepsEntityProvider implements EntityProvider {
   private readonly auth: AuthService;
   private readonly logger: LoggerService;
   private readonly rootConfig: Config;
+  private readonly shouldTrackEntity?: (entity: Entity) => boolean;
 
   constructor(options: ApmeLearnedDepsEntityProviderOptions) {
     this.apmeService = options.apmeService;
@@ -102,6 +104,7 @@ export class ApmeLearnedDepsEntityProvider implements EntityProvider {
     this.auth = options.auth;
     this.logger = options.logger.child({ provider: PROVIDER_NAME });
     this.rootConfig = options.rootConfig;
+    this.shouldTrackEntity = options.shouldTrackEntity;
   }
 
   getProviderName(): string {
@@ -185,6 +188,9 @@ export class ApmeLearnedDepsEntityProvider implements EntityProvider {
       repos,
       LEARNED_DEPS_FETCH_CONCURRENCY,
       async (repo): Promise<RepoSyncOutcome> => {
+        if (this.shouldTrackEntity?.(repo) === false) {
+          return { kind: 'entities', entities: [] };
+        }
         const repoUrl = normalizeRepoUrlFromEntity(repo);
         if (!repoUrl) {
           return { kind: 'entities', entities: [] };
@@ -197,7 +203,9 @@ export class ApmeLearnedDepsEntityProvider implements EntityProvider {
         } catch (error) {
           return {
             kind: 'abort',
-            message: `project lookup failed for ${repoUrl}: ${(error as Error).message}`,
+            message: `project lookup failed for ${repoUrl}: ${
+              (error as Error).message
+            }`,
           };
         }
         if (!project) {
@@ -213,10 +221,15 @@ export class ApmeLearnedDepsEntityProvider implements EntityProvider {
         } catch (error) {
           return {
             kind: 'abort',
-            message: `dependencies failed for project ${project.id}: ${(error as Error).message}`,
+            message: `dependencies failed for project ${project.id}: ${
+              (error as Error).message
+            }`,
           };
         }
 
+        if (this.shouldTrackEntity?.(repo) === false) {
+          return { kind: 'entities', entities: [] };
+        }
         const entities: Entity[] = [];
         for (const collection of dependencies.collections ?? []) {
           const canonical = findCanonicalCollectionEntity(
@@ -259,7 +272,9 @@ export class ApmeLearnedDepsEntityProvider implements EntityProvider {
     });
 
     this.logger.info(
-      `Learned deps sync applied ${entities.length} collection entit${entities.length === 1 ? 'y' : 'ies'} for ${repos.length} git-repositor${repos.length === 1 ? 'y' : 'ies'}`,
+      `Learned deps sync applied ${entities.length} collection entit${
+        entities.length === 1 ? 'y' : 'ies'
+      } for ${repos.length} git-repositor${repos.length === 1 ? 'y' : 'ies'}`,
     );
   }
 }

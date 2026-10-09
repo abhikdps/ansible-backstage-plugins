@@ -26,7 +26,9 @@ const mockEntity: Entity = {
 };
 
 const mockDiscoveryApi = {
-  getBaseUrl: jest.fn().mockResolvedValue('http://localhost:7007/api/catalog'),
+  getBaseUrl: jest
+    .fn()
+    .mockResolvedValue('http://localhost:7007/api/portal-operations'),
 };
 
 const mockFetchApi = {
@@ -92,9 +94,9 @@ describe('DeregisterRepositoryDialog', () => {
 
     await waitFor(() => {
       expect(mockFetchApi.fetch).toHaveBeenCalledWith(
-        'http://localhost:7007/api/catalog/ansible/git-repository',
+        'http://localhost:7007/api/portal-operations/apme.repository.deregister',
         expect.objectContaining({
-          method: 'DELETE',
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
         }),
       );

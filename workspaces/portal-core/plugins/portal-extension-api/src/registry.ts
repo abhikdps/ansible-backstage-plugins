@@ -5,6 +5,7 @@ import type {
   ActionContribution,
 } from './types';
 import type { PluginManifest } from './manifest';
+import type { ScaffolderFieldContribution } from './scaffolderFields';
 
 type RegistryListener = () => void;
 type ManifestListener = (manifest: PluginManifest) => void;
@@ -47,7 +48,9 @@ function safeFilter<
   } catch (err) {
     // eslint-disable-next-line no-console
     console.warn(
-      `[ContributionRegistry] filter() threw for contribution "${(contribution as any).id}":`,
+      `[ContributionRegistry] filter() threw for contribution "${
+        (contribution as any).id
+      }":`,
       err,
     );
     return false;
@@ -66,6 +69,8 @@ class ContributionRegistry {
   private readonly tabs: ContributionMap<TabContribution> = new Map();
   private readonly cards: ContributionMap<CardContribution> = new Map();
   private readonly actions: ContributionMap<ActionContribution> = new Map();
+  private readonly scaffolderFields: ContributionMap<ScaffolderFieldContribution> =
+    new Map();
   private readonly listeners: Set<RegistryListener> = new Set();
   private readonly manifests: Map<string, PluginManifest> = new Map();
   private readonly manifestListeners: Set<ManifestListener> = new Set();
@@ -180,6 +185,23 @@ class ContributionRegistry {
 
   // ── Manifest registration ─────────────────────────────────────────────────
 
+  registerScaffolderField(
+    contribution: ScaffolderFieldContribution,
+  ): () => void {
+    if (!contribution.id.startsWith(`${contribution.pluginId}.`)) {
+      throw new Error('Scaffolder field IDs must be prefixed by their owner');
+    }
+    return this.register(
+      this.scaffolderFields,
+      'scaffolder.fields',
+      contribution,
+    );
+  }
+
+  getScaffolderFields(): ScaffolderFieldContribution[] {
+    return this.get(this.scaffolderFields, 'scaffolder.fields');
+  }
+
   /**
    * Registers a plugin manifest with the host.
    *
@@ -246,7 +268,12 @@ class ContributionRegistry {
 
   private _setEnabled(contributionId: string, enabled: boolean): void {
     let changed = false;
-    for (const store of [this.tabs, this.cards, this.actions]) {
+    for (const store of [
+      this.tabs,
+      this.cards,
+      this.actions,
+      this.scaffolderFields,
+    ]) {
       for (const ep of store.values()) {
         const contribution = ep.get(contributionId) as any;
         if (contribution) {
@@ -267,6 +294,7 @@ class ContributionRegistry {
     this.tabs.clear();
     this.cards.clear();
     this.actions.clear();
+    this.scaffolderFields.clear();
     this.listeners.clear();
     this.manifests.clear();
     this.manifestListeners.clear();

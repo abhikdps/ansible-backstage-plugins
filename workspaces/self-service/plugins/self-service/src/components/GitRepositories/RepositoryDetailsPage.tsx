@@ -18,6 +18,8 @@ import {
 } from '@backstage/core-plugin-api';
 import { RequirePermission } from '@backstage/plugin-permission-react';
 import { gitRepositoriesViewPermission } from '@ansible/backstage-rhaap-common/permissions';
+import { gitRepositoriesCatalogApiRef } from '@ansible/backstage-rhaap-common/gitRepositoriesCatalog';
+import { useApiHolder } from '@backstage/core-plugin-api';
 import {
   useExtensionTabs,
   useExtensionCards,
@@ -191,6 +193,7 @@ const RepositoryDetailsPageInner = () => {
   const discoveryApi = useApi<DiscoveryApi>(discoveryApiRef);
   const fetchApi = useApi<FetchApi>(fetchApiRef);
   const rootLink = useRouteRef(rootRouteRef);
+  const apiHolder = useApiHolder();
 
   const [entity, setEntity] = useState<Entity | null>(null);
   const [loading, setLoading] = useState(true);
@@ -394,6 +397,19 @@ const RepositoryDetailsPageInner = () => {
               contributions={extensionActions}
               entity={entity as Entity}
               onClose={() => setActionsAnchorEl(null)}
+              onSuccess={result => {
+                if (
+                  typeof result === 'object' &&
+                  result !== null &&
+                  'subjectRemoved' in result &&
+                  result.subjectRemoved === true
+                ) {
+                  apiHolder
+                    .get(gitRepositoriesCatalogApiRef)
+                    ?.invalidateCatalogCache();
+                  navigate(`${rootLink()}/repositories/catalog?refresh=true`);
+                }
+              }}
             />
           </>
         )}

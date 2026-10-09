@@ -1,10 +1,12 @@
 import type { PluginManifest } from '@ansible/portal-extension-api';
-import { apmeQualityScanOperation } from '@ansible/backstage-apme-common/operations';
-import { EXPERIENCE_IDS, CONTENT_TYPES } from '@ansible/portal-extension-api';
 import {
-  ansibleSettingsViewPermission,
-  ansibleSettingsEditPermission,
-} from '@ansible/backstage-rhaap-common/permissions';
+  apmeQualityScanOperation,
+  apmeRepositoryDeregisterOperation,
+  apmeRepositoryRegisterOperation,
+  apmeRepositoryRegisterPermission,
+} from '@ansible/backstage-apme-common/operations';
+import { EXPERIENCE_IDS, CONTENT_TYPES } from '@ansible/portal-extension-api';
+import { ansibleSettingsViewPermission } from '@ansible/backstage-rhaap-common/permissions';
 
 /**
  * The host contract version APME was built against.
@@ -174,10 +176,18 @@ export const apmeManifest: PluginManifest = {
       description:
         'Register new repositories with the Portal for APME quality scanning, ' +
         'and deregister manually-added repositories. ' +
-        'Requires ansible.settings.edit on the apme capability.',
+        'Registration and deregistration require their respective repository mutation permissions.',
       appliesToContentTypes: [CONTENT_TYPES.PLAYBOOK_REPOSITORY],
       entryPoints: [
         // List-level header: "Add repository" scaffolder launcher
+        {
+          id: 'apme.github-repo-url-field',
+          kind: 'scaffolder-field',
+          appliesToContentTypes: [CONTENT_TYPES.PLAYBOOK_REPOSITORY],
+          surface: 'experience-slot',
+          label: 'GitHub repository URL',
+          launches: { type: 'slot', targetSlot: 'scaffolder.fields' },
+        },
         {
           id: 'apme.repository-lifecycle.add-repository',
           kind: 'entity-action',
@@ -191,10 +201,7 @@ export const apmeManifest: PluginManifest = {
             type: 'workflow',
             workflowId: 'apme.add-repository',
           },
-          requiredPermission: {
-            permission: ansibleSettingsEditPermission,
-            resourceRef: 'apme',
-          },
+          requiredPermission: apmeRepositoryRegisterPermission,
         },
         // Entity detail: Deregister dialog (survives menu close)
         {
@@ -269,14 +276,7 @@ export const apmeManifest: PluginManifest = {
 
   operations: [
     apmeQualityScanOperation,
-    {
-      id: 'apme.repository.deregister',
-      version: '1.0.0',
-      description:
-        'Removes a manually-registered repository from APME tracking. ' +
-        'Only available for repositories registered via the Portal (not auto-synced from SCM).',
-      idempotent: true,
-      auditCategory: 'repository-lifecycle',
-    },
+    apmeRepositoryRegisterOperation,
+    apmeRepositoryDeregisterOperation,
   ],
 };

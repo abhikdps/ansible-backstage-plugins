@@ -236,6 +236,34 @@ describe('ExtensionActionMenuItem', () => {
     );
     expect(onMenuClose).not.toHaveBeenCalled();
   });
+  it('passes the operation result to the host success callback', async () => {
+    const result = {
+      entityRef: 'component:default/my-entity',
+      subjectRemoved: true,
+    };
+    const execute = jest.fn().mockResolvedValue({ result });
+    const onSuccess = jest.fn();
+    const closeAfterSuccess = jest.fn();
+    mockGetApi.mockImplementation(ref =>
+      ref.id === 'portal.operations' ? { execute } : { post: jest.fn() },
+    );
+    render(
+      <ExtensionActionMenuItem
+        contribution={makeAction({
+          launches: {
+            type: 'operation',
+            operationId: 'apme.repository.deregister',
+          },
+        })}
+        entity={entity}
+        onMenuClose={closeAfterSuccess}
+        onSuccess={onSuccess}
+      />,
+    );
+    fireEvent.click(screen.getByText('Run Action'));
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(result));
+    expect(closeAfterSuccess).toHaveBeenCalledTimes(1);
+  });
 
   it('requires confirmation and prevents duplicate activation', async () => {
     let resolve: () => void = () => {};

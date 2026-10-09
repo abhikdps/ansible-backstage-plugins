@@ -44,15 +44,15 @@ export function useDeregisterRepository(
     setLoading(true);
     setError(null);
     try {
-      const baseUrl = await discoveryApi.getBaseUrl('catalog');
-      const url = `${baseUrl}/ansible/git-repository`;
+      const baseUrl = await discoveryApi.getBaseUrl('portal-operations');
+      const url = `${baseUrl}/apme.repository.deregister`;
       const response = await fetchApi.fetch(url, {
-        method: 'DELETE',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          entityRef: stringifyEntityRef(entity),
+          subject: { entityRef: stringifyEntityRef(entity) },
         }),
       });
 
@@ -61,7 +61,13 @@ export function useDeregisterRepository(
         let errorMessage: string;
         try {
           const parsed = JSON.parse(errorText);
-          errorMessage = parsed.error || errorText;
+          if (typeof parsed.error === 'string') {
+            errorMessage = parsed.error;
+          } else if (typeof parsed.error?.message === 'string') {
+            errorMessage = parsed.error.message;
+          } else {
+            errorMessage = errorText;
+          }
         } catch {
           errorMessage = errorText || response.statusText;
         }
