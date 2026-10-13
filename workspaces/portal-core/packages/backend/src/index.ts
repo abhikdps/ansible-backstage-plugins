@@ -7,8 +7,10 @@
  */
 
 import { createBackend } from '@backstage/backend-defaults';
+import { rhaapOrganizationServiceFactory } from './rhaapOrganizationResolver';
 
 const backend = createBackend();
+backend.add(rhaapOrganizationServiceFactory);
 
 backend.add(import('@backstage/plugin-app-backend'));
 backend.add(import('@backstage/plugin-proxy-backend'));

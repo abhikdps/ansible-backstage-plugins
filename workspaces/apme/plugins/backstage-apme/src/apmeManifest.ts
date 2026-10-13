@@ -4,6 +4,7 @@ import {
   apmeRepositoryDeregisterOperation,
   apmeRepositoryRegisterOperation,
   apmeRepositoryRegisterPermission,
+  apmeScanningEntitlement,
 } from '@ansible/backstage-apme-common/operations';
 import { EXPERIENCE_IDS, CONTENT_TYPES } from '@ansible/portal-extension-api';
 import { ansibleSettingsViewPermission } from '@ansible/backstage-rhaap-common/permissions';
@@ -52,6 +53,20 @@ export const apmeManifest: PluginManifest = {
         'and a violations column to the repository catalog.',
       appliesToContentTypes: [CONTENT_TYPES.PLAYBOOK_REPOSITORY],
       entryPoints: [
+        {
+          id: 'apme.quality-assessment.scan-action',
+          kind: 'entity-action',
+          surface: 'entity-page',
+          appliesToContentTypes: [CONTENT_TYPES.PLAYBOOK_REPOSITORY],
+          label: 'Scan for quality issues',
+          order: 10,
+          requiredPermission: apmeQualityScanOperation.permission,
+          launches: {
+            type: 'operation',
+            operationId: apmeQualityScanOperation.id,
+            followOn: { type: 'slot', targetSlot: 'entity.detail.tabs' },
+          },
+        },
         // List-level: Fleet Quality tab on the Git Repositories page
         {
           id: 'apme.quality-assessment.fleet-quality-tab',
@@ -262,17 +277,7 @@ export const apmeManifest: PluginManifest = {
     },
   ],
 
-  entitlements: [
-    {
-      id: 'apme.scanning',
-      displayName: 'APME Quality Scanning',
-      description:
-        'Enables content quality scanning, violation tracking, and AI-assisted rule suggestions. ' +
-        'Required for the quality assessment capability to be active.',
-      scope: 'organization' as const,
-      permissionName: 'ansible.apme.scanning',
-    },
-  ],
+  entitlements: [apmeScanningEntitlement],
 
   operations: [
     apmeQualityScanOperation,

@@ -16,6 +16,7 @@
   "dependencies": {
     "@ansible/plugin-backstage-apme": "workspace:^",
     "@ansible/plugin-backstage-rhaap": "workspace:^",
+    "@ansible/portal-core": "workspace:^",
     "@ansible/portal-extension-api": "workspace:^",
     "@ansible/portal-scaffolder": "workspace:^",
     "@backstage-community/plugin-github-actions": "^0.11.1",
@@ -24,10 +25,14 @@
     "@backstage/catalog-model": "^1.7.7",
     "@backstage/cli": "^0.36.0",
     "@backstage/core-app-api": "^1.19.6",
+    "@backstage/core-compat-api": "0.5.11",
     "@backstage/core-components": "^0.18.8",
     "@backstage/core-plugin-api": "^1.12.4",
+    "@backstage/frontend-defaults": "0.5.2",
+    "@backstage/frontend-plugin-api": "0.17.1",
     "@backstage/integration-react": "^1.2.16",
     "@backstage/plugin-api-docs": "^0.13.5",
+    "@backstage/plugin-app-react": "^0.2.3",
     "@backstage/plugin-catalog": "^2.0.1",
     "@backstage/plugin-catalog-common": "^1.1.8",
     "@backstage/plugin-catalog-graph": "^0.6.0",
@@ -57,6 +62,7 @@
     "react-router-dom": "^6.30.3"
   },
   "devDependencies": {
+    "@backstage/frontend-test-utils": "^0.5.2",
     "@backstage/test-utils": "^1.7.16",
     "@playwright/test": "^1.32.3",
     "@testing-library/dom": "^9.0.0",

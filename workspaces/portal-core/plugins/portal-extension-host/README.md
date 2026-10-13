@@ -2,6 +2,21 @@
 
 Runtime host for portal plugin contributions. Provides per-contribution error isolation, rendering wrappers for tabs/cards/actions, experience slots, manifest validation, and the dynamic extension discovery component.
 
+## NFS composition (experimental)
+
+Install `createPortalContributionProvider` once in the `portal` frontend plugin.
+It validates typed NFS inputs and publishes an app-scoped contribution snapshot
+at `api:portal/contributions`; pages share this snapshot without global registry
+registration. `createPortalEntityPage` and `createPortalCatalogPage` consume it
+for generic pages. `useNativeEntityPage`, `NativeEntityActionMenu`, and
+`NativeCatalogItemActions` adapt existing layouts without changing their URLs.
+
+The alpha renderers filter and authorize before loading contributed components.
+Entitled contributions fail closed without a host entitlement resolver.
+Scaffolder fields retain their separate native templates-page collector. See
+the [NFS composition guide](../../../../docs/next/portal-sdk-nfs-composition.md).
+The registry/discovery examples below are legacy migration APIs.
+
 ## Purpose
 
 `portal-extension-host` is the **consumer side** of the contribution system. It is used by the pages and layouts that _display_ contributed content — not by the plugins that _produce_ it. Plugin authors rarely depend on this package directly; they depend on `@ansible/portal-extension-api`.

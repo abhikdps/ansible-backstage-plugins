@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { Route, Routes, Navigate, Outlet, useLocation } from 'react-router-dom';
-import { CircularProgress } from '@material-ui/core';
 import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
 import {
@@ -19,7 +18,7 @@ import {
 import { HomeComponent } from '../Home';
 import { JobTemplatesProvider } from '../Home/JobTemplatesProvider';
 import { CatalogImport } from '../CatalogImport';
-import { useIsSuperuser } from '../../hooks';
+import { RequireSuperuser } from '../CatalogImport/RequireSuperuser';
 import { CreateTask } from '../CreateTask';
 import { RunTask } from '../RunTask';
 import { FeedbackFooter } from '../feedback/FeedbackFooter';
@@ -41,24 +40,6 @@ import {
 } from '../notifications';
 import { DynamicExtensionDiscovery } from '../../extensions';
 import { selfServiceManifest } from '../../selfServiceManifest';
-
-const RequireSuperuser = ({ children }: { children: React.ReactNode }) => {
-  const { isSuperuser, loading, error } = useIsSuperuser();
-  if (loading) {
-    return (
-      <div
-        data-testid="superuser-loading"
-        style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}
-      >
-        <CircularProgress />
-      </div>
-    );
-  }
-  if (error || !isSuperuser) {
-    return <Navigate to="/self-service/catalog" replace />;
-  }
-  return <>{children}</>;
-};
 
 const RouteViewContent = () => {
   const { notifications, removeNotification } = useNotifications();

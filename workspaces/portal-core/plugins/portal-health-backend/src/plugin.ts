@@ -3,6 +3,7 @@ import {
   coreServices,
 } from '@backstage/backend-plugin-api';
 import { createRouter } from './router';
+import { portalHealthServiceRef } from '@ansible/portal-plugin-node';
 
 /**
  * The portal-health backend plugin.
@@ -26,13 +27,14 @@ export const portalHealthPlugin = createBackendPlugin({
       deps: {
         httpRouter: coreServices.httpRouter,
         logger: coreServices.logger,
+        health: portalHealthServiceRef,
       },
-      async init({ httpRouter, logger }) {
+      async init({ httpRouter, logger, health }) {
         logger.info('portal-health: starting health aggregation endpoint');
         // express-promise-router vs passport/node_modules/@types/express-serve-static-core
         // variance causes a spurious type mismatch; the runtime value is valid.
         // @ts-expect-error See above
-        httpRouter.use(createRouter());
+        httpRouter.use(createRouter(health));
       },
     });
   },

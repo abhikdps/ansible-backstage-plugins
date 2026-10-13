@@ -8,6 +8,7 @@ import {
   SecretsContextProvider,
   useTemplateSecrets,
   useCustomFieldExtensions,
+  type FieldExtensionOptions,
 } from '@backstage/plugin-scaffolder-react';
 import { useOutlet } from 'react-router-dom';
 import {
@@ -36,6 +37,7 @@ import {
 } from '@material-ui/core';
 import { rhAapAuthApiRef } from '../../apis';
 import { formExtraFields } from './formExtraFields';
+import { findUnavailableFields } from './findUnavailableFields';
 import {
   collectSensitiveTemplateKeysFromSteps,
   sanitizeFormDataForSessionStorage,
@@ -230,6 +232,7 @@ interface StepFormProps {
   ) => Promise<void>;
   initialFormData?: Record<string, any>;
   storageKey?: string;
+  nativeFields?: FieldExtensionOptions<any, any>[];
 }
 
 interface CreateButtonProps {
@@ -666,6 +669,7 @@ export const StepForm = ({
   submitFunction,
   initialFormData,
   storageKey,
+  nativeFields,
 }: StepFormProps) => {
   // Filter out steps that only contain a "token" field
   const filteredSteps = useMemo(() => {
@@ -831,10 +835,9 @@ export const StepForm = ({
   const mergedFields = useMemo(
     () =>
       mergeScaffolderFields(formExtraFields, [
-        ...outletFields,
-        ...contributedFields,
+        ...(nativeFields ?? [...outletFields, ...contributedFields]),
       ]),
-    [outletFields, contributedFields],
+    [outletFields, contributedFields, nativeFields],
   );
   const extensions = useMemo(() => {
     return Object.fromEntries(
@@ -1275,6 +1278,20 @@ export const StepForm = ({
     }
     return String(value || '');
   };
+
+  const unavailableFields = nativeFields
+    ? findUnavailableFields(
+        steps,
+        new Set(mergedFields.map(field => field.name)),
+      )
+    : [];
+  if (unavailableFields.length)
+    return (
+      <p role="alert">
+        Required template fields are unavailable: {unavailableFields.join(', ')}
+        . Enable the contributing plugin or contact your administrator.
+      </p>
+    );
 
   return (
     <div>

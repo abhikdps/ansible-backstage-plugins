@@ -44,6 +44,33 @@ jest.mock('undici', () => ({
 }));
 
 describe('authenticator', () => {
+  it('uses a backend-reachable token host without changing the browser-facing host', async () => {
+    const authenticator = createAuthenticator(mockAAPService as any);
+    const context = await authenticator.initialize({
+      callbackUrl: 'http://localhost:7007/api/auth/rhaap/handler/frame',
+      config: mockServices.rootConfig({
+        data: {
+          clientId: CLIENT_ID,
+          clientSecret: CLIENT_SECRET,
+          host: 'http://localhost:8099/',
+          tokenHost: 'http://host.containers.internal:8099/',
+          checkSSL: true,
+        },
+      }),
+    });
+    expect(context.host).toBe('http://localhost:8099');
+    expect(context.tokenHost).toBe('http://host.containers.internal:8099');
+    await authenticator.refresh(
+      { refreshToken: 'test-refresh' } as any,
+      context,
+    );
+    expect(mockAAPService.rhAAPAuthenticate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        host: 'http://host.containers.internal:8099',
+        refreshToken: 'test-refresh',
+      }),
+    );
+  });
   it('authenticator works', async () => {
     const aapAuthAuthenticator = createAuthenticator(mockAAPService as any);
     aapAuthAuthenticator.initialize({

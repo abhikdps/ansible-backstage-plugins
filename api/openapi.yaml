@@ -267,6 +267,58 @@ components:
 
 
 paths:
+  /entitlements/{entitlementId}:
+    servers:
+      - url: /api/portal-operations
+    get:
+      operationId: checkPortalEntitlement
+      summary: Check host-owned capability availability
+      description: |
+        Requires authenticated user credentials and read access to the catalog subject.
+        The host resolves a server-configured active organization, checks its availability
+        grant, and evaluates the registered Backstage permission. Unknown entitlements,
+        missing organization context or grants, and authorization failures deny access.
+        Clients cannot supply organization IDs, grants, permission names, or scopes.
+        This read-only check does not authorize a subsequent mutation.
+      tags:
+        - Portal Operations
+      security:
+        - JWT: []
+      parameters:
+        - name: entitlementId
+          in: path
+          required: true
+          description: Backend-registered entitlement ID, for example apme.scanning
+          schema:
+            type: string
+        - name: entityRef
+          in: query
+          required: true
+          description: Catalog subject whose read access is checked using caller credentials
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Availability and permission decision for the current deployment organization
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [allowed]
+                properties:
+                  allowed:
+                    type: boolean
+                  organizationId:
+                    type: string
+        '400':
+          description: Invalid entity reference or unsupported query fields
+        '401':
+          description: User authentication required
+        '403':
+          description: Catalog subject not accessible
+        '500':
+          description: Catalog authorization service unavailable
   /{operationId}:
     servers:
       - url: /api/portal-operations

@@ -50,6 +50,11 @@ import {
 import { rootRouteRef } from '../../routes';
 import { useLatestCIActivity } from './useLatestCIActivity';
 import { usePaginatedGitRepos } from './usePaginatedGitRepos';
+import { CONTENT_TYPES } from '@ansible/portal-extension-api';
+import {
+  NativeCatalogItemActions,
+  useNativeCatalogColumns,
+} from '@ansible/portal-extension-host/alpha';
 
 const StarredIcon = () => <Star style={{ color: '#ffb74d' }} />;
 
@@ -99,6 +104,9 @@ const RepositoriesTableInner = ({
   const rootLink = useRouteRef(rootRouteRef);
   const { isStarredEntity, toggleStarredEntity } = useStarredEntities();
   const { filters } = useEntityList();
+  const nativeColumns = useNativeCatalogColumns(
+    CONTENT_TYPES.PLAYBOOK_REPOSITORY,
+  );
 
   const starredFilter = useMemo(() => {
     if (filters.user?.value !== 'starred') return undefined;
@@ -121,6 +129,7 @@ const RepositoriesTableInner = ({
     allSources,
     sourceFilter,
     setSourceFilter,
+    refresh,
   } = usePaginatedGitRepos({
     catalogApi,
     onSourcesStatusChange,
@@ -204,7 +213,9 @@ const RepositoriesTableInner = ({
       width: '28%',
       render: (entity: Entity) => {
         const repoName = entity.metadata?.title ?? entity.metadata?.name ?? '—';
-        const linkPath = `${rootLink()}/repositories/${entity.metadata?.name ?? ''}`;
+        const linkPath = `${rootLink()}/repositories/${
+          entity.metadata?.name ?? ''
+        }`;
         return (
           <EntityLinkButton linkPath={linkPath} className={classes.entityLink}>
             {repoName}
@@ -323,6 +334,7 @@ const RepositoriesTableInner = ({
         <Typography variant="body2">{getLastSyncForEntity(entity)}</Typography>
       ),
     },
+    ...nativeColumns,
     {
       title: 'Actions',
       id: 'actions',
@@ -524,6 +536,16 @@ const RepositoriesTableInner = ({
           <OpenInNewIcon fontSize="small" style={{ marginRight: 8 }} />
           View in source
         </MenuItem>
+        {selectedEntity && (
+          <NativeCatalogItemActions
+            entity={selectedEntity}
+            contentType={CONTENT_TYPES.PLAYBOOK_REPOSITORY}
+            onSubjectRemoved={() => {
+              handleKebabClose();
+              refresh();
+            }}
+          />
+        )}
       </Menu>
     </div>
   );

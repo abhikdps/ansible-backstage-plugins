@@ -89,11 +89,8 @@ export interface AuditEvent {
  * on the route or when the request is unauthenticated (the middleware calls
  * `next()` rather than blocking unauthenticated requests).
  */
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace Express {
-    interface Request {
-      portalContext?: PortalContext;
-    }
+declare module 'express' {
+  interface Request {
+    portalContext?: PortalContext;
   }
 }

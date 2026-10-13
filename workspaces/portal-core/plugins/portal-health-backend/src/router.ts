@@ -1,6 +1,9 @@
 import express from 'express';
 import Router from 'express-promise-router';
-import { getAllHealthStatuses } from '@ansible/portal-plugin-node';
+import {
+  getAllHealthStatuses,
+  type PortalHealth,
+} from '@ansible/portal-plugin-node';
 
 /**
  * Creates the Express router for the portal-health backend plugin.
@@ -21,11 +24,11 @@ import { getAllHealthStatuses } from '@ansible/portal-plugin-node';
  * per-plugin status chips. The endpoint is unauthenticated by default — add
  * auth middleware in the plugin factory if needed.
  */
-export function createRouter(): express.Router {
+export function createRouter(health?: PortalHealth): express.Router {
   const router = Router();
 
   router.get('/status', (_req, res) => {
-    res.json(getAllHealthStatuses());
+    res.json(health ? health.snapshot() : getAllHealthStatuses());
   });
 
   return router;

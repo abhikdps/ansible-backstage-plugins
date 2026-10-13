@@ -213,6 +213,8 @@ export const GlobalHeader = () => {
         <IconButton
           edge="end"
           onClick={handleProfileMenuOpen}
+          aria-label="Account menu"
+          aria-haspopup="menu"
           className={classes.iconButton}
         >
           <AccountCircle />

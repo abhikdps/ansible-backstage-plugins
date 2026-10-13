@@ -16,6 +16,7 @@
   },
   "sideEffects": false,
   "dependencies": {
+    "@backstage/config": "^1.3.6",
     "@backstage/errors": "^1.2.7",
     "@backstage/plugin-permission-common": "^0.9.7",
     "ajv": "^8.17.1"

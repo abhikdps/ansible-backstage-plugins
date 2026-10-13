@@ -1,4 +1,12 @@
+---
+render_macros: false
+---
+
 # Portal SDK — Developer Quickstart
+
+> **Legacy compatibility example:** The registration helpers below describe the
+> legacy registry path, not the default NFS integration. For native declarations
+> and current contribution contracts, use [Portal NFS composition](portal-sdk-nfs-composition.md).
 
 > Build your first portal plugin in 30 minutes.
 

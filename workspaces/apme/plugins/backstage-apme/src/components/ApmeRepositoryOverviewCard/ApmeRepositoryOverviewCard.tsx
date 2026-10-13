@@ -5,6 +5,7 @@
  */
 
 import { useMemo } from 'react';
+import type { Entity } from '@backstage/catalog-model';
 import { useSearchParams } from 'react-router-dom';
 import {
   Box,
@@ -31,7 +32,6 @@ import {
   APME_GATEWAY_UNAVAILABLE_MESSAGE,
   isApmeConnectionError,
 } from '../../utils/apmeConnectionError';
-import type { GitRepositoryDetailTabContext } from '@ansible/backstage-rhaap-common/gitRepositoriesExtensions';
 
 import {
   categoryBreakdown,
@@ -113,11 +113,18 @@ const useStyles = makeStyles(theme => ({
 }));
 
 export interface ApmeRepositoryOverviewCardProps {
-  context: GitRepositoryDetailTabContext;
+  context: { entity: Entity };
+  /** NFS adapters supply host-owned navigation; legacy callers retain URL navigation. */
+  onOpenQuality?: () => void;
+  onOpenLatestScan?: () => void;
+  navigationDisabled?: boolean;
 }
 
 export const ApmeRepositoryOverviewCard = ({
   context,
+  onOpenQuality,
+  onOpenLatestScan,
+  navigationDisabled = false,
 }: ApmeRepositoryOverviewCardProps) => {
   const classes = useStyles();
   const theme = useTheme();
@@ -127,6 +134,11 @@ export const ApmeRepositoryOverviewCard = ({
   const ctx = useApmeProjectContext(context.entity);
 
   const navigateToQualityTab = () => {
+    if (navigationDisabled) return;
+    if (onOpenQuality) {
+      onOpenQuality();
+      return;
+    }
     const params = new URLSearchParams(searchParams);
     params.set('tab', 'quality');
     params.delete('category');
@@ -136,6 +148,11 @@ export const ApmeRepositoryOverviewCard = ({
   };
 
   const navigateToLastScan = () => {
+    if (navigationDisabled) return;
+    if (onOpenLatestScan) {
+      onOpenLatestScan();
+      return;
+    }
     const params = new URLSearchParams(searchParams);
     params.set('tab', 'quality-activity');
     params.delete('category');
@@ -179,7 +196,42 @@ export const ApmeRepositoryOverviewCard = ({
     return <ApmeUnavailable message={APME_GATEWAY_UNAVAILABLE_MESSAGE} />;
   }
 
-  if (!ctx.project) {
+  const reportedViolations =
+    ctx.project?.latest_scan?.total_violations ??
+    ctx.project?.total_violations ??
+    totalViolations;
+  if (
+    ctx.error ||
+    ctx.violationsError ||
+    (ctx.project && totalViolations === 0 && reportedViolations > 0)
+  ) {
+    return (
+      <Card variant="outlined" className={classes.card}>
+        <CardContent>
+          <Typography variant="subtitle2" gutterBottom>
+            Quality
+          </Typography>
+          <Typography variant="body2" color="textSecondary" paragraph>
+            Quality findings unavailable. This is not a clean assessment.
+          </Typography>
+          <Button
+            size="small"
+            disabled={navigationDisabled}
+            onClick={navigateToQualityTab}
+          >
+            View details
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (
+    !ctx.project ||
+    (ctx.project.scan_count === 0 &&
+      !ctx.project.latest_scan &&
+      !ctx.project.last_scanned_at)
+  ) {
     return (
       <Card variant="outlined" className={classes.card}>
         <CardContent>
@@ -194,11 +246,11 @@ export const ApmeRepositoryOverviewCard = ({
             size="small"
             variant="contained"
             color="primary"
-            disabled={!ctx.repoUrl}
+            disabled={!ctx.repoUrl || navigationDisabled}
             startIcon={<RefreshIcon />}
             onClick={() => navigateToQualityTab()}
           >
-            Scan
+            {onOpenQuality ? 'Open Quality' : 'Scan'}
           </Button>
         </CardContent>
       </Card>
@@ -209,7 +261,9 @@ export const ApmeRepositoryOverviewCard = ({
     return (
       <Card
         variant="outlined"
-        className={`${classes.card} ${classes.cardClickable}`}
+        className={`${classes.card} ${
+          navigationDisabled ? '' : classes.cardClickable
+        }`}
         onClick={navigateToLastScan}
         onKeyDown={event => {
           if (event.key === 'Enter' || event.key === ' ') {
@@ -217,8 +271,9 @@ export const ApmeRepositoryOverviewCard = ({
             navigateToLastScan();
           }
         }}
-        role="button"
-        tabIndex={0}
+        role={navigationDisabled ? undefined : 'button'}
+        tabIndex={navigationDisabled ? undefined : 0}
+        aria-disabled={navigationDisabled || undefined}
         aria-label="Quality summary — view latest scan details"
       >
         <CardContent>
@@ -242,7 +297,9 @@ export const ApmeRepositoryOverviewCard = ({
   return (
     <Card
       variant="outlined"
-      className={`${classes.card} ${classes.cardClickable}`}
+      className={`${classes.card} ${
+        navigationDisabled ? '' : classes.cardClickable
+      }`}
       onClick={navigateToLastScan}
       onKeyDown={event => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -250,8 +307,9 @@ export const ApmeRepositoryOverviewCard = ({
           navigateToLastScan();
         }
       }}
-      role="button"
-      tabIndex={0}
+      role={navigationDisabled ? undefined : 'button'}
+      tabIndex={navigationDisabled ? undefined : 0}
+      aria-disabled={navigationDisabled || undefined}
       aria-label="Quality summary — view latest scan details"
     >
       <CardContent style={{ padding: '14px 16px 12px' }}>
@@ -279,10 +337,15 @@ export const ApmeRepositoryOverviewCard = ({
               color: theme.palette.primary.main,
             }}
           >
-            View details →
+            {navigationDisabled ? 'Details unavailable' : 'View details →'}
           </Typography>
         </Box>
 
+        {totalViolations < reportedViolations && (
+          <Typography variant="caption" color="textSecondary">
+            Partial findings: showing {totalViolations} of {reportedViolations}.
+          </Typography>
+        )}
         <Box
           display="flex"
           alignItems="baseline"

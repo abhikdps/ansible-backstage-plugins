@@ -1,4 +1,8 @@
 import type { HealthStatus } from './types';
+import {
+  createServiceFactory,
+  createServiceRef,
+} from '@backstage/backend-plugin-api';
 
 /**
  * In-memory health status registry for a single portal plugin.
@@ -62,6 +66,32 @@ export class HealthRegistry {
  * with the same ID return the same instance, so the host's subscriber sees
  * all pushes regardless of when `createPortalPlugin()` is called.
  */
+/** Root-scoped storage survives separately bundled dynamic plugin copies. */
+export class PortalHealth {
+  private readonly registries = new Map<string, HealthRegistry>();
+  forPlugin(pluginId: string): HealthRegistry {
+    if (!this.registries.has(pluginId))
+      this.registries.set(pluginId, new HealthRegistry());
+    return this.registries.get(pluginId)!;
+  }
+  snapshot(): Record<string, HealthStatus> {
+    return Object.fromEntries(
+      [...this.registries].map(([id, registry]) => [id, registry.current()]),
+    );
+  }
+}
+
+export const portalHealthServiceRef = createServiceRef<PortalHealth>({
+  id: 'portal.health',
+  scope: 'root',
+  defaultFactory: async service =>
+    createServiceFactory({
+      service,
+      deps: {},
+      factory: async () => new PortalHealth(),
+    }),
+});
+
 const globalHealthRegistries = new Map<string, HealthRegistry>();
 
 /**

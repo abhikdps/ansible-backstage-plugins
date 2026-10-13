@@ -1,4 +1,14 @@
-import { useState, useCallback, useEffect, useRef, Fragment } from 'react';
+import {
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  useMemo,
+  Fragment,
+} from 'react';
+import { NativeCatalogHeaderActions } from '@ansible/portal-extension-host/alpha';
+import { useNativeCatalogTabs } from '@ansible/portal-extension-host/alpha';
+import { portalContributionsApiRef } from '@ansible/portal-extension-api/alpha';
 import {
   Page,
   Content,
@@ -12,6 +22,7 @@ import {
   Routes,
   useLocation,
   useNavigate,
+  useSearchParams,
 } from 'react-router-dom';
 import CategoryOutlinedIcon from '@material-ui/icons/CategoryOutlined';
 import TimelineIcon from '@material-ui/icons/Timeline';
@@ -20,6 +31,7 @@ import { gitRepositoriesViewPermission } from '@ansible/backstage-rhaap-common/p
 
 import {
   useApi,
+  useApiHolder,
   useRouteRef,
   discoveryApiRef,
   fetchApiRef,
@@ -109,7 +121,7 @@ export const GitRepositoriesPage = () => {
 
   // Extension tabs for the list view. Community plugins register contributions
   // at EXTENSION_POINTS.GIT_REPO_LIST_TABS; they appear after the built-in tabs.
-  const extensionTabs = useExtensionTabs(
+  const legacyExtensionTabs = useExtensionTabs(
     EXTENSION_POINTS.GIT_REPO_LIST_TABS,
     undefined,
     CONTENT_TYPES.PLAYBOOK_REPOSITORY,
@@ -119,6 +131,28 @@ export const GitRepositoriesPage = () => {
   const listActions = useExtensionActions(
     EXTENSION_POINTS.GIT_REPO_LIST_ACTIONS,
   );
+  const nativeContributions = useApiHolder().get(portalContributionsApiRef);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const catalogContext = useMemo(
+    () => ({
+      contentType: CONTENT_TYPES.PLAYBOOK_REPOSITORY,
+      entityDetailPath: (
+        name: string,
+        entryPointId?: string,
+        filters?: Record<string, string>,
+      ) => {
+        const params = new URLSearchParams(filters);
+        if (entryPointId) params.set('tab', entryPointId);
+        const query = params.toString();
+        return `${rootLink()}/repositories/${encodeURIComponent(name)}${
+          query ? `?${query}` : ''
+        }`;
+      },
+    }),
+    [rootLink],
+  );
+  const nativeTabs = useNativeCatalogTabs(catalogContext);
+  const extensionTabs = nativeTabs ?? legacyExtensionTabs;
 
   // Tracks which extension tab (0-based into extensionTabs) is active.
   // null = a built-in tab is active (URL-driven); number = extension tab active.
@@ -129,8 +163,14 @@ export const GitRepositoriesPage = () => {
   // Reset extension tab selection whenever the URL-driven built-in tab changes
   // (e.g. browser back/forward, sidebar navigation).
   useEffect(() => {
-    setActiveExtTabIndex(null);
-  }, [location.pathname]);
+    if (!nativeContributions) return;
+    const id = searchParams.get('catalogTab');
+    const index = id ? extensionTabs.findIndex(item => item.id === id) : -1;
+    setActiveExtTabIndex(index >= 0 ? index : null);
+  }, [location.pathname, searchParams, nativeContributions, extensionTabs]);
+  useEffect(() => {
+    if (!nativeContributions) setActiveExtTabIndex(null);
+  }, [location.pathname, nativeContributions]);
 
   const fetchSyncStatus = useCallback(async () => {
     try {
@@ -204,11 +244,13 @@ export const GitRepositoriesPage = () => {
           navigate(`${rootLink()}/repositories/${tab.path}`);
         }
       } else {
-        // Extension tab: no URL change, just update local state.
-        setActiveExtTabIndex(index - GIT_REPO_BUILT_IN_TABS);
+        if (nativeContributions) {
+          const id = extensionTabs[index - GIT_REPO_BUILT_IN_TABS]?.id;
+          if (id) setSearchParams({ catalogTab: id });
+        } else setActiveExtTabIndex(index - GIT_REPO_BUILT_IN_TABS);
       }
     },
-    [navigate, rootLink],
+    [navigate, rootLink, nativeContributions, extensionTabs, setSearchParams],
   );
 
   let content: React.ReactNode;
@@ -254,33 +296,41 @@ export const GitRepositoriesPage = () => {
           syncInProgress={isSyncInProgress}
           syncProgress={syncProgress}
           actions={
-            listActions.length > 0 ? (
-              <Fragment>
-                {listActions.map(action =>
-                  action.to ? (
-                    <LinkButton
-                      key={action.id}
-                      variant="contained"
-                      color="primary"
-                      to={action.to}
-                      startIcon={action.icon ? <action.icon /> : undefined}
-                    >
-                      {action.label}
-                    </LinkButton>
-                  ) : (
-                    <Button
-                      key={action.id}
-                      variant="contained"
-                      color="primary"
-                      startIcon={action.icon ? <action.icon /> : undefined}
-                      disabled
-                    >
-                      {action.label}
-                    </Button>
-                  ),
-                )}
-              </Fragment>
-            ) : undefined
+            <>
+              <NativeCatalogHeaderActions
+                contentType={CONTENT_TYPES.PLAYBOOK_REPOSITORY}
+                templatePath={(namespace, name) =>
+                  `/self-service/create/templates/${namespace}/${name}`
+                }
+              />
+              {!nativeContributions && listActions.length > 0 ? (
+                <Fragment>
+                  {listActions.map(action =>
+                    action.to ? (
+                      <LinkButton
+                        key={action.id}
+                        variant="contained"
+                        color="primary"
+                        to={action.to}
+                        startIcon={action.icon ? <action.icon /> : undefined}
+                      >
+                        {action.label}
+                      </LinkButton>
+                    ) : (
+                      <Button
+                        key={action.id}
+                        variant="contained"
+                        color="primary"
+                        startIcon={action.icon ? <action.icon /> : undefined}
+                        disabled
+                      >
+                        {action.label}
+                      </Button>
+                    ),
+                  )}
+                </Fragment>
+              ) : undefined}
+            </>
           }
         />
         <Box className={classes.tabsSection}>

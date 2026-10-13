@@ -25,12 +25,12 @@
     "prepack": "backstage-cli package prepack",
     "postpack": "backstage-cli package postpack",
     "fix": "backstage-cli repo fix --publish",
-    "export-dynamic": "rhdh-cli plugin export --embed-package @ansible/backstage-rhaap-common"
+    "export-dynamic": "yarn run -T rhdh-cli plugin export --embed-package @ansible/backstage-rhaap-common"
   },
   "dependencies": {
     "@ansible/backstage-rhaap-common": "workspace:^",
     "@backstage/backend-plugin-api": "^1.8.0",
-    "@backstage/catalog-model": "^1.7.7",
+    "@backstage/catalog-model": "^1.10.0",
     "@backstage/errors": "^1.2.7",
     "@backstage/plugin-catalog-node": "^1.16.2"
   },

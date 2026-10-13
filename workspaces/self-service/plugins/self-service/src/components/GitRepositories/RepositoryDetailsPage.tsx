@@ -1,5 +1,9 @@
+import {
+  useNativeEntityPage,
+  NativeEntityActionMenu,
+} from '@ansible/portal-extension-host/alpha';
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Box, Button, Typography, Tab, Tabs } from '@material-ui/core';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
@@ -200,23 +204,44 @@ const RepositoryDetailsPageInner = () => {
   const [readmeContent, setReadmeContent] = useState('');
   const [readmeLoading, setReadmeLoading] = useState(false);
   const [tab, setTab] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [scmIntegrationAuthError, setScmIntegrationAuthError] = useState(false);
   const GIT_REPO_BUILT_IN_TABS = 3; // Overview, CI Activity, Collections
-  const extensionTabs = useExtensionTabs(
+  const selectNativeTab = useCallback(
+    (index: number) => setTab(GIT_REPO_BUILT_IN_TABS + index),
+    [],
+  );
+  const native = useNativeEntityPage(
+    entity,
+    CONTENT_TYPES.PLAYBOOK_REPOSITORY,
+    selectNativeTab,
+  );
+  const legacyExtensionTabs = useExtensionTabs(
     EXTENSION_POINTS.GIT_REPO_DETAIL_TABS,
     entity ?? undefined,
     CONTENT_TYPES.PLAYBOOK_REPOSITORY,
   );
-  const extensionCards = useExtensionCards(
+  const legacyExtensionCards = useExtensionCards(
     EXTENSION_POINTS.GIT_REPO_DETAIL_CARDS,
     entity ?? undefined,
     CONTENT_TYPES.PLAYBOOK_REPOSITORY,
   );
-  const extensionActions = useExtensionActions(
+  const legacyExtensionActions = useExtensionActions(
     EXTENSION_POINTS.GIT_REPO_DETAIL_ACTIONS,
     entity ?? undefined,
     CONTENT_TYPES.PLAYBOOK_REPOSITORY,
   );
+  const extensionTabs = native?.tabs ?? legacyExtensionTabs;
+  const hasNativeContributions = Boolean(native);
+  useEffect(() => {
+    if (!hasNativeContributions) return;
+    const id = searchParams.get('tab');
+    if (!id) return;
+    const index = extensionTabs.findIndex(item => item.id === id);
+    setTab(index >= 0 ? GIT_REPO_BUILT_IN_TABS + index : 0);
+  }, [searchParams, extensionTabs, hasNativeContributions]);
+  const extensionCards = native?.cards ?? legacyExtensionCards;
+  const extensionActions = native ? [] : legacyExtensionActions;
   const [actionsAnchorEl, setActionsAnchorEl] = useState<null | HTMLElement>(
     null,
   );
@@ -380,6 +405,17 @@ const RepositoryDetailsPageInner = () => {
             View in source
           </Button>
         )}
+        {native && (
+          <NativeEntityActionMenu
+            contributions={native}
+            onSubjectRemoved={() => {
+              apiHolder
+                .get(gitRepositoriesCatalogApiRef)
+                ?.invalidateCatalogCache();
+              navigate(`${rootLink()}/repositories/catalog?refresh=true`);
+            }}
+          />
+        )}
         {extensionActions.length > 0 && entity && (
           <>
             <Button
@@ -417,7 +453,16 @@ const RepositoryDetailsPageInner = () => {
 
       <Tabs
         value={tab}
-        onChange={(_, v) => setTab(v)}
+        onChange={(_, v) => {
+          setTab(v);
+          if (native) {
+            const params = new URLSearchParams(searchParams);
+            const entry = extensionTabs[v - GIT_REPO_BUILT_IN_TABS];
+            if (entry) params.set('tab', entry.id);
+            else params.delete('tab');
+            setSearchParams(params);
+          }
+        }}
         className={classes.detailsTabs}
       >
         <Tab label="Overview" />

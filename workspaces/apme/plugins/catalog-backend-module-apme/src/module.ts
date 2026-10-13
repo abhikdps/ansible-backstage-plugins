@@ -21,6 +21,8 @@ import {
 import {
   createPortalPlugin,
   portalOperationsServiceRef,
+  portalEntitlementsServiceRef,
+  portalHealthServiceRef,
 } from '@ansible/portal-plugin-node';
 import { registerApmeOperations } from './operations';
 import { ManualGitRepositoryProvider } from './providers/ManualGitRepositoryProvider';
@@ -29,6 +31,8 @@ import { registerRepositoryOperation } from './manualRepositories/registerOperat
 import {
   apmeRepositoryRegisterPermission,
   apmeRepositoryDeregisterPermission,
+  apmeScanningEntitlement,
+  apmeScanningPermission,
 } from '@ansible/backstage-apme-common/operations';
 import { CatalogClient } from '@backstage/catalog-client';
 import {
@@ -39,7 +43,9 @@ import {
   ApmeClient,
   apmeQualityScanPermission,
 } from '@ansible/backstage-apme-common';
-import { catalogProcessingExtensionPoint } from '@backstage/plugin-catalog-node/alpha';
+import * as catalogNode from '@backstage/plugin-catalog-node';
+import { catalogProcessingExtensionPoint as alphaCatalogProcessing } from '@backstage/plugin-catalog-node/alpha';
+
 import {
   ANSIBLE_SETTINGS_CAPABILITIES,
   ansibleSettingsEditPermission,
@@ -55,6 +61,11 @@ import { registerApmeCatalogSyncTasks } from './apmeCatalogSyncScheduler';
 import { ApmePortalSettingsStore } from './apmePortalSettingsStore';
 import { registerPortalGalaxyServersSync } from './portalGalaxyServersSync';
 import { ApmeLearnedDepsEntityProvider } from './providers/ApmeLearnedDepsEntityProvider';
+
+// Backstage 1.48 promoted this contract; keep the local and RHDH baselines compatible.
+const catalogProcessingExtensionPoint: typeof alphaCatalogProcessing =
+  Reflect.get(catalogNode, 'catalogProcessingExtensionPoint') ??
+  alphaCatalogProcessing;
 
 function isAnsibleSettingsCapability(
   ref: string,
@@ -81,6 +92,8 @@ export const catalogModuleApme = createBackendModule({
         permissionsRegistry: coreServices.permissionsRegistry,
         permissions: coreServices.permissions,
         operations: portalOperationsServiceRef,
+        entitlements: portalEntitlementsServiceRef,
+        health: portalHealthServiceRef,
       },
       async init({
         logger,
@@ -96,8 +109,13 @@ export const catalogModuleApme = createBackendModule({
         permissionsRegistry,
         permissions,
         operations,
+        entitlements,
+        health,
       }) {
-        const apmePortalPlugin = createPortalPlugin({ pluginId: 'apme' });
+        const apmePortalPlugin = createPortalPlugin({
+          pluginId: 'apme',
+          health,
+        });
 
         if (!isApmeEnabled(rootConfig)) {
           logger.info('APME is disabled; skipping catalog module registration');
@@ -124,6 +142,8 @@ export const catalogModuleApme = createBackendModule({
         });
 
         logger.info('Initializing APME catalog module');
+        entitlements.register('apme', [apmeScanningEntitlement]);
+        permissionsRegistry.addPermissions([apmeScanningPermission]);
         permissionsRegistry.addPermissions([apmeQualityScanPermission]);
         permissionsRegistry.addPermissions([
           apmeRepositoryRegisterPermission,

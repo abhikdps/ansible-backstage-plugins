@@ -36,6 +36,8 @@ export interface ApmeProjectContext {
   violationsLoading: boolean;
   dependenciesLoading: boolean;
   error: Error | undefined;
+  /** Keep transport failure distinct from a successful empty findings response. */
+  violationsError?: Error;
   refresh: () => void;
   /** Refetch violations/rules/deps without re-loading the project record. */
   refreshViolations: () => void;
@@ -62,21 +64,24 @@ export function useApmeProjectContext(entity: Entity): ApmeProjectContext {
     return apmeApi.getProjectByRepoUrl(repoUrl, branch);
   }, [repoUrl, branch, apmeApi, refreshKey]);
 
-  const { value: violations = [], loading: violationsLoading } =
-    useAsyncRetry(async () => {
-      if (!project?.id) return [];
-      return fetchAllProjectViolations(
-        apmeApi,
-        project.id,
-        project.latest_scan?.total_violations ?? project.total_violations,
-      );
-    }, [
-      project?.id,
+  const {
+    value: violations = [],
+    loading: violationsLoading,
+    error: violationsError,
+  } = useAsyncRetry(async () => {
+    if (!project?.id) return [];
+    return fetchAllProjectViolations(
       apmeApi,
-      refreshKey,
-      project?.latest_scan?.total_violations,
-      project?.total_violations,
-    ]);
+      project.id,
+      project.latest_scan?.total_violations ?? project.total_violations,
+    );
+  }, [
+    project?.id,
+    apmeApi,
+    refreshKey,
+    project?.latest_scan?.total_violations,
+    project?.total_violations,
+  ]);
 
   const { value: rules = [] } = useAsyncRetry(
     async () => apmeApi.getRules(),
@@ -157,6 +162,7 @@ export function useApmeProjectContext(entity: Entity): ApmeProjectContext {
     violationsLoading,
     dependenciesLoading,
     error,
+    violationsError,
     refresh,
     refreshViolations,
     registerAndScan,

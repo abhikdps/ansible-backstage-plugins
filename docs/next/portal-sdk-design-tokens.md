@@ -1,3 +1,7 @@
+---
+render_macros: false
+---
+
 # Portal SDK — Design Token Reference
 
 > Write theme-adaptive styles without importing MUI or Backstage APIs.

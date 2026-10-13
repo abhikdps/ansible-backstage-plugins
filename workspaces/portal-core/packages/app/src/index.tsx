@@ -1,6 +1,20 @@
 import '@backstage/cli/asset-types';
 import ReactDOM from 'react-dom/client';
-import App from './App';
+import { lazy, Suspense, type ComponentType } from 'react';
 import '@backstage/ui/css/styles.css';
 
-ReactDOM.createRoot(document.getElementById('root')!).render(<App />);
+const App = lazy<ComponentType>(() =>
+  new URLSearchParams(window.location.search).get('portalFrontend') === 'legacy'
+    ? import('./App')
+    : import('./AppNfs').then(module => ({ default: () => module.default })),
+);
+
+function SelectedApp() {
+  return (
+    <Suspense fallback={<div>Loading Portal…</div>}>
+      <App />
+    </Suspense>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')!).render(<SelectedApp />);

@@ -6,6 +6,11 @@
   "description": "Extension contracts SDK for Ansible portal plugins — types, registry, hooks, and helpers for contributing tabs, cards, and actions",
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./alpha": "./src/alpha.ts",
+    "./package.json": "./package.json"
+  },
   "publishConfig": {
     "access": "public",
     "main": "dist/index.esm.js",
@@ -16,7 +21,8 @@
   },
   "sideEffects": false,
   "dependencies": {
-    "@ansible/portal-extension-common": "workspace:^"
+    "@ansible/portal-extension-common": "workspace:^",
+    "@backstage/frontend-plugin-api": "0.17.1"
   },
   "scripts": {
     "start": "backstage-cli package start",

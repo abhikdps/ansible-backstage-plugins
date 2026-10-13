@@ -102,6 +102,61 @@ describe('StepForm', () => {
   const submitFunction = jest.fn().mockResolvedValue(undefined);
 
   describe('third-party fields', () => {
+    it('uses native fields instead of legacy registry/outlet fields', () => {
+      const nativeWidget = () => <div>Native field</div>;
+      mockDiscoveredFields = [{ name: 'LegacyField', component: () => null }];
+      mockOutletFields = [{ name: 'OutletField', component: () => null }];
+      let captured: any;
+      const spy = jest
+        .spyOn(require('./ScaffolderFormWrapper'), 'ScaffolderForm')
+        .mockImplementation((props: any) => {
+          captured = props;
+          return <div />;
+        });
+      render(
+        <StepForm
+          steps={[
+            {
+              title: 'Native',
+              schema: {
+                properties: {
+                  repo: { type: 'string', 'ui:field': 'NativeField' },
+                },
+              },
+            },
+          ]}
+          submitFunction={submitFunction}
+          nativeFields={[{ name: 'NativeField', component: nativeWidget }]}
+        />,
+      );
+      expect(captured.fields.NativeField).toBe(nativeWidget);
+      expect(captured.fields.LegacyField).toBeUndefined();
+      expect(captured.fields.OutletField).toBeUndefined();
+      spy.mockRestore();
+    });
+    it('blocks a native template with an unavailable widget rather than using a plain input', () => {
+      render(
+        <StepForm
+          steps={[
+            {
+              title: 'Native',
+              schema: {
+                properties: {
+                  repo: { type: 'string', 'ui:field': 'UnavailableField' },
+                },
+              },
+            },
+          ]}
+          submitFunction={submitFunction}
+          nativeFields={[]}
+        />,
+      );
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Required template fields are unavailable: UnavailableField',
+      );
+      expect(screen.queryByText('MockForm')).not.toBeInTheDocument();
+      expect(submitFunction).not.toHaveBeenCalled();
+    });
     it('merges Portal and stock-registry fields without overriding host names', () => {
       const pluginField = () => <div>Plugin field</div>;
       const stockField = () => <div>Stock field</div>;
@@ -138,45 +193,49 @@ describe('StepForm', () => {
       spy.mockRestore();
     });
 
-    it('awaits contributed validation and keeps invalid input on the current step', async () => {
-      const validation = jest.fn(async (_value, errors) => {
-        errors.addError('Invalid contributed value');
-      });
-      mockDiscoveredFields = [
-        { name: 'PluginField', component: () => null, validation },
-      ];
-      const spy = jest
-        .spyOn(require('./ScaffolderFormWrapper'), 'ScaffolderForm')
-        .mockImplementation(({ onSubmit, extraErrors }: any) => (
-          <div>
-            <button onClick={() => onSubmit({ formData: { name: 'bad' } })}>
-              Validate field
-            </button>
-            {extraErrors?.name?.__errors?.join(', ')}
-          </div>
-        ));
-      render(
-        <StepForm
-          steps={[
-            {
-              title: 'Fields',
-              schema: {
-                type: 'object',
-                properties: {
-                  name: { type: 'string', 'ui:field': 'PluginField' },
+    it.each(['legacy', 'native'])(
+      'awaits %s contributed validation and keeps invalid input on the current step',
+      async mode => {
+        const validation = jest.fn(async (_value, errors) => {
+          errors.addError('Invalid contributed value');
+        });
+        mockDiscoveredFields = [
+          { name: 'PluginField', component: () => null, validation },
+        ];
+        const spy = jest
+          .spyOn(require('./ScaffolderFormWrapper'), 'ScaffolderForm')
+          .mockImplementation(({ onSubmit, extraErrors }: any) => (
+            <div>
+              <button onClick={() => onSubmit({ formData: { name: 'bad' } })}>
+                Validate field
+              </button>
+              {extraErrors?.name?.__errors?.join(', ')}
+            </div>
+          ));
+        render(
+          <StepForm
+            steps={[
+              {
+                title: 'Fields',
+                schema: {
+                  type: 'object',
+                  properties: {
+                    name: { type: 'string', 'ui:field': 'PluginField' },
+                  },
                 },
               },
-            },
-          ]}
-          submitFunction={submitFunction}
-        />,
-      );
-      fireEvent.click(screen.getByText('Validate field'));
-      await screen.findByText('Invalid contributed value');
-      expect(validation).toHaveBeenCalled();
-      expect(screen.queryByText('Create')).not.toBeInTheDocument();
-      spy.mockRestore();
-    });
+            ]}
+            submitFunction={submitFunction}
+            nativeFields={mode === 'native' ? mockDiscoveredFields : undefined}
+          />,
+        );
+        fireEvent.click(screen.getByText('Validate field'));
+        await screen.findByText('Invalid contributed value');
+        expect(validation).toHaveBeenCalled();
+        expect(screen.queryByText('Create')).not.toBeInTheDocument();
+        spy.mockRestore();
+      },
+    );
   });
 
   describe('Basic functionality', () => {

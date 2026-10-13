@@ -27,9 +27,10 @@ export type { IdentityMiddlewareOptions } from './middleware';
 // ── Health registry ────────────────────────────────────────────────────────────
 export {
   HealthRegistry,
+  PortalHealth,
+  portalHealthServiceRef,
   getOrCreateHealthRegistry,
   getAllHealthStatuses,
-  _resetHealthRegistriesForTests,
 } from './healthRegistry';
 
 // ── Audit emitter ─────────────────────────────────────────────────────────────
@@ -39,6 +40,16 @@ export { AuditEmitter } from './auditEmitter';
 export { withOrganization } from './withOrganization';
 export { PortalOperations, portalOperationsServiceRef } from './operations';
 export type { OperationContext, OperationRegistration } from './operations';
+export {
+  PortalEntitlements,
+  ConfiguredOrganizationResolver,
+  portalActiveOrganizationServiceRef,
+  portalEntitlementsServiceRef,
+} from './entitlements';
+export type {
+  ActiveOrganizationResolver,
+  EntitlementDecision,
+} from './entitlements';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type {

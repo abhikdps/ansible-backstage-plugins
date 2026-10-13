@@ -11,10 +11,16 @@ export interface ScaffolderFieldContribution {
   field: FieldExtensionOptions<any, any>;
 }
 
-export function registerScaffolderField(
-  contribution: ScaffolderFieldContribution,
+export function registerScaffolderField<TValue, TUiOptions>(
+  contribution: Omit<ScaffolderFieldContribution, 'field'> & {
+    field: FieldExtensionOptions<TValue, TUiOptions>;
+  },
 ): () => void {
-  return contributionRegistry.registerScaffolderField(contribution);
+  // Widgets validate their own typed values. The heterogeneous registry erases
+  // that type only at storage, rather than requiring widgets to accept `any`.
+  return contributionRegistry.registerScaffolderField(
+    contribution as unknown as ScaffolderFieldContribution,
+  );
 }
 
 /** Merge standard discovered fields with host fields. Host names always win. */

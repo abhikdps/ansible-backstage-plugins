@@ -11,6 +11,11 @@
   "license": "Apache-2.0",
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./alpha": "./src/alpha.tsx",
+    "./package.json": "./package.json"
+  },
   "files": [
     "dist"
   ],
@@ -23,15 +28,17 @@
     "prepack": "backstage-cli package prepack",
     "postpack": "backstage-cli package postpack",
     "start": "backstage-cli package start",
-    "export-dynamic": "rhdh-cli plugin export --embed-package @ansible/backstage-apme-common --embed-package @ansible/backstage-rhaap-common --embed-package @apme/ui-workflow"
+    "export-dynamic": "yarn run -T rhdh-cli plugin export --embed-package @ansible/backstage-apme-common --embed-package @ansible/backstage-rhaap-common --embed-package @apme/ui-workflow"
   },
   "dependencies": {
     "@ansible/backstage-apme-common": "workspace:^",
     "@ansible/backstage-rhaap-common": "workspace:^",
     "@apme/ui-workflow": "https://github.com/ansible/apme/releases/download/v2026.9.3/apme-ui-workflow-2026.9.3.tgz",
     "@backstage/catalog-model": "^1.5.0",
+    "@backstage/core-compat-api": "0.5.11",
     "@backstage/core-components": "^0.14.0",
     "@backstage/core-plugin-api": "^1.9.0",
+    "@backstage/frontend-plugin-api": "0.17.1",
     "@backstage/integration-react": "^1.2.0",
     "@backstage/plugin-catalog": "^2.0.1",
     "@backstage/plugin-catalog-react": "^1.12.0",
@@ -49,9 +56,11 @@
     "react-use": "^17.4.0"
   },
   "devDependencies": {
+    "@ansible/portal-extension-host": "workspace:^",
     "@backstage/catalog-model": "^1.5.0",
     "@backstage/cli": "^0.27.0",
     "@backstage/config": "^1.2.0",
+    "@backstage/frontend-test-utils": "^0.5.2",
     "@backstage/test-utils": "^1.5.0",
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^14.0.0",

@@ -3,8 +3,7 @@
 > **Jira:** [ANSTRAT-2497](https://redhat.atlassian.net/browse/ANSTRAT-2497) — Portal Plugin Factory: Plugin Development Guide and SDK
 > **Team:** Self-service and portal core teams
 > **Status:** Active — Phases 1–5, 7 complete; RHDH singleton wiring (portal-core) + dynamic manifest discovery done; Phase 6 blocked on ANSTRAT-1758; NFS slot activation design needed
-> **Branch:** `anstrat-2497-poc` in `ansible-backstage-plugins`
-> **Related:** [ANSTRAT-1758](https://redhat.atlassian.net/browse/ANSTRAT-1758) (Content Management), [PR #712](https://github.com/ansible/ansible-backstage-plugins/pull/712) (migration plan), [AAP-95616](https://redhat.atlassian.net/browse/AAP-95616) (Research Spikes Epic), [AAP-95778](https://redhat.atlassian.net/browse/AAP-95778) (RHDH singleton + Gap 3 spike)
+> **Branch:** `anstrat-2497-poc` in `ansible-backstage-plugins` > **Related:** [ANSTRAT-1758](https://redhat.atlassian.net/browse/ANSTRAT-1758) (Content Management), [PR #712](https://github.com/ansible/ansible-backstage-plugins/pull/712) (migration plan), [AAP-95616](https://redhat.atlassian.net/browse/AAP-95616) (Research Spikes Epic), [AAP-95778](https://redhat.atlassian.net/browse/AAP-95778) (RHDH singleton + Gap 3 spike)
 > **Canonical architecture reference:** [Content Experience Architecture](https://github.com/ansible/ansible-rhdh-plugins/blob/portal-plugin-research/.sdlc/research/plugin-factory/Content%20Experience%20Architecture.md) (Ganesh's doc)
 >
 > This document is the implementation guide for ANSTRAT-2497 within the broader content
@@ -530,13 +529,13 @@ plugin convention.
 
 ## 10. Documentation Deliverables
 
-| Document                       | Location                                          | Content                                            | Status       |
-| ------------------------------ | ------------------------------------------------- | -------------------------------------------------- | ------------ |
-| This guide                     | `docs/next/anstrat-2497-implementation-guide.md`  | Implementation plan, phases, contracts             | ✅ This file |
-| PoC arch doc                   | `docs/architecture/self-service-extension-sdk.md` | PoC decisions + alignment notes (§12)              | ✅ Done      |
-| Component library README       | `plugins/portal-plugin-sdk/README.md`             | All exported components, props, examples           | ❌           |
-| Extension SDK README           | `plugins/portal-extension-api/README.md`          | How to register capabilities, all extension points | ❌           |
-| Community developer quickstart | `docs/sdk/quickstart.md`                          | End-to-end: build a plugin that adds a tab         | ❌           |
-| Design tokens reference        | `docs/sdk/design-tokens.md`                       | CSS custom properties, JS tokens, theme guidance   | ❌           |
-| RHDH dynamic plugin guide      | `docs/sdk/rhdh-dynamic-plugins.md`                | Registration, Scalprum, declarative config         | ❌           |
-| Internal migration guide       | `docs/sdk/migration-from-self-service.md`         | How to update imports from old locations           | ❌           |
+| Document                       | Location                                                  | Content                                            | Status       |
+| ------------------------------ | --------------------------------------------------------- | -------------------------------------------------- | ------------ |
+| This guide                     | `docs/next/portal-plugin-factory-implementation-guide.md` | Implementation plan, phases, contracts             | ✅ This file |
+| PoC arch doc                   | `docs/architecture/self-service-extension-sdk.md`         | PoC decisions + alignment notes (§12)              | ✅ Done      |
+| Component library README       | `plugins/portal-plugin-sdk/README.md`                     | All exported components, props, examples           | ❌           |
+| Extension SDK README           | `plugins/portal-extension-api/README.md`                  | How to register capabilities, all extension points | ❌           |
+| Community developer quickstart | `docs/sdk/quickstart.md`                                  | End-to-end: build a plugin that adds a tab         | ❌           |
+| Design tokens reference        | `docs/sdk/design-tokens.md`                               | CSS custom properties, JS tokens, theme guidance   | ❌           |
+| RHDH dynamic plugin guide      | `docs/sdk/rhdh-dynamic-plugins.md`                        | Registration, Scalprum, declarative config         | ❌           |
+| Internal migration guide       | `docs/sdk/migration-from-self-service.md`                 | How to update imports from old locations           | ❌           |

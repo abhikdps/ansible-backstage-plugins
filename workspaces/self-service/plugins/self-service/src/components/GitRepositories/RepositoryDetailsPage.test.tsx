@@ -29,6 +29,7 @@ jest.mock('react-router-dom', () => ({
 }));
 
 jest.mock('@backstage/plugin-permission-react', () => ({
+  ...jest.requireActual('@backstage/plugin-permission-react'),
   usePermission: () => ({ allowed: true }),
   RequirePermission: (props: any) => props.children,
 }));

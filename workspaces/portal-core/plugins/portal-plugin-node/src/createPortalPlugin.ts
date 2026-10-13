@@ -3,7 +3,11 @@ import type { LoggerService } from '@backstage/backend-plugin-api';
 import type { HealthStatus, AuditEvent } from './types';
 import type { IdentityMiddlewareOptions } from './middleware';
 import { createIdentityMiddleware } from './middleware';
-import { HealthRegistry, getOrCreateHealthRegistry } from './healthRegistry';
+import {
+  HealthRegistry,
+  getOrCreateHealthRegistry,
+  type PortalHealth,
+} from './healthRegistry';
 import { AuditEmitter } from './auditEmitter';
 
 // ── Public interface ──────────────────────────────────────────────────────────
@@ -18,6 +22,8 @@ export interface CreatePortalPluginOptions {
    * all audit log entries emitted by this instance.
    */
   pluginId: string;
+  /** Inject the root service when running as a separately bundled dynamic plugin. */
+  health?: PortalHealth;
 }
 
 /** The object returned by `createPortalPlugin`. */
@@ -149,7 +155,8 @@ export function createPortalPlugin(
   options: CreatePortalPluginOptions,
 ): PortalPlugin {
   const { pluginId } = options;
-  const healthRegistry = getOrCreateHealthRegistry(pluginId);
+  const healthRegistry =
+    options.health?.forPlugin(pluginId) ?? getOrCreateHealthRegistry(pluginId);
   let auditEmitter: AuditEmitter | null = null;
 
   const plugin: PortalPlugin = {

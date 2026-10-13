@@ -27,6 +27,7 @@ export type {
 } from './launch';
 
 export type { OperationRequest, OperationResponse } from './operations';
+export type { EntitlementDecision } from './entitlements';
 
 export type {
   PermissionRequirement,

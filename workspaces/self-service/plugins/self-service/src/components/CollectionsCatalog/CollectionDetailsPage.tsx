@@ -1,3 +1,7 @@
+import {
+  useNativeEntityPage,
+  NativeEntityActionMenu,
+} from '@ansible/portal-extension-host/alpha';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Box, Button, Typography, Tab, Tabs, Menu } from '@material-ui/core';
@@ -59,21 +63,33 @@ const CollectionDetailsPageInner = () => {
   const [tab, setTab] = useState(0);
   const [scmIntegrationAuthError, setScmIntegrationAuthError] = useState(false);
   const COLLECTION_BUILT_IN_TABS = 1; // Overview
-  const extensionTabs = useExtensionTabs(
+  const selectNativeTab = useCallback(
+    (index: number) => setTab(COLLECTION_BUILT_IN_TABS + index),
+    [],
+  );
+  const native = useNativeEntityPage(
+    entity,
+    CONTENT_TYPES.COLLECTION,
+    selectNativeTab,
+  );
+  const legacyExtensionTabs = useExtensionTabs(
     EXTENSION_POINTS.COLLECTION_DETAIL_TABS,
     entity ?? undefined,
     CONTENT_TYPES.COLLECTION,
   );
-  const extensionCards = useExtensionCards(
+  const legacyExtensionCards = useExtensionCards(
     EXTENSION_POINTS.COLLECTION_DETAIL_CARDS,
     entity ?? undefined,
     CONTENT_TYPES.COLLECTION,
   );
-  const extensionActions = useExtensionActions(
+  const legacyExtensionActions = useExtensionActions(
     EXTENSION_POINTS.COLLECTION_DETAIL_ACTIONS,
     entity ?? undefined,
     CONTENT_TYPES.COLLECTION,
   );
+  const extensionTabs = native?.tabs ?? legacyExtensionTabs;
+  const extensionCards = native?.cards ?? legacyExtensionCards;
+  const extensionActions = native ? [] : legacyExtensionActions;
   const [actionsAnchorEl, setActionsAnchorEl] = useState<null | HTMLElement>(
     null,
   );
@@ -362,6 +378,7 @@ const CollectionDetailsPageInner = () => {
             View Source
           </Button>
         )}
+        {native && <NativeEntityActionMenu contributions={native} />}
         {extensionActions.length > 0 && entity && (
           <>
             <Button

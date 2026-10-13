@@ -32,11 +32,11 @@ import {
   useProjectWorkflow,
   type ProjectWorkflowController,
 } from '@apme/ui-workflow';
-import type { Project } from '@ansible/backstage-apme-common/types';
 import { apmeApiRef } from '../../api';
 import { useApmeAiEnabled } from '../../hooks/useApmeEnabled';
 import { useApmeWorkflowAiModel } from '../../hooks/useApmeWorkflowAiModel';
 import { useResolveApmeProject } from '../../hooks/useResolveApmeProject';
+import { useProjectSummary } from '../../hooks/useProjectSummary';
 import { useSyncPatternFlyTheme } from '../../hooks/useSyncPatternFlyTheme';
 import { resolveDefaultAnsibleVersionForScan } from '../../utils/resolveDefaultAnsibleVersionForScan';
 
@@ -69,8 +69,6 @@ function WorkflowBody({ projectId }: { projectId: string }) {
   const apmeApi = useApi(apmeApiRef);
   const configApi = useApi(configApiRef);
   const portalAiEnabled = useApmeAiEnabled();
-  const [project, setProject] = useState<Project | null>(null);
-  const [loadError, setLoadError] = useState<Error | null>(null);
   const [ansibleVersion, setAnsibleVersion] = useState('');
   const [collections, setCollections] = useState('');
   const [enableAi, setEnableAi] = useState(portalAiEnabled);
@@ -150,22 +148,11 @@ function WorkflowBody({ projectId }: { projectId: string }) {
     }
   }, [sessionTabVisible]);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const next = await apmeApi.getProject(projectId);
-        if (!cancelled) setProject(next);
-      } catch (e) {
-        if (!cancelled) {
-          setLoadError(e instanceof Error ? e : new Error(String(e)));
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [apmeApi, projectId, sessionTabVisible]);
+  const { project, error: loadError } = useProjectSummary(
+    apmeApi,
+    projectId,
+    sessionTabVisible,
+  );
 
   const devSpacesUrl = resolvePostPushDevSpacesUrl({
     sessionVisible: sessionTabVisible,

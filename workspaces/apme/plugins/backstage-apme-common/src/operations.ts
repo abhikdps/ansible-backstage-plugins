@@ -1,5 +1,20 @@
 import { createPermission } from '@backstage/plugin-permission-common';
 
+/** Shared entitlement declaration; frontend and backend use the same contract. */
+export const apmeScanningPermission = createPermission({
+  name: 'ansible.apme.scanning',
+  attributes: { action: 'read' },
+});
+
+export const apmeScanningEntitlement = {
+  id: 'apme.scanning',
+  displayName: 'APME Quality Scanning',
+  description:
+    'Enables content quality scanning, violation tracking, and AI-assisted rule suggestions.',
+  scope: 'organization' as const,
+  permissionName: apmeScanningPermission.name,
+};
+
 export const apmeRepositoryRegisterPermission = createPermission({
   name: 'ansible.apme.repository.register',
   attributes: { action: 'create' },

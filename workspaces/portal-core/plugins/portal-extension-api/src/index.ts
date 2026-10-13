@@ -91,3 +91,12 @@ export {
   useScaffolderFields,
 } from './scaffolderFields';
 export type { ScaffolderFieldContribution } from './scaffolderFields';
+export {
+  portalEntitlementsApiRef,
+  portalEntitlementsApiFactory,
+  PortalEntitlementsClient,
+} from './entitlements';
+export type {
+  PortalEntitlementsApi,
+  EntitlementDecision,
+} from './entitlements';

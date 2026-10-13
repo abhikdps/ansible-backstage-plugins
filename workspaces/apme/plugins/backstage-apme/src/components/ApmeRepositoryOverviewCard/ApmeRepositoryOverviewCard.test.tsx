@@ -58,7 +58,7 @@ function project(
     latest_scan: {
       scan_id: 'scan-416',
       scan_type: 'check',
-      total_violations: 416,
+      total_violations: partial.total_violations,
       fixable: 188,
       ai_candidate: 188,
       manual_review: 226,
@@ -122,6 +122,7 @@ function SearchParamsProbe() {
 function renderCard(
   initialSearch = '?tab=overview',
   contextOverrides: Partial<ApmeProjectContext> = {},
+  navigation: Partial<ComponentProps<typeof ApmeRepositoryOverviewCard>> = {},
 ) {
   mockUseApmeProjectContext.mockReturnValue(baseContext(contextOverrides));
 
@@ -137,6 +138,7 @@ function renderCard(
               <>
                 <SearchParamsProbe />
                 <ApmeRepositoryOverviewCard
+                  {...navigation}
                   context={
                     { entity } as ComponentProps<
                       typeof ApmeRepositoryOverviewCard
@@ -156,6 +158,88 @@ describe('ApmeRepositoryOverviewCard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseApmeAiEnabled.mockReturnValue(true);
+  });
+  it('uses host callbacks without altering legacy route parameters', () => {
+    const open = jest.fn();
+    renderCard('?portalFrontend=nfs', {}, { onOpenLatestScan: open });
+    fireEvent.click(screen.getByRole('button', { name: /quality summary/i }));
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('search-params')).toHaveTextContent(
+      'portalFrontend=nfs',
+    );
+  });
+  it('opens Quality through the host from the unscanned state without starting a scan', () => {
+    const open = jest.fn();
+    renderCard(
+      '?portalFrontend=nfs',
+      { project: null, violations: [] },
+      { onOpenQuality: open },
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Open Quality' }));
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(
+      mockUseApmeProjectContext.mock.results[
+        mockUseApmeProjectContext.mock.results.length - 1
+      ].value.registerAndScan,
+    ).not.toHaveBeenCalled();
+    expect(screen.getByTestId('search-params')).toHaveTextContent(
+      'portalFrontend=nfs',
+    );
+  });
+  it('does not fall back to private URL navigation when host navigation is unavailable', () => {
+    renderCard('?portalFrontend=nfs', {}, { navigationDisabled: true });
+    fireEvent.click(
+      screen.getByText('Details unavailable').closest('[aria-disabled]')!,
+    );
+    expect(screen.getByTestId('search-params')).toHaveTextContent(
+      'portalFrontend=nfs',
+    );
+  });
+  it('distinguishes a registered but unscanned project from a clean scan', () => {
+    renderCard('?tab=overview', {
+      project: project({
+        id: 'new',
+        total_violations: 0,
+        scan_count: 0,
+        latest_scan: undefined,
+        last_scanned_at: undefined,
+      }),
+      violations: [],
+    });
+    expect(screen.getByText(/No quality scans yet/)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/No violations detected/),
+    ).not.toBeInTheDocument();
+  });
+  it('does not claim a clean result when reported findings are missing', () => {
+    renderCard('?tab=overview', { violations: [] });
+    expect(
+      screen.getByText(/Quality findings unavailable/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/No violations detected/),
+    ).not.toBeInTheDocument();
+  });
+  it('labels partial findings honestly', () => {
+    renderCard('?tab=overview', {
+      project: project({ id: 'partial', total_violations: 5 }),
+    });
+    expect(
+      screen.getByText('Partial findings: showing 2 of 5.'),
+    ).toBeInTheDocument();
+  });
+  it('does not report clean when fetching an apparently empty assessment fails', () => {
+    renderCard('?tab=overview', {
+      project: project({ id: 'clean', total_violations: 0 }),
+      violations: [],
+      violationsError: new Error('Findings request failed'),
+    });
+    expect(
+      screen.getByText(/Quality findings unavailable/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/No violations detected/),
+    ).not.toBeInTheDocument();
   });
 
   it('navigates to the latest scan detail when the card is clicked', () => {

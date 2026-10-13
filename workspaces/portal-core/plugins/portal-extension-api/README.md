@@ -2,6 +2,20 @@
 
 Frontend extension API for Automation Portal. Provides the `ContributionRegistry` singleton, React hooks for consuming contributions, and registration helpers that plugins call from their dynamic entry points.
 
+## NFS composition (experimental)
+
+The `./alpha` entry point exports `EntityDetailTabBlueprint`,
+`EntityOverviewCardBlueprint`, `EntityActionBlueprint`,
+`CatalogItemActionBlueprint`, and `ScaffolderFieldBlueprint`.
+Entity/catalog descriptors attach to the host-owned `api:portal/contributions`
+provider, consumed through `portalContributionsApiRef`. Fields attach to the
+native templates page. Native declarations do not register with the singleton.
+See the [NFS composition guide](../../../../docs/next/portal-sdk-nfs-composition.md)
+for provider installation, applicability, deployment, and remaining work.
+
+The registration APIs below describe the legacy app migration path, not the
+recommended NFS integration for a new contributor.
+
 ## When to use this package
 
 - You are writing a **frontend plugin** that contributes tabs, cards, or actions into an existing experience (e.g. a new tab on the Git Repository detail page).

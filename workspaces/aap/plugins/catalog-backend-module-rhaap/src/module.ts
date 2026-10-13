@@ -9,8 +9,9 @@ import { ansiblePermissions } from '@ansible/backstage-rhaap-common/permissions'
 import { createRouter } from './router';
 import {
   catalogModelExtensionPoint,
-  catalogProcessingExtensionPoint,
+  catalogProcessingExtensionPoint as alphaCatalogProcessing,
 } from '@backstage/plugin-catalog-node/alpha';
+import * as catalogNode from '@backstage/plugin-catalog-node';
 import { AAPJobTemplateProvider } from './providers/AAPJobTemplateProvider';
 import { AAPEntityProvider } from './providers/AAPEntityProvider';
 import { makeValidator } from '@backstage/catalog-model';
@@ -18,6 +19,11 @@ import { EEEntityProvider } from './providers/EEEntityProvider';
 import { PAHCollectionProvider } from './providers/PAHCollectionProvider';
 import { CatalogClient } from '@backstage/catalog-client';
 import { AnsibleGitContentsProvider } from './providers/AnsibleGitContentsProvider';
+
+// Backstage 1.48 promoted this contract; support both deployment baselines.
+const catalogProcessingExtensionPoint: typeof alphaCatalogProcessing =
+  Reflect.get(catalogNode, 'catalogProcessingExtensionPoint') ??
+  alphaCatalogProcessing;
 
 export const catalogModuleRhaap = createBackendModule({
   pluginId: 'catalog',

@@ -7,7 +7,10 @@ import {
 } from '@backstage/core-components';
 import { StepForm } from './StepForm';
 import { useApi, useRouteRef } from '@backstage/core-plugin-api';
-import { scaffolderApiRef } from '@backstage/plugin-scaffolder-react';
+import {
+  scaffolderApiRef,
+  type FieldExtensionOptions,
+} from '@backstage/plugin-scaffolder-react';
 import type { TemplateParameterSchema } from '@backstage/plugin-scaffolder-common';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -57,7 +60,9 @@ const headerStyles = makeStyles(theme => ({
   },
 }));
 
-export const CreateTask = () => {
+export const CreateTask = ({
+  nativeFields,
+}: { nativeFields?: FieldExtensionOptions<any, any>[] } = {}) => {
   const classes = headerStyles();
   const { namespace, templateName } = useParams<{
     namespace: string;
@@ -100,7 +105,11 @@ export const CreateTask = () => {
       });
 
       // Redirect to the task details page
-      navigate(`${rootLink()}/create/tasks/${task.taskId}`);
+      navigate(
+        `${rootLink()}/create/tasks/${task.taskId}${
+          nativeFields ? location.search : ''
+        }`,
+      );
     } catch (err) {
       console.error('Error during final submit:', err); // eslint-disable-line no-console
     }
@@ -241,6 +250,7 @@ export const CreateTask = () => {
               submitFunction={finalSubmit}
               initialFormData={initialFormData}
               storageKey={`${namespace}/${templateName}`}
+              nativeFields={nativeFields}
             />
             <Box
               display="flex"

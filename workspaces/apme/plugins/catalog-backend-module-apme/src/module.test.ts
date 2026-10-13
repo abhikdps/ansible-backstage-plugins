@@ -161,6 +161,7 @@ describe('catalogModuleApme', () => {
       catalogProcessing,
       permissionsRegistry,
       permissions,
+      entitlements: { register: jest.fn() },
     });
 
     expect(permissionsRegistry.addResourceType).toHaveBeenCalledTimes(1);
@@ -179,7 +180,7 @@ describe('catalogModuleApme', () => {
       }),
     );
     expect(httpRouter.use).toHaveBeenCalledTimes(2);
-    expect(permissionsRegistry.addPermissions).toHaveBeenCalledTimes(2);
+    expect(permissionsRegistry.addPermissions).toHaveBeenCalledTimes(3);
     expect(registerApmeOperations).toHaveBeenCalledWith(
       expect.objectContaining({ apmeService, permissions, auth }),
     );
@@ -215,6 +216,7 @@ describe('catalogModuleApme', () => {
         addPermissions: jest.fn(),
       },
       permissions: {},
+      entitlements: { register: jest.fn() },
     });
 
     const { resolveEnableAi } = mockRegisterCatalogSync.mock.calls[0][0];

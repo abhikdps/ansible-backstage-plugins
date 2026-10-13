@@ -1,3 +1,7 @@
+import {
+  useNativeEntityPage,
+  NativeEntityActionMenu,
+} from '@ansible/portal-extension-host/alpha';
 import { ANNOTATION_EDIT_URL, type Entity } from '@backstage/catalog-model';
 import {
   discoveryApiRef,
@@ -176,23 +180,35 @@ export const EEDetailsPage: React.FC = () => {
   } = useEEBuildFlow();
   const EE_BUILT_IN_TABS = 1; // Overview
   const [entity, setEntity] = useState<Entity | null | undefined>(undefined);
-  const extensionTabs = useExtensionTabs(
+  const selectNativeTab = useCallback(
+    (index: number) => setTab(EE_BUILT_IN_TABS + index),
+    [],
+  );
+  const native = useNativeEntityPage(
+    entity,
+    CONTENT_TYPES.EXECUTION_ENVIRONMENT_DEFINITION,
+    selectNativeTab,
+  );
+  const legacyExtensionTabs = useExtensionTabs(
     EXTENSION_POINTS.EE_DETAIL_TABS,
     entity ?? undefined,
     // EE detail page shows EE definitions (files in source control).
     // Built EE images have their own type and will get separate detail pages.
     CONTENT_TYPES.EXECUTION_ENVIRONMENT_DEFINITION,
   );
-  const extensionCards = useExtensionCards(
+  const legacyExtensionCards = useExtensionCards(
     EXTENSION_POINTS.EE_DETAIL_CARDS,
     entity ?? undefined,
     CONTENT_TYPES.EXECUTION_ENVIRONMENT_DEFINITION,
   );
-  const extensionActions = useExtensionActions(
+  const legacyExtensionActions = useExtensionActions(
     EXTENSION_POINTS.EE_DETAIL_ACTIONS,
     entity ?? undefined,
     CONTENT_TYPES.EXECUTION_ENVIRONMENT_DEFINITION,
   );
+  const extensionTabs = native?.tabs ?? legacyExtensionTabs;
+  const extensionCards = native?.cards ?? legacyExtensionCards;
+  const extensionActions = native ? [] : legacyExtensionActions;
   const [menuId, setMenuId] = useState<string>('');
   const [defaultReadme, setDefaultReadme] = useState<string>('');
   const [fetchedDefinition, setFetchedDefinition] = useState<string | null>(
@@ -598,6 +614,7 @@ export const EEDetailsPage: React.FC = () => {
             {' '}
             {entity ? (
               <>
+                {native && <NativeEntityActionMenu contributions={native} />}
                 {/* Tabs */}
                 <Tabs
                   value={tab}

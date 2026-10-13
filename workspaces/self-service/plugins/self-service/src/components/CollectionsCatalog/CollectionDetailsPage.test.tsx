@@ -13,6 +13,7 @@ import { SCM_INTEGRATION_AUTH_FAILED_CODE } from '@ansible/backstage-rhaap-commo
 import { CollectionDetailsPage } from './CollectionDetailsPage';
 
 jest.mock('@backstage/plugin-permission-react', () => ({
+  ...jest.requireActual('@backstage/plugin-permission-react'),
   RequirePermission: (props: any) => props.children,
 }));
 

@@ -1,5 +1,11 @@
 # Portal SDK — RHDH Dynamic Plugin Deployment Guide
 
+> **Scope:** The singleton/Scalprum wiring below describes the legacy PoC, not
+> the target RHDH 2.1 NFS architecture. The additive entity-tab implementation
+> uses static declarations and typed host inputs; see
+> [NFS composition](portal-sdk-nfs-composition.md). Existing local app wiring
+> remains legacy until the app migration is complete.
+
 This guide covers how to export and deploy portal frontend and backend plugins as RHDH dynamic plugins, with specific attention to the singleton registry requirement.
 
 ## Background

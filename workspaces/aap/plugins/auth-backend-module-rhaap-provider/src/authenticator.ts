@@ -63,6 +63,7 @@ function readAndClearPkceCookie(
 export interface AAPAuthenticatorContext {
   helper: PassportOAuthAuthenticatorHelper;
   host: string;
+  tokenHost?: string;
   clientId: string;
   clientSecret: string;
   callbackURL: string;
@@ -82,6 +83,10 @@ export const aapAuthAuthenticator = (aapService: IAAPService) =>
       const clientSecret = config.getString('clientSecret');
       let host = config.getString('host');
       host = host.endsWith('/') ? host.slice(0, -1) : host;
+      const tokenHost = (config.getOptionalString('tokenHost') ?? host).replace(
+        /\/$/,
+        '',
+      );
       const callbackURL =
         config.getOptionalString('callbackUrl') ?? callbackUrl;
       const checkSSL = config.getBoolean('checkSSL') ?? true;
@@ -93,7 +98,7 @@ export const aapAuthAuthenticator = (aapService: IAAPService) =>
             clientSecret: clientSecret,
             callbackURL: callbackURL,
             authorizationURL: `${host}/o/authorize/`,
-            tokenURL: `${host}/o/token/`,
+            tokenURL: `${tokenHost}/o/token/`,
             skipUserProfile: true,
             passReqToCallback: false,
           },
@@ -112,7 +117,15 @@ export const aapAuthAuthenticator = (aapService: IAAPService) =>
           },
         ),
       );
-      return { helper, host, clientId, clientSecret, callbackURL, checkSSL };
+      return {
+        helper,
+        host,
+        tokenHost,
+        clientId,
+        clientSecret,
+        callbackURL,
+        checkSSL,
+      };
     },
     async start(input, { helper, callbackURL }) {
       const { verifier, challenge } = generatePKCE();
@@ -129,7 +142,7 @@ export const aapAuthAuthenticator = (aapService: IAAPService) =>
 
     async authenticate(
       input,
-      { host, clientId, clientSecret, callbackURL, checkSSL },
+      { host, tokenHost, clientId, clientSecret, callbackURL, checkSSL },
     ) {
       const oauthError = input.req.query.error as string | undefined;
       const oauthErrorDescription = input.req.query.error_description as
@@ -157,7 +170,7 @@ export const aapAuthAuthenticator = (aapService: IAAPService) =>
       }
 
       const result = await aapService.rhAAPAuthenticate({
-        host: host,
+        host: tokenHost ?? host,
         checkSSL: checkSSL,
         clientId: clientId,
         clientSecret: clientSecret,
@@ -173,10 +186,10 @@ export const aapAuthAuthenticator = (aapService: IAAPService) =>
 
     async refresh(
       input,
-      { host, clientId, clientSecret, callbackURL, checkSSL },
+      { host, tokenHost, clientId, clientSecret, callbackURL, checkSSL },
     ) {
       const result = await aapService.rhAAPAuthenticate({
-        host: host,
+        host: tokenHost ?? host,
         checkSSL: checkSSL,
         clientId: clientId,
         clientSecret: clientSecret,
