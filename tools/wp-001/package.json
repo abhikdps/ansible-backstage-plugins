@@ -1,0 +1,14 @@
+{
+  "name": "@ansible/wp-001-scanner",
+  "version": "0.0.1",
+  "private": true,
+  "description": "WP-001: deterministic scanner for exports and runtime registrations",
+  "type": "module",
+  "scripts": {
+    "scan": "node --experimental-strip-types src/scan.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
