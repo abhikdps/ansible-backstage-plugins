@@ -36,7 +36,7 @@ Use a single unified type with a source annotation:
 | `aap-workflow`                | AAP Workflow Job Templates                          | AAP workflow templates (ANSTRAT-1651)         | Document only  |
 | `orchestrator`                | Automation Orchestrator                             | Orchestrator workflows (ANSTRAT-1938)         | Document only  |
 
-`execution-environment` remains unchanged — it is a distinct entity kind, not an automation template.
+Execution environments retain `kind: Component` with `spec.type: execution-environment`. The type is distinct from `automation-template`; this decision does not introduce a custom catalog kind.
 
 ### Changes required
 

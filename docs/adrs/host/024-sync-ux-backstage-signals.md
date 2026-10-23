@@ -37,27 +37,22 @@ Use Backstage's native Signals plugin (WebSocket push) instead of REST polling f
 
 1. **Backend**: `SyncStateTracker` publishes to signal channel on sync start/complete/fail
 2. **Frontend**: `useSignal()` hook subscribes to channel, updates UI state immediately
-3. **Page load**: Single REST call (`fetchSyncStatus`) for initial state, signals handle everything after
+3. **Initial state and reconnect**: Fetch authoritative status (`fetchSyncStatus`) on page load and after every signal reconnection. Signals update the UI between these snapshots; they do not replace reconciliation.
+4. **Ordering**: Establish the subscription before reading the initial snapshot, and reconcile buffered events with that snapshot using a server revision or another documented ordering mechanism. An older response must not overwrite newer sync state. The implementation must define and test the chosen mechanism.
+5. **Concurrency admission**: The backend remains authoritative for accepting a sync trigger. UI disabled state and signal delivery do not prevent two clients from submitting concurrently. Define the admission/locking scope for the deployed scheduler, including multiple pods where supported.
 
 **Why Signals over polling:**
 
-- Real-time state push — no stale data window
+- Prompt state updates while connected, with authoritative reconciliation after reconnect
 - Cross-session — all admins see sync state simultaneously
 - No polling infrastructure — eliminates `syncPollingService.ts` (615 lines)
 - Native Backstage — supported in RHDH as dynamic plugin
 
-**Required RHDH configuration:**
+**RHDH NFS deployment contract:**
 
-```yaml
-- package: ./dynamic-plugins/dist/backstage-plugin-signals-backend-dynamic
-  disabled: false
-- package: ./dynamic-plugins/dist/backstage-plugin-signals
-  disabled: false
-  pluginConfig:
-    dynamicPlugins:
-      frontend:
-        backstage.plugin-signals: {}
-```
+Install compatible Signals backend and native frontend artifacts for the supported RHDH baseline. The frontend artifact must expose its native feature through `./alpha`; operators use `app.extensions` only for overrides of extensions actually provided by that artifact. Do not register Signals through `pluginConfig.dynamicPlugins.frontend`: that is legacy Scalprum wiring and conflicts with ADR-010/011's NFS contract.
+
+Exact artifact paths and extension IDs depend on the selected RHDH bundle and export version. Verify them against that bundle before publishing deployment YAML; this ADR does not define a portable artifact-path or extension-ID snippet. The source app's native composition and the [NFS composition guide](../../next/portal-sdk-nfs-composition.md) describe the current Portal integration baseline.
 
 ### Signal Channel Design
 
@@ -73,20 +68,26 @@ Future channels follow the same pattern for content sync, job status, and user r
 
 - Consistent sync UX across all portal views
 - Real-time sync state without polling overhead
-- Prevents concurrent manual sync triggers across admin sessions
+- Communicates active sync state across sessions; authoritative backend admission prevents concurrent manual sync triggers
 - Extensible — same pattern applies to job status, content sync, first-login resolution
 - Native Backstage feature — no custom infrastructure
 
 ### Negative
 
 - WebSocket connection requires authenticated session — initial connection fails before login (auto-recovers)
-- Signals are ephemeral — no replay on reconnect; initial page load still needs REST fallback
-- RHDH dynamic plugin `pluginConfig` must explicitly register signals frontend — easy to miss
+- Signals are ephemeral — no replay on reconnect; initial load and reconnection require authoritative status reconciliation
+- Native frontend and backend Signals artifacts must match the supported RHDH bundle; verify actual exports and overrides instead of copying legacy wiring
 
 ### Neutral
 
 - Backend sync mechanism unchanged — same scheduler, same AAP API calls
 - Helm chart needs signals plugins enabled in dynamic-plugins config
+
+### Verification requirements
+
+- Disconnect during an active sync, complete it while disconnected, then reconnect: the authoritative refresh must clear the stale `Syncing...` state without a page reload.
+- Deliver a signal while the initial status request is in flight: the older response must not replace newer state.
+- Submit concurrent sync requests from two sessions, and from separate pods where supported: backend admission must enforce the documented concurrency scope regardless of UI signal timing.
 
 ## Related
 

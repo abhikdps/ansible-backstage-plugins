@@ -27,14 +27,16 @@ Admin functionality (wizard, admin pages, config API, auth modes) must be added 
 
 ## Decision
 
-**1. Extend existing plugins, no new packages.**
+**1. Prefer existing packages; backend ownership remains proposed.**
 
-| Functionality                      | Target Package                       |
-| ---------------------------------- | ------------------------------------ |
-| Config DB, setup API, restart, CLI | `backstage-rhaap` (backend)          |
-| Admin pages, wizard UI             | `self-service` (frontend)            |
-| Auth modes                         | `auth-backend-module-rhaap-provider` |
-| Shared types                       | `backstage-rhaap-common`             |
+The existing `@ansible/plugin-backstage-rhaap` package is a **frontend** plugin. It cannot own the proposed server-side config store, setup API, or restart service. The backend target is not selected by this ADR; the implementation proposal must name a backend plugin/module and its dependencies before work begins. If that requires a new package or package split, record that change rather than assigning server responsibilities to the frontend package.
+
+| Functionality                      | Target Package                                                                                 |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Config DB, setup API, restart, CLI | Backend owner to be selected in the implementation proposal                                    |
+| Admin pages, wizard UI             | Host frontend owner to be confirmed; preserve administration when portal-scaffolder is omitted |
+| Auth modes                         | `auth-backend-module-rhaap-provider`                                                           |
+| Shared types                       | `backstage-rhaap-common`                                                                       |
 
 Admin pages lazy-loaded via `React.lazy()` — non-admin users never download admin code.
 
@@ -42,9 +44,9 @@ Admin pages lazy-loaded via `React.lazy()` — non-admin users never download ad
 
 ```mermaid
 flowchart LR
-    subgraph plugins ["Existing Packages — extended"]
-        SS["self-service frontend"]
-        BR["backstage-rhaap backend"]
+    subgraph plugins ["Proposed package responsibilities"]
+        SS["Host admin frontend — owner to confirm"]
+        BR["Config / setup / restart backend — owner TBD"]
         BC["backstage-rhaap-common"]
         AU["auth-backend-module-rhaap-provider"]
     end
@@ -60,15 +62,15 @@ flowchart LR
 
 **Positive:**
 
-- Fewer packages to maintain; lazy-loaded admin code keeps bundle size small
+- Reuse existing packages where appropriate; lazy-loaded admin code keeps bundle size small
 - Zero-config DB on VM matches OCP experience (where DB is auto-provisioned)
 
 **Negative:**
 
-- Existing packages grow in scope; Podman lifecycle to maintain on RHEL
+- Backend ownership and packaging must be resolved before implementation; Podman lifecycle to maintain on RHEL
 - Bundled-to-external DB migration requires downtime
 
 ## Related
 
 - Research: 002 (research not published in this repository), 005 (research not published in this repository), 006 (research not published in this repository)
-- `plugins/self-service/`, `plugins/backstage-rhaap/`, `plugins/backstage-rhaap-common/`, `plugins/auth-backend-module-rhaap-provider/`
+- `workspaces/self-service/plugins/portal-scaffolder/`, `workspaces/aap/plugins/backstage-rhaap/`, `workspaces/aap/plugins/backstage-rhaap-common/`, `workspaces/aap/plugins/auth-backend-module-rhaap-provider/`

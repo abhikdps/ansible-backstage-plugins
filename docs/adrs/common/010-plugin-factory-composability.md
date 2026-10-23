@@ -30,11 +30,11 @@ The question is how to enforce this boundary in both the upstream Backstage dev 
 
 ### Rules
 
-1. **No cross-plugin `package.json` deps.** A base or host Backstage plugin (e.g. `@ansible/plugin-backstage-self-service`) must not depend on an optional factory Backstage plugin (e.g. `@ansible/plugin-backstage-quality`). If a host plugin needs data from a guest plugin, it imports from that plugin's `*-common` library (shared contracts), not the implementation package.
+1. **No cross-plugin `package.json` deps.** A base or host Backstage plugin (e.g. `@ansible/portal-scaffolder`) must not depend on an optional factory Backstage plugin (e.g. `@ansible/plugin-backstage-quality`). If a host plugin needs data from a guest plugin, it imports from that plugin's `*-common` library (shared contracts), not the implementation package.
 
 2. **Shared types and API refs in `*-common`.** Plugin interfaces, API refs, config readers, and catalog helpers live in `*-common`. Host plugins consume contracts via API refs (e.g. `<plugin>ApiRef`), not implementation packages.
 
-3. **Config-gated zero footprint (per capability).** `ansible.<pluginId>.enabled: false` (or block absent) per **ADR-011** turns off the **portal capability** identified by `<pluginId>` — not individual plugin packages in isolation. All surfaces for that capability disappear together: host extension slots, entity tabs, routes, backend proxy registration, and capability-local settings. Verified by toggling config and confirming zero console errors.
+3. **Config-gated zero footprint (per capability).** `ansible.<pluginId>.enabled: false` (or block absent) per **ADR-011** must turn off the **portal capability** identified by `<pluginId>` — not individual plugin packages in isolation. All surfaces for that capability disappear together: host extension slots, entity tabs, routes, backend proxy registration, and capability-local settings. This requires explicit frontend and backend enforcement under ADR-011; a React rendering guard is insufficient. Verify the effective app tree and disabled routes/endpoints as well as UI and console errors.
 
 4. **RHDH dynamic plugin mode (RHDH 2.1 New Frontend System).**
    - **Install:** `dynamic-plugins.yaml` lists plugin packages with `disabled` and optional `pluginConfig`. That list is which artifacts load. `pluginConfig` is an app-config fragment (runtime keys, `app.*` overrides) — not Scalprum frontend wiring.
@@ -43,7 +43,7 @@ The question is how to enforce this boundary in both the upstream Backstage dev 
    - **Runtime merge:** the init container produces `app-config.dynamic-plugins.yaml` (generated; do not hand-edit).
    - **Upstream dev app:** `packages/app` is the composition root — it may import multiple plugins; individual plugins must not import each other.
 
-5. **Upstream dev app.** Static imports in `App.tsx`/`Root.tsx`/`EntityPage.tsx` use config guards (`use<Capability>Enabled()` hook) to conditionally render. Optional host-surface contributions register via shared extension APIs in `*-common` and are wired from `packages/app` when the capability is enabled — host plugins do not import guest plugin packages.
+5. **Upstream dev app.** The native source app uses the same declarative NFS features and capability enablement contract as the RHDH host. The application workspace is the composition root and may select installed features; host plugins do not import guest implementation packages. Static `App.tsx`/`Root.tsx`/`EntityPage.tsx` guards and imperative shared extension APIs are legacy compatibility patterns, not a substitute for native extension activation or route removal.
 
 6. **Navigation placement is decided per capability during Portal Plugin Factory Propose**, based on use case. Prefer extending existing surfaces when the feature is naturally catalog- or entity-scoped (see **ADR-015**). Standalone sidebar entries or top-level routes are permitted when justified in the prototype plan and approved at Portal Plugin Factory Review. All placements must still honor config-gated zero footprint (rules 1–5).
 

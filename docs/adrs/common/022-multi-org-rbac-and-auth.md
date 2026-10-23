@@ -11,7 +11,7 @@
 
 Portal supports multiple authentication providers (AAP OAuth, GitHub/GitLab OAuth, Keycloak). Each provides different levels of access to AAP resources. With multi-org support, the question is how to control which templates a user can see based on their identity and AAP permissions, without requiring administrators to duplicate AAP's RBAC configuration in Portal.
 
-AAP has a comprehensive RBAC model (38 role definitions across content types) and filters API responses based on the authenticated user's role assignments. When a user queries job templates with their AAP token, AAP returns only templates they have execute permission on.
+AAP filters API responses based on the authenticated user's role assignments. Listing job templates with a user's AAP token returns templates the user can read; read access does not by itself grant execute permission. AAP separately authorizes launching a template. Portal must not infer execute permission from membership in that list.
 
 ## Alternatives Considered
 
@@ -23,18 +23,20 @@ AAP has a comprehensive RBAC model (38 role definitions across content types) an
 
 ## Decision
 
-AAP is the single source of truth for job template permissions. No RBAC replication in Portal.
+AAP is the single source of truth for job template permissions. The current Home filter uses the user's AAP read visibility; it does not replicate execute permissions into Portal. The global execute-based catalog policy in ADR-023 is a separate, deferred design.
 
 ### How it works today (already implemented)
 
 The self-service Home page already implements per-user filtering:
 
 1. `JobTemplatesProvider` calls AAP with the **user's OAuth token** and records `ready` or `error`
-2. AAP returns only job templates the user has execute permission on
+2. AAP returns job templates readable with that user's token; the backend maps the returned IDs without applying an additional execute-permission filter
 3. Home wraps `catalogApi.queryEntities()` via `createHomeCatalogApi()` with `buildVisibilityPredicate()`: show entities whose `metadata.aapJobTemplateId` is in that ID list, or that have no `aapJobTemplateId`
 4. Catalog applies the predicate **before** pagination. `isHomePageTemplate()` no longer exists.
 
 Home renders the catalog only when the job-template request is `ready`. An AAP session error shows the sign-in / retry message instead of a custom-template-only grid.
+
+A readable template can still be non-executable. Launch handlers must retain AAP's execution authorization. If Home is required to show only executable templates, that needs a separate implementation change using verified start capabilities, with a regression case for a user who can read a template but cannot execute it.
 
 ### Auth-provider-to-visibility mapping
 
@@ -63,8 +65,8 @@ SCM tokens are acquired on demand via `scmAuthApi.getCredentials({ url: repoUrl 
 ### Positive
 
 - Zero admin overhead — RBAC configured once in AAP, Portal respects it via user token
-- No RBAC policy sync, no staleness, no drift
-- Accurate real-time filtering — AAP evaluates permissions at query time
+- No replicated execute-permission policy in the current Home filter
+- Read visibility is evaluated by AAP when the list is fetched; changes after that fetch require a refresh, and launch remains separately authorized
 - Multi-auth support — each provider's visibility is correct by design
 
 ### Negative
@@ -79,7 +81,7 @@ SCM tokens are acquired on demand via `scmAuthApi.getCredentials({ url: repoUrl 
 - [AAP-80078](https://redhat.atlassian.net/browse/AAP-80078) — Custom permissions and RBAC epic
 - PR #402 — `issueTokenWithOwnership` (merged)
 - ADR-020 — Multi-org namespace isolation
-- `plugins/self-service/src/components/Home/createHomeCatalogApi.ts` — `queryEntities` visibility predicate
-- `plugins/self-service/src/components/Home/buildVisibilityPredicate.ts`
-- `plugins/auth-backend-module-rhaap-provider/src/resolvers.ts` — `issueTokenWithOwnership()`
+- `workspaces/self-service/plugins/portal-scaffolder/src/components/Home/createHomeCatalogApi.ts` — `queryEntities` visibility predicate
+- `workspaces/self-service/plugins/portal-scaffolder/src/components/Home/buildVisibilityPredicate.ts`
+- `workspaces/aap/plugins/auth-backend-module-rhaap-provider/src/resolvers.ts` — `issueTokenWithOwnership()`
 - Backstage RBAC plugin: `workspaces/rbac/plugins/rbac-backend/src/policies/permission-policy.ts`

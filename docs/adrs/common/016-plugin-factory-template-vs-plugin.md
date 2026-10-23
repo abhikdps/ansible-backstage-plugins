@@ -17,10 +17,10 @@ Contributing teams need a binding decision tree at Propose phase so full Portal 
 
 ### Technical distinction
 
-| Delivery                     | What it is                              | Where it lives                                                                                                        | Typical load path                                                 |
-| ---------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| **Software template**        | Scaffolder form → action → done         | `examples/` or catalog template YAML; runs via `@ansible/plugin-backstage-self-service`                               | No new dynamic plugin; uses existing portal plugins               |
-| **Factory Backstage plugin** | Persistent UI + optional backend module | `ansible-backstage-plugins/plugins/backstage-<pluginId>` (+ `*-common`, optional `catalog-backend-module-<pluginId>`) | RHDH dynamic plugin OCI tarball and/or `packages/app` composition |
+| Delivery                     | What it is                              | Where it lives                                                                                                                           | Typical load path                                                 |
+| ---------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| **Software template**        | Scaffolder form → action → done         | `examples/` or catalog template YAML; runs via `@ansible/portal-scaffolder`                                                              | No new dynamic plugin; uses existing portal plugins               |
+| **Factory Backstage plugin** | Persistent UI + optional backend module | `ansible-backstage-plugins/workspaces/<owner>/plugins/backstage-<pluginId>` (+ `*-common`, optional `catalog-backend-module-<pluginId>`) | RHDH dynamic plugin OCI tarball and/or `packages/app` composition |
 
 ## Alternatives Considered
 

@@ -76,5 +76,5 @@ flowchart TD
 ## Related
 
 - Research: 002 (research not published in this repository), 004 (research not published in this repository)
-- `plugins/auth-backend-module-rhaap-provider/` — auth modes
-- `plugins/backstage-rhaap/` — RestartService
+- `workspaces/aap/plugins/auth-backend-module-rhaap-provider/` — auth modes
+- [ADR-005](005-deployment-architecture.md) — proposed backend ownership for RestartService; the existing `backstage-rhaap` frontend package is not a server-side implementation owner

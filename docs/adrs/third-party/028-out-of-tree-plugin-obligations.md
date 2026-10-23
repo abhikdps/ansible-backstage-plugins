@@ -28,7 +28,7 @@ Without an explicit out-of-tree ADR, authors copy `workspace:^`, embed `portal-e
 ## Consequences
 
 - Third-party onboarding can run without cloning private SDLC trees.
-- In-tree factory plugins keep using workspace protocol and `packages/app` guards; that is a **host** concern, not a third-party template.
+- In-tree factory plugins use workspace protocol and the application workspace's native composition; legacy app guards remain a compatibility concern. Neither is the proposed out-of-tree distribution path.
 - Follow-on work: published npm versions of the SDK, generic scaffolder field-registry merge, and a documented export pipeline.
 
 ## Related

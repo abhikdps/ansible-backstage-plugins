@@ -111,6 +111,7 @@ nav:
       - features/job-templates.md
       - features/home-template-listing.md
       - features/feedback-configuration.md
+
   - Third-party plugins:
       - 3rd-party-plugins/index.md
       - Plugin development guide: 3rd-party-plugins/plugin-development-guide.md

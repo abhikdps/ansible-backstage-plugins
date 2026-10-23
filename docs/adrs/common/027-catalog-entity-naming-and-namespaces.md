@@ -70,16 +70,16 @@ Do not parse identity out of `metadata.name`; use annotations (`ansible.com/aap-
 
 ### 1.1 Users — hybrid via `multiOrgEnabled` (raw ↔ `{source}-user-{id}`)
 
-#### Current state (main / shipped)
+#### Historical baseline before the hybrid identity change
 
-| Surface                      | Behavior today                                               |
+| Surface                      | Behavior before the hybrid change                            |
 | ---------------------------- | ------------------------------------------------------------ |
 | Catalog User `metadata.name` | **Raw** AAP username (`entityParser` writes `user.username`) |
 | Auth `findCatalogUser`       | **Raw** OAuth profile username (`resolvers.ts`)              |
 | Profile username             | `spec.profile.username` = raw AAP username                   |
 | Annotation                   | `ansible.com/aap-username` = raw username                    |
 
-Catalog and auth are aligned on **raw** username today.
+Catalog and auth used raw usernames in both modes at that baseline. The current implementation uses the flag-gated identity contract below: raw username when the flag is off, verified AAP user ID when it is on. Profile and annotation values retain the raw username. The old table is historical context, not the current flag-on behavior.
 
 #### Decided
 
@@ -238,7 +238,7 @@ Bootc and operator validate **configured AAP org names** in `orgs` / `spec.plugi
 ### Neutral / follow-ups
 
 - ADR-026 / migration guide: flag-on user refs `user:default/aap-user-{id}`; auth by AAP user id
-- AAP-93502: implement hybrid user naming + auth + regression tests (`ops_admin`/`ops-admin`, etc.)
+- AAP-93502 implemented hybrid user naming and auth; preserve the regression coverage for `ops_admin`/`ops-admin`, verified IDs, provisioning, and membership references when changing these paths
 - Forward-looking AAP object type-token appendix — separate from ADR-027
 - Portal org/template metadata views (RBAC authoring) — separate stories
 - Workflow template provider wiring (ANSTRAT-1651)
@@ -253,7 +253,7 @@ Bootc and operator validate **configured AAP org names** in `orgs` / `spec.plugi
 - [ADR-026](026-multi-org-architecture-overview.md) — Multi-org architecture overview
 - [ANSTRAT-912](https://redhat.atlassian.net/browse/ANSTRAT-912) — Portal multi-org support
 - [AAP-93502](https://redhat.atlassian.net/browse/AAP-93502) — Implement naming + auth wiring (includes flag-on `{source}-user-{id}`)
-- `plugins/backstage-rhaap-common/src/utils/nameFormatting.ts` — shared naming helpers
-- `plugins/auth-backend-module-rhaap-provider/src/resolvers.ts` — flag off: raw username; flag on: AAP user id
+- `workspaces/aap/plugins/backstage-rhaap-common/src/utils/nameFormatting.ts` — shared naming helpers
+- `workspaces/aap/plugins/auth-backend-module-rhaap-provider/src/resolvers.ts` — flag off: raw username; flag on: AAP user id
 - `bootc/scripts/lib/yaml-helper.py` — Day 0 sanitizer (bootc)
 - `internal/controller/catalog_orgs.go` — Day 0 sanitizer (operator)

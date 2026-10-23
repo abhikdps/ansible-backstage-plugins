@@ -38,9 +38,19 @@ RHDH 2.1 install and NFS frontend wiring are separate from runtime config. `dyna
 3. **Capability-specific keys** — sibling keys under the same block (`baseUrl`, `checkSSL`, `mockMode`, sync schedules, etc.).
 4. **Config reader** — the capability's `*-common` package exposes `get<Capability>Config(config: Config)` reading `ansible.<pluginId>`. All artifacts for that capability use this reader — never scatter string literals. The Portal Plugin Factory scaffolding template generates it once per capability.
 5. **Config schema** — declared in the capability's primary `config.d.ts`. Portal Plugin Factory Review validates the schema exists and matches this namespace.
-6. **Frontend enabled hook** — `use<Capability>Enabled()` reads `configApi.getOptionalBoolean('ansible.<pluginId>.enabled') ?? false`. All UI entry points for the capability consult this hook.
+6. **Frontend enablement** — `use<Capability>Enabled()` reads `configApi.getOptionalBoolean('ansible.<pluginId>.enabled') ?? false` as a rendering guard. This hook alone does not disable a registered NFS page, tab, or route. Capability activation must also follow the NFS enforcement contract below.
 7. **Legacy migration** — existing top-level plugin slug keys may be read as fallback during transition with a deprecation comment pointing to this ADR. New plugins must use `ansible.<pluginId>.*` from day one.
 8. **RHDH install vs NFS vs runtime config** — `dynamic-plugins.yaml` decides whether a package loads. Frontend placement is NFS (`./alpha` extensions; optional `app.extensions` / `app.routes.bindings`). `ansible.<pluginId>.*` is the runtime capability toggle and settings. Do not put route/tab/sidebar registration under `pluginConfig.dynamicPlugins.frontend` (RHDH 2.0 Scalprum). Both install listing and the runtime `enabled` toggle may be required on RHDH; upstream dev app uses runtime config + static imports from `packages/app`.
+
+### NFS enforcement contract
+
+The capability toggle is a target requirement across the capability's artifacts, not an automatic property of Backstage's config API. A contributor must inventory its NFS extensions, backend routes, scheduled tasks, and startup side effects, and document how each becomes inactive when the capability is disabled or its block is absent.
+
+For NFS, the host composition must map the capability toggle to extension enablement before the affected extensions become active. Disabled pages must not remain mounted as blank routes, and disabled tabs or host slots must not remain registered merely because their React component returns `null`. Backend artifacts must skip capability routes, scheduled work, and other capability-local registrations when disabled; hiding frontend UI does not disable backend access.
+
+This ADR does not claim that a generic config-to-NFS-extension mapping is already implemented. Until that mapping exists for a capability, its deployment must explicitly disable every affected extension through `app.extensions`, in addition to setting the runtime toggle, and document the extension IDs. Treat missing enforcement as a host integration gap; do not advertise one-toggle zero footprint based only on a rendering hook. Extension overrides do not replace backend authorization or backend enablement checks.
+
+Verification must inspect the effective app tree and directly request disabled routes/endpoints, as well as checking visible UI and console errors. The capability's `enabled` boolean must be frontend-visible in its config schema; secrets must remain backend-only.
 
 ### Standard key reference
 

@@ -1,7 +1,9 @@
 # Plugin Development Guide
 
 **Status:** specified — ANSTRAT-2497, Portal Plugin Factory (guide and SDK specification). This Feature does not implement host APIs, a scaffold CLI, reusable CI, or packaging automation.
-**Binding ADRs:** [010](../adrs/common/010-plugin-factory-composability.md)–[013](../adrs/common/013-plugin-factory-enablement-defaults.md), [015](../adrs/common/015-plugin-factory-catalog-first-surfaces.md)–[019](../adrs/common/019-plugin-factory-delivery-lifecycle.md), plus [ADR-028](../adrs/third-party/028-out-of-tree-plugin-obligations.md) for out-of-tree plugins.
+**Binding ADRs:** [010](../adrs/common/010-plugin-factory-composability.md)–[013](../adrs/common/013-plugin-factory-enablement-defaults.md), [015](../adrs/common/015-plugin-factory-catalog-first-surfaces.md)–[019](../adrs/common/019-plugin-factory-delivery-lifecycle.md). The out-of-tree additions in [ADR-028](../adrs/third-party/028-out-of-tree-plugin-obligations.md) are **Proposed**, pending acceptance; references to that record describe the proposed target, not an approved policy.
+
+This page specifies the out-of-tree contributor path. The [current SDK author guide](../next/portal-sdk-plugin-author-guide.md) and [NFS composition guide](../next/portal-sdk-nfs-composition.md) document the implemented in-tree development subset and its verification boundaries. An implemented internal preview does not establish published npm packages or a supported out-of-tree distribution path.
 
 Content Experience Architecture and UI Composability Architecture are **not published in this docs tree**. This guide states the author-facing rules from those documents; do not invent private substitutes for unpublished diagrams.
 
@@ -23,13 +25,13 @@ Honesty tags:
 
 Suggested contributor-kit shape (names can change; install mechanism is **not yet**):
 
-| Artifact                                                                                                      | Role                                                                                                 |
-| ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Onboarding skill (`SKILL.md`)                                                                                 | Walkthrough + the guide. Entry point.                                                                |
-| Contract skill                                                                                                | Hard rules: manifest, operations, NFS, applicability, anti-patterns                                  |
-| `portal-design`                                                                                               | Visual and content standards; onboarding defers UI craft here. Not published in this repository yet. |
-| ADRs 010–019 plus factory ADRs including [ADR-028](../adrs/third-party/028-out-of-tree-plugin-obligations.md) | Binding decisions the skills cite; never restated as optional style                                  |
-| SDK TypeScript types / package map                                                                            | What code compiles against, status-tagged                                                            |
+| Artifact                                                                                                | Role                                                                                                 |
+| ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Onboarding skill (`SKILL.md`)                                                                           | Walkthrough + the guide. Entry point.                                                                |
+| Contract skill                                                                                          | Hard rules: manifest, operations, NFS, applicability, anti-patterns                                  |
+| `portal-design`                                                                                         | Visual and content standards; onboarding defers UI craft here. Not published in this repository yet. |
+| Accepted ADRs 010–019 and proposed [ADR-028](../adrs/third-party/028-out-of-tree-plugin-obligations.md) | Skills cite accepted decisions and clearly identify proposed additions                               |
+| SDK TypeScript types / package map                                                                      | What code compiles against, status-tagged                                                            |
 
 ```text
 human describes capability
@@ -239,7 +241,7 @@ Host-only (authors do not depend): `@ansible/portal-extension-host`, `portal-cor
 - `usePortalContext()` — `organizationId`, user, loading. Never take tenant identity from plugin input as proof.
 - Host wraps every contribution: error boundary, Suspense, CSS tokens (`--portal-color-*` from the active theme). Authors use the tokens for color; they do not import MUI solely to read the palette. This sits **under** BUI → PatternFly → custom, not instead of it.
 - Host owns `SettingsShell` (RJSF). Plugin supplies schema, `onLoad` / `onSave`, persistence.
-- Dynamic frontend entry (today `dynamic/index.ts`; target NFS `alpha.ts`) is **side-effect-only**: register contributions, do not fetch data or mount trees at load.
+- The NFS `./alpha` entry declares extensions with `createFrontendPlugin` and exports the resulting frontend plugin as its default export. Keep module initialization free of network calls and mounted React trees; use extension loaders for runtime work. Import-time registration through a legacy `dynamic/index.ts` entry is not the NFS discovery contract.
 
 ### 7.3 Backend verbs
 
@@ -322,9 +324,9 @@ Two field models, both valid:
 
 Keep the “no arbitrary URL in the template” rule for both.
 
-Today’s hardcoded field list in the create-wizard implementation is **current code location**, not a factory ownership decision. The author-facing contract is the host field registry. Which package implements the merge is follow-on platform work. ANSTRAT-2497 specifies the obligation; it does not assign a delivering team.
+The current native development path already accepts `ScaffolderFieldBlueprint` declarations through the shared provider and an optional templates adapter; see the [implemented field contract](../next/portal-sdk-plugin-author-guide.md#field-declarations-and-optional-templates-adapters). That bounded native contract does not establish compatibility with every stock or legacy dynamically registered field. The generic-superset behavior above remains a specified out-of-tree obligation; ANSTRAT-2497 does not assign its remaining delivery work to a team.
 
-If asked “register field extensions like RHDH and they appear on Portal,” answer with this contract and tag **host-missing** until the merge ships. Do not tell a third-party team to hardcode a widget into any Portal package.
+If asked “register field extensions like RHDH and they appear on Portal,” distinguish the implemented native field contract from the proposed stock/legacy registry compatibility. Tag unimplemented compatibility as **host-missing**; do not describe native declarations as unavailable or tell a third-party team to hardcode a widget into a Portal package.
 
 **Refuse.**
 
@@ -340,9 +342,9 @@ A template that works on stock RHDH and fails on Portal is a **host wizard gap**
 
 Do not leave these sections blank. A blank heading is worse than an unanswered one: an agent will invent a pipeline.
 
-### 10.1 Known now (binding)
+### 10.1 Accepted policy and proposed out-of-tree additions
 
-- Third-party plugins live in **other repositories**. See [ADR-028](../adrs/third-party/028-out-of-tree-plugin-obligations.md).
+- The proposed third-party path places plugins in **other repositories**. See [ADR-028](../adrs/third-party/028-out-of-tree-plugin-obligations.md); acceptance of that record remains a separate decision.
 - Runtime `PluginManifest` and install `portal-plugin.yaml` are two jobs. Mixing them is a refusal.
 - EAP / Tech Preview / GA still apply ([ADR-019](../adrs/common/019-plugin-factory-delivery-lifecycle.md), [ADR-013](../adrs/common/013-plugin-factory-enablement-defaults.md)). Preview chips: [ADR-012](../adrs/common/012-plugin-factory-preview-labeling.md), [ADR-017](../adrs/common/017-plugin-factory-preview-chip-placement.md).
 - Adding a plugin today still touches installer lists the author does not own. Record that as a factory gap. Do not tell authors to open a Portal pull request to edit installer code.
@@ -401,7 +403,7 @@ When asked to onboard a plugin or add a contribution:
 
 Cite ADRs. Do not paraphrase them into optional style. Rules that exist only in unpublished research are listed as **ADR candidates**, not buried as soft guide advice.
 
-**ADRs 010–019 are binding for third-party plugins** even though those plugins live in other repos. Composability, config namespace, Preview, enablement, catalog-first placement, template-vs-plugin, shared UI primitives, and delivery lifecycle apply. [ADR-028](../adrs/third-party/028-out-of-tree-plugin-obligations.md) adds the out-of-tree deltas.
+**ADRs 010–019 are binding for factory plugins.** Composability, config namespace, Preview, enablement, catalog-first placement, template-vs-plugin, shared UI primitives, and delivery lifecycle remain the common rules. [ADR-028](../adrs/third-party/028-out-of-tree-plugin-obligations.md) proposes their application and additional obligations for out-of-tree plugins; its status must become Accepted before those additions are described as approved policy.
 
 **Monorepo-location clauses to amend later** (do not treat these as “in-tree only”):
 
@@ -409,7 +411,7 @@ Cite ADRs. Do not paraphrase them into optional style. Rules that exist only in 
 | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | [ADR-010](../adrs/common/010-plugin-factory-composability.md)        | Scope text: plugins in `ansible-backstage-plugins`; `packages/app` as composition root          |
 | [ADR-011](../adrs/common/011-plugin-factory-config-namespace.md)     | Product teams contribute plugins in `ansible-backstage-plugins`; upstream `packages/app` wiring |
-| [ADR-016](../adrs/common/016-plugin-factory-template-vs-plugin.md)   | Factory plugin path `ansible-backstage-plugins/plugins/backstage-<pluginId>`                    |
+| [ADR-016](../adrs/common/016-plugin-factory-template-vs-plugin.md)   | Factory plugin path `ansible-backstage-plugins/workspaces/<owner>/plugins/backstage-<pluginId>` |
 | [ADR-018](../adrs/common/018-plugin-factory-shared-ui-primitives.md) | No static UI in `packages/app`; do not refactor `ansible-backstage-plugins`                     |
 
 The rules (no cross-plugin implementation deps, config namespace, reuse over custom, template vs plugin) still apply out of tree. Only the repo-location sentences need a later amendment.

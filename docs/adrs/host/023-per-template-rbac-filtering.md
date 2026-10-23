@@ -60,7 +60,7 @@ Per-template visibility filtering at the database query level using a custom Bac
 }
 ```
 
-Show entity if user has AAP execute permission on it, OR the entity has no `aapJobTemplateId` (custom/SCM templates and other catalog kinds). This policy is the **template execute** filter. Organization isolation for Groups and Users is [ADR-020](../common/020-multi-org-namespace-isolation.md) / [ADR-027](../common/027-catalog-entity-naming-and-namespaces.md) namespaces, not this fallback. Tightening the fallback to `kind: Template` is follow-on work; do not treat this `anyOf` as a cross-org Group ACL.
+Show entity if user has AAP execute permission on it, OR the entity has no `aapJobTemplateId` (custom/SCM templates and other catalog kinds). This policy is the **template execute** filter. [ADR-020](../common/020-multi-org-namespace-isolation.md) / [ADR-027](../common/027-catalog-entity-naming-and-namespaces.md) provide entity naming and namespace collision isolation, not cross-organization authorization. This fallback does not restrict Group or User visibility; Users remain in `default` under ADR-027. Any requirement to restrict those entities needs a separate catalog permission policy. Tightening the fallback to `kind: Template` is follow-on work; do not treat this `anyOf` as a cross-org Group ACL.
 
 ### AAP RBAC Model (confirmed from AWX source)
 

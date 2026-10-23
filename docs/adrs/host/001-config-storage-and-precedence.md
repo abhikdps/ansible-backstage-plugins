@@ -80,4 +80,4 @@ flowchart TD
 ## Related
 
 - Research: 001 (research not published in this repository), 002 (research not published in this repository), 003 (research not published in this repository), 004 (research not published in this repository), 006 (research not published in this repository), 007 (research not published in this repository), 008 (research not published in this repository)
-- `plugins/backstage-rhaap/` — DatabaseConfigSource, configTreeBuilder, config API
+- [ADR-005](005-deployment-architecture.md) — proposed backend ownership for DatabaseConfigSource, configTreeBuilder, and the config API; these responsibilities do not belong to the existing frontend package
