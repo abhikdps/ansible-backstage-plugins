@@ -207,17 +207,18 @@ contributor responsible for installing the provider.
 
 ## Supported native interaction contracts
 
-| Blueprint                      | Current purpose                 | Attachment or integration                                              |
-| ------------------------------ | ------------------------------- | ---------------------------------------------------------------------- |
-| `EntityDetailTabBlueprint`     | Durable entity facet            | `entity.detail.tabs`                                                   |
-| `EntityOverviewCardBlueprint`  | Compact entity summary          | `entity.overview.main` or `entity.overview.secondary`                  |
-| `EntityActionBlueprint`        | Operation on the current entity | `entity.actions`                                                       |
-| `CatalogItemActionBlueprint`   | Operation from a catalog item   | `catalog.item.actions`                                                 |
-| `CatalogTabBlueprint`          | Additional catalog view         | `catalog.tabs`                                                         |
-| `CatalogTableColumnBlueprint`  | Comparable catalog value        | `catalog.table.columns`                                                |
-| `CatalogHeaderActionBlueprint` | Catalog-level workflow entry    | `catalog.header.actions` with registered workflow                      |
-| `ScaffolderWorkflowBlueprint`  | Workflow/template mapping       | Namespaced workflow ID and template reference                          |
-| `ScaffolderFieldBlueprint`     | Typed custom template input     | `scaffolder.fields` via shared provider and optional templates adapter |
+| Blueprint                      | Current purpose                 | Attachment or integration                                                       |
+| ------------------------------ | ------------------------------- | ------------------------------------------------------------------------------- |
+| `EntityDetailTabBlueprint`     | Durable entity facet            | `entity.detail.tabs`                                                            |
+| `EntityOverviewCardBlueprint`  | Compact entity summary          | `entity.overview.main` or `entity.overview.secondary`                           |
+| `EntityActionBlueprint`        | Operation on the current entity | `entity.actions`                                                                |
+| `CatalogItemActionBlueprint`   | Operation from a catalog item   | `catalog.item.actions`                                                          |
+| `CatalogTabBlueprint`          | Additional catalog view         | `catalog.tabs`                                                                  |
+| `CatalogTableColumnBlueprint`  | Comparable catalog value        | `catalog.table.columns`                                                         |
+| `CatalogHeaderActionBlueprint` | Catalog-level workflow entry    | `catalog.header.actions` with registered workflow                               |
+| `ScaffolderWorkflowBlueprint`  | Workflow/template mapping       | Namespaced workflow ID and template reference                                   |
+| `ScaffolderFieldBlueprint`     | Typed custom template input     | `scaffolder.fields` via shared provider and optional templates adapter          |
+| `AppHeaderActionBlueprint`     | UI-only Create destination      | `appHeaderActions` via shared provider; source or optional RHDH header consumer |
 
 For exact descriptor fields, use the exported types and the
 [NFS composition guide](portal-sdk-nfs-composition.md). A union member in common
@@ -248,6 +249,62 @@ remove old templates-page attachment overrides, and follow the
 [field attachment migration](portal-sdk-nfs-composition.md#migrating-field-attachments).
 No imperative module resolution, global registration fallback, or npm publication
 is required.
+
+## Declaring a Create destination
+
+Use `AppHeaderActionBlueprint` for navigation to a page owned by your plugin,
+not to execute a server action. For example, a contributor can declare its own
+editor independently of portal-scaffolder:
+
+```tsx
+import {
+  createFrontendPlugin,
+  PageBlueprint,
+} from '@backstage/frontend-plugin-api';
+import { AppHeaderActionBlueprint } from '@ansible/portal-extension-api/alpha';
+import { authoringViewPermission } from './permissions';
+
+export default createFrontendPlugin({
+  pluginId: 'content-authoring',
+  extensions: [
+    PageBlueprint.make({
+      name: 'editor',
+      params: {
+        path: '/authoring',
+        loader: () => import('./EditorPage').then(m => <m.EditorPage />),
+      },
+    }),
+    AppHeaderActionBlueprint.make({
+      name: 'editor',
+      params: {
+        group: 'create',
+        title: 'Create content',
+        targetPage: 'page:content-authoring/editor',
+        requiredPermission: authoringViewPermission,
+        order: 100,
+      },
+    }),
+  ],
+});
+```
+
+The example assumes an existing `EditorPage` and a permission defined in the
+contributor's shared contracts and registered by its backend. The host installs
+`api:portal/contributions`; authors do not register global callbacks or import
+another plugin's page. `targetPage` must identify an enabled page owned by the
+declaring plugin. The host follows its effective configured path, not a route
+copied into the action. Optional `enabledByConfig` gates the declaration.
+
+Only allowed permission decisions expose the action. Missing APIs, denied or
+failed decisions, disabled pages, unsafe paths, and foreign ownership omit it.
+One eligible destination opens directly; multiple destinations produce a menu;
+none means no Create button. Independently protect the page and backend resource:
+header filtering is not authorization for data or mutations.
+
+The source header consumes these declarations directly. RHDH deployments can
+install the optional [portal-rhdh adapter](../plugins/portal-rhdh.md); contributors
+do not depend on RHDH's header package. AAP logout is a separate opt-in integration,
+not a Create prerequisite.
 
 ## Declaring a native tab
 

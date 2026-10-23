@@ -139,4 +139,29 @@ describe('AAPLogoutButton', () => {
     });
     expect(window.location.href).toBe('');
   });
+
+  it('waits for the identity redirect before choosing the AAP logout destination', async () => {
+    let completeIdentitySignOut!: () => void;
+    mockIdentityApi.signOut.mockImplementationOnce(
+      () =>
+        new Promise<void>(resolve => {
+          completeIdentitySignOut = () => {
+            window.location.href = '/';
+            resolve();
+          };
+        }),
+    );
+    await renderComponent();
+    await userEvent.click(screen.getByText('Sign out'));
+    await waitFor(() => expect(mockIdentityApi.signOut).toHaveBeenCalled());
+    expect(window.location.href).toBe('');
+
+    completeIdentitySignOut();
+
+    await waitFor(() => {
+      expect(window.location.href).toBe(
+        'https://aap.example.com/api/gateway/v1/logout/',
+      );
+    });
+  });
 });

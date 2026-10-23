@@ -211,7 +211,12 @@ pages or make that full UI journey available without them.
 
 ## Acceptance boundaries
 
-- The packed `next-2.1` deployment uses mock AAP authentication. The source NFS
+- A separate packed `next-2.1` real-AAP check verified the optional native header
+  adapter: Create navigated from Git repositories to Templates, the profile menu
+  contained one Sign out item, and logout reached AAP's logged-out API page.
+  Intermittent OAuth/revocation transport errors remain separate from header
+  wiring; these checks do not certify every authentication failure path.
+- Earlier packed `next-2.1` content checks used mock AAP authentication. The source NFS
   app was verified with real AAP login and two completed standalone checks on
   the existing `my-ns-my-col` test repository. Persisted scan count increased
   from two to four, with one finding. APME refreshes its summary while a
@@ -390,16 +395,66 @@ through the host's `@deepVisibility frontend` schema.
 
 The source app registers native RBAC, user settings, and Search features. Its
 global header reuses the existing AAP/identity logout behavior through an
-app-owned root wrapper. Create is omitted when the installed Templates adapter
-is unavailable; it follows that adapter's effective route when present.
-RHDH retains its own platform header instead of loading
-the source app wrapper. Guest users can see navigation but remain subject to
+app-owned root wrapper. Create consumes eligible `AppHeaderActionBlueprint`
+declarations and follows each owned page's effective installed route.
+RHDH retains its own platform header instead of loading the source app wrapper.
+Guest users can see navigation but remain subject to
 page permissions; an RBAC 403 is not a missing route.
 
 Restart the source dev server after changing configuration or schema visibility.
 Re-export and restart RHDH after changing dynamic plugins. The local development
 guide in automation-portal-local documents workspace/packed exports, the full
 navigation example, cache validators, and non-destructive refresh steps.
+
+## Header Create actions and optional RHDH integration
+
+Contributors declare Create destinations using `AppHeaderActionBlueprint` from
+`@ansible/portal-extension-api/alpha`. The shared provider binds declaration IDs
+and ownership; `useNativeAppHeaderActions('create')` resolves installed pages,
+effective route overrides, optional configuration gates, and required permissions.
+Only allow decisions expose actions. Missing APIs, unsafe paths, foreign page
+ownership, disabled destinations, and permission errors omit them. Pages and
+backend handlers must still enforce their own authorization.
+
+The shared SDK `CreateActionMenu` renders zero, one, or multiple destinations.
+The source header consumes it directly. In RHDH, install the optional
+`@ansible/portal-rhdh` native feature alongside the platform global-header feature.
+Only this adapter depends on the public RHDH header Blueprints; generic SDK
+contracts and contributor packages remain independent of them.
+
+Merge these entries into the deployment's existing `app.extensions` list when
+using Create and AAP logout together:
+
+```yaml
+app:
+  extensions:
+    - gh-component:global-header/self-service-button: false
+    - gh-menu-item:global-header/logout: false
+    - gh-menu-item:portal-rhdh/aap-logout: true
+```
+
+The Create adapter is enabled by default. AAP logout is disabled by default and
+requires the separate `@ansible/aap-app-auth` native module, backend auth provider,
+and browser-reachable AAP connection configuration. For Create-only deployments,
+disable only the stock self-service button and keep stock logout unchanged.
+Do not overwrite other auth or navigation entries while merging this list.
+
+The adapter lazily mounts the existing `AAPLogoutButton` in the native profile
+menu. It clears Portal auth and redirects this browser to AAP gateway logout;
+legacy `global.header/profile` mount-point YAML is not its registration mechanism.
+This integration does not change OAuth token-exchange handling or resolve
+intermittent transport failures during initial sign-in.
+
+The existing logout component waits for identity sign-out before selecting the
+AAP logout destination. This prevents the identity proxy's final redirect from
+overwriting the gateway redirect. Transport failure during AAP token revocation
+is still reported by the auth backend; a visible logged-out browser does not
+prove successful server-side token revocation.
+
+See the [Create authoring example](portal-sdk-plugin-author-guide.md#declaring-a-create-destination)
+and [RHDH adapter reference](../plugins/portal-rhdh.md). Re-export the affected host,
+adapter, and contributors after shared header-contract changes. Header integration
+is verified on the agreed `next-2.1` baseline, not every RHDH version.
 
 ## Task history and RBAC
 

@@ -10,7 +10,9 @@ where versioned packages apply.
 
 ### Added
 
-- **Portal development harness** supports optional full/scaffolder/core source-app composition and explicit additional workspace frontend discovery. Local RHDH development uses matching export/install selections and isolated installation roots; these conveniences do not introduce production profiles or npm publication requirements. The source header omits Create when its Templates adapter is absent.
+- **Portal header actions** use native, owner-bound Create declarations with installed-page, configuration, and permission checks. Source and RHDH consumers share the menu presentation. The optional `@ansible/portal-rhdh` package isolates public RHDH header Blueprint dependencies and adds opt-in native AAP logout; it does not change OAuth token-exchange behavior.
+
+- **Portal development harness** supports optional full/scaffolder/core source-app composition and explicit additional workspace frontend discovery. Local RHDH development uses matching export/install selections and isolated installation roots; these conveniences do not introduce production profiles or npm publication requirements. The source header omits Create when no eligible destination is declared.
 
 - **Portal landing route** supports `portal.landingPage` for an exact installed NFS page path. Without an override, `/` opens Templates only when installed; invalid or unavailable destinations show a neutral host fallback. Destination permission checks remain unchanged.
 
@@ -37,6 +39,8 @@ where versioned packages apply.
 - **Launch credential normalization:** `credential_type` is only set when the type can be resolved from the credential or its `summary_fields`; it is no longer defaulted to `0`, avoiding spurious duplicate-type detection when metadata is missing.
 
 ### Fixed
+
+- **AAP logout** waits for Portal identity sign-out before selecting the gateway logout destination, preventing a later identity redirect from overwriting it.
 
 - **Portal backend authorization** resolves trusted AAP memberships consistently across operation and registration transports, enforces declared entitlements server-side, and authorizes APME interactive workflows before gateway forwarding or SCM credential resolution. Any granted membership enables shared capabilities, subject to RBAC. Git repositories no longer require AAP ownership annotations or catalog namespace mappings; new manual entries use `default`, without rewriting existing records.
 

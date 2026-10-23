@@ -44,7 +44,9 @@ const AAPLogoutButtonInner = () => {
       // Ignore if not logged into AAP
     }
 
-    identityApi.signOut().catch(error => errorApi.post(error));
+    // The identity proxy navigates when sign-out completes. Let that settle
+    // before selecting AAP logout so its redirect cannot overwrite ours.
+    await identityApi.signOut().catch(error => errorApi.post(error));
 
     const aapHost = config
       .getOptionalString('ansible.rhaap.baseUrl')
